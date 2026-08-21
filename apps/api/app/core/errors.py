@@ -39,3 +39,8 @@ class ConflictError(AppError):
 class DomainValidationError(AppError):
     def __init__(self, code: str, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(code, message, 422, details)
+
+
+class ServiceUnavailableError(AppError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(code, message, 503)

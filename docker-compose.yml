@@ -24,6 +24,9 @@ services:
       JHWORKS_JWT_SECRET: ${JHWORKS_JWT_SECRET:-local-compose-secret-change-me}
       JHWORKS_FRONTEND_ORIGIN: http://localhost:3000
       JHWORKS_COOKIE_SECURE: "false"
+      JHWORKS_OPENAI_API_KEY: ${JHWORKS_OPENAI_API_KEY:-}
+      JHWORKS_OPENAI_MODEL: ${JHWORKS_OPENAI_MODEL:-gpt-5.4-mini}
+      JHWORKS_AI_REVIEW_TIMEOUT_SECONDS: ${JHWORKS_AI_REVIEW_TIMEOUT_SECONDS:-20}
     depends_on:
       db:
         condition: service_healthy

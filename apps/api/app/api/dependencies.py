@@ -4,6 +4,8 @@ from fastapi import Cookie, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalReviewProvider
+from app.ai.openai_approval_review import OpenAIApprovalReviewProvider
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.errors import AuthenticationError
@@ -32,3 +34,19 @@ def get_current_employee(
 
 
 CurrentEmployee = Annotated[Employee, Depends(get_current_employee)]
+
+
+def get_approval_review_provider() -> ApprovalReviewProvider:
+    settings = get_settings()
+    api_key = settings.openai_api_key
+    secret = api_key.get_secret_value() if api_key else ""
+    if not secret:
+        return UnavailableApprovalReviewProvider()
+    return OpenAIApprovalReviewProvider(
+        api_key=secret,
+        model=settings.openai_model,
+        timeout_seconds=settings.ai_review_timeout_seconds,
+    )
+
+
+AIReviewProvider = Annotated[ApprovalReviewProvider, Depends(get_approval_review_provider)]

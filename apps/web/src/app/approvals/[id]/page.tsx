@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from '@/components/app-shell';
+import { AIReviewPanel } from '@/components/ai-review-panel';
 import { StatusBadge } from '@/components/status-badge';
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
@@ -129,6 +130,12 @@ export default function ApprovalDetailPage() {
           </section>
 
           {trip && <TripDetails trip={trip} amount={approval.amount} />}
+
+          <AIReviewPanel
+            approval={approval}
+            canReview={Boolean(isAuthor && approval.status === 'DRAFT')}
+            key={`${approval.id}:${approval.version}`}
+          />
 
           {error && <p className="error-banner">{error}</p>}
 

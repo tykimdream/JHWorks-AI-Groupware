@@ -98,3 +98,52 @@ export interface ApprovalDraftInput {
   version?: number;
 }
 
+export type ReviewStatus = 'PASS' | 'NEEDS_REVISION';
+export type ReviewSource = 'DETERMINISTIC' | 'LLM';
+export type ReviewSeverity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH';
+export type ReviewCategory = 'COMPLETENESS' | 'CLARITY' | 'WRITING' | 'RISK';
+export type ReviewField =
+  | 'document'
+  | 'title'
+  | 'content'
+  | 'amount'
+  | 'details.destination'
+  | 'details.startDate'
+  | 'details.endDate'
+  | 'details.costBreakdown'
+  | 'details.clientName'
+  | 'details.visitPurpose'
+  | 'attachmentMetadata';
+
+export interface AIReviewIssue {
+  code: string;
+  source: ReviewSource;
+  severity: ReviewSeverity;
+  category: ReviewCategory;
+  field: ReviewField;
+  message: string;
+  suggestion: string | null;
+}
+
+export interface AIReviewUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface AIReview {
+  approvalId: string;
+  approvalVersion: number;
+  currentApprovalVersion: number;
+  isStale: boolean;
+  status: ReviewStatus;
+  score: number;
+  issues: AIReviewIssue[];
+  revisedContent: string | null;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  usage: AIReviewUsage;
+  latencyMs: number;
+  reviewedAt: string;
+}

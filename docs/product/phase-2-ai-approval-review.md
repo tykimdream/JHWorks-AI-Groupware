@@ -1,6 +1,6 @@
 # Phase 2 — AI Approval Review
 
-상태: **구현 완료, live model smoke test 대기 (2026-08-21)**
+상태: **완료 (2026-08-21)**
 
 ## 1. 목표
 
@@ -139,6 +139,20 @@ LLM output은 다음 항목으로 제한한다.
 - Prompt Injection 형태의 문구가 포함된 문서
 
 CI에서는 외부 API를 호출하지 않고 결정적 검사, provider contract와 결과 병합을 fake provider로 검증한다. 실제 모델 평가는 명시적인 별도 명령으로 실행하고 model과 prompt version별 결과를 비교한다.
+
+### Live model smoke test
+
+2026-08-21에 local API를 통해 실제 OpenAI 호출을 1회 검증했다.
+
+- 요청 모델: `gpt-5.4-mini`
+- 응답 모델: `gpt-5.4-mini-2026-03-17`
+- Prompt version: `approval-review-v1`
+- 결과: HTTP 200, `NEEDS_REVISION`, score 69, `isStale=false`
+- 사용량: input 550, output 275, total 825 tokens
+- 응답 시간: 4,619 ms
+- 확인 항목: Structured Output parsing, issue 분류, 서버 점수 계산, token/latency metadata, 선택적 수정 문안
+
+이 값은 단일 local smoke test의 관측값이며 성능 보장이나 품질 기준선으로 사용하지 않는다. 회귀 품질은 별도 평가 dataset을 반복 실행해 model과 prompt version별로 비교한다.
 
 ## 10. 완료 조건
 

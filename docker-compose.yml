@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jhworks}
+      POSTGRES_USER: ${POSTGRES_USER:-jhworks}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jhworks-local}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jhworks} -d ${POSTGRES_DB:-jhworks}"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - jhworks-postgres:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      JHWORKS_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jhworks}:${POSTGRES_PASSWORD:-jhworks-local}@db:5432/${POSTGRES_DB:-jhworks}
+      JHWORKS_JWT_SECRET: ${JHWORKS_JWT_SECRET:-local-compose-secret-change-me}
+      JHWORKS_FRONTEND_ORIGIN: http://localhost:3000
+      JHWORKS_COOKIE_SECURE: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  jhworks-postgres:

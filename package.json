@@ -11,6 +11,7 @@
     "lint:api": "cd apps/api && uv run ruff check app tests alembic",
     "lint:web": "pnpm --filter @jhworks/web lint",
     "test:api": "cd apps/api && uv run pytest",
+    "eval:ai-review": "cd apps/api && uv run python -m app.evals.approval_review",
     "type-check:api": "cd apps/api && uv run mypy app tests",
     "type-check:web": "pnpm --filter @jhworks/web type-check",
     "validate": "pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web"

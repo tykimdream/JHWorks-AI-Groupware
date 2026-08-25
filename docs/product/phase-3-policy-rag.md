@@ -156,7 +156,7 @@ POST /api/v1/policies/search
 - Retrieval dataset: 6/6 hit, hit rate@4 `1.0`
 - PostgreSQL 17 + pgvector 0.8.6: migration, HNSW index, 10 section indexing과 cosine query 확인
 - Review model: `gpt-5.4-mini-2026-03-17`
-- Prompt version: `approval-review-v3-policy-rag`
+- Prompt version: `approval-review-v5-actionable-revision`
 - End-to-end 결과: HTTP 200, `READY`, `NEEDS_REVISION`, score 52
 - 검출·인용: 숙박비 초과 → `TRAVEL-1`, 교통비 증빙 누락 → `TRAVEL-2`
 - 최종 smoke usage: retrieval 204 tokens, generation 1,654 tokens

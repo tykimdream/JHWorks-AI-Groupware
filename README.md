@@ -18,7 +18,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - FastAPI integration test와 Next.js production build 검증
 - 작성자 전용 `AI로 검토하기`와 Structured Output
 - 일반 코드의 필수 field·날짜·금액 검사와 LLM 의미 검토 분리
-- 문서 품질 issue, 서버 계산 점수와 선택적인 수정 문안
+- 문서 품질 issue, 서버 계산 점수와 편집·즉시 반영 가능한 AI 수정 예시
 - 문서 version 기반 stale 결과 차단
 - model, prompt version, latency와 token usage 추적
 - OpenAI embedding과 PostgreSQL `pgvector` 기반 정책 section 검색

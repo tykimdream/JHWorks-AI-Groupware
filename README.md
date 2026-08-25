@@ -186,14 +186,14 @@ pnpm eval:policy-rag
 - **Structured Output**: OpenAI Responses API와 Pydantic schema로 출력 형식을 제한하고 서버 domain validation을 다시 수행한다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md)에 기록한다.
 
 ## Roadmap
 
 1. Phase 1 — Minimal Groupware ✅
 2. Phase 2 — Structured AI Approval Review ✅
 3. Phase 3 — Policy RAG ✅
-4. Phase 4 — AI Approval Draft
+4. Phase 4 — AI Approval Draft 🚧
 5. Phase 5~6 — Tool Calling, Agent workflow, Human-in-the-loop
 6. Phase 7~8 — Leave and Expense Agent
 7. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio

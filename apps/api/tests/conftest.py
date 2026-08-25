@@ -22,6 +22,14 @@ from app.ai.approval_review import (
     ReviewDocument,
     SemanticReviewOutput,
 )
+from app.ai.leave_assistant import (
+    LeaveAssistantCandidate,
+    LeaveAssistantIntent,
+    LeaveAssistantProviderError,
+    LeaveAssistantProviderInput,
+    LeaveAssistantProviderResult,
+    LeaveAssistantProviderUsage,
+)
 from app.ai.policy_embedding import (
     EmbeddingResult,
     EmbeddingUsage,
@@ -38,6 +46,7 @@ from app.ai.work_assistant import (
 from app.api.dependencies import (
     get_approval_draft_provider,
     get_approval_review_provider,
+    get_leave_assistant_provider,
     get_policy_embedding_provider,
     get_work_assistant_provider,
 )
@@ -93,6 +102,40 @@ class FakeApprovalDraftProvider:
             model="fake-draft-model",
             usage=DraftProviderUsage(input_tokens=80, output_tokens=40, total_tokens=120),
             latency_ms=20,
+        )
+
+
+class FakeLeaveAssistantProvider:
+    def __init__(self) -> None:
+        self.candidate = LeaveAssistantCandidate(
+            intent=LeaveAssistantIntent.RECOMMEND_DATES,
+            search_start=None,
+            search_end=None,
+            requested_days=None,
+        )
+        self.should_fail = False
+        self.inputs: list[LeaveAssistantProviderInput] = []
+        self.safety_identifiers: list[str] = []
+
+    def structure(
+        self,
+        provider_input: LeaveAssistantProviderInput,
+        safety_identifier: str,
+    ) -> LeaveAssistantProviderResult:
+        if self.should_fail:
+            raise LeaveAssistantProviderError("fake provider failure")
+        self.inputs.append(provider_input)
+        self.safety_identifiers.append(safety_identifier)
+        return LeaveAssistantProviderResult(
+            candidate=self.candidate,
+            provider="fake",
+            model="fake-leave-model",
+            usage=LeaveAssistantProviderUsage(
+                input_tokens=70,
+                output_tokens=20,
+                total_tokens=90,
+            ),
+            latency_ms=18,
         )
 
 
@@ -201,6 +244,11 @@ def fake_draft_provider() -> FakeApprovalDraftProvider:
 
 
 @pytest.fixture
+def fake_leave_assistant_provider() -> FakeLeaveAssistantProvider:
+    return FakeLeaveAssistantProvider()
+
+
+@pytest.fixture
 def fake_embedding_provider() -> FakePolicyEmbeddingProvider:
     return FakePolicyEmbeddingProvider()
 
@@ -214,6 +262,7 @@ def fake_work_assistant_provider() -> FakeWorkAssistantProvider:
 def client(
     session_factory: sessionmaker[Session],
     fake_draft_provider: FakeApprovalDraftProvider,
+    fake_leave_assistant_provider: FakeLeaveAssistantProvider,
     fake_review_provider: FakeApprovalReviewProvider,
     fake_embedding_provider: FakePolicyEmbeddingProvider,
     fake_work_assistant_provider: FakeWorkAssistantProvider,
@@ -224,6 +273,9 @@ def client(
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_approval_draft_provider] = lambda: fake_draft_provider
+    app.dependency_overrides[get_leave_assistant_provider] = (
+        lambda: fake_leave_assistant_provider
+    )
     app.dependency_overrides[get_approval_review_provider] = lambda: fake_review_provider
     app.dependency_overrides[get_policy_embedding_provider] = lambda: fake_embedding_provider
     app.dependency_overrides[get_work_assistant_provider] = lambda: fake_work_assistant_provider

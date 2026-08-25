@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.ai.approval_draft import ApprovalDraftProvider, UnavailableApprovalDraftProvider
 from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalReviewProvider
+from app.ai.leave_assistant import LeaveAssistantProvider, UnavailableLeaveAssistantProvider
 from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
 from app.ai.openai_approval_review import OpenAIApprovalReviewProvider
+from app.ai.openai_leave_assistant import OpenAILeaveAssistantProvider
 from app.ai.openai_policy_embedding import OpenAIPolicyEmbeddingProvider
 from app.ai.openai_work_assistant import OpenAIWorkAssistantProvider
 from app.ai.policy_embedding import PolicyEmbeddingProvider, UnavailablePolicyEmbeddingProvider
@@ -72,6 +74,24 @@ def get_approval_draft_provider() -> ApprovalDraftProvider:
 
 
 AIApprovalDraftProvider = Annotated[ApprovalDraftProvider, Depends(get_approval_draft_provider)]
+
+
+def get_leave_assistant_provider() -> LeaveAssistantProvider:
+    settings = get_settings()
+    api_key = settings.openai_api_key
+    secret = api_key.get_secret_value() if api_key else ""
+    if not secret:
+        return UnavailableLeaveAssistantProvider()
+    return OpenAILeaveAssistantProvider(
+        api_key=secret,
+        model=settings.openai_model,
+        timeout_seconds=settings.ai_review_timeout_seconds,
+    )
+
+
+LeaveAssistantProviderDependency = Annotated[
+    LeaveAssistantProvider, Depends(get_leave_assistant_provider)
+]
 
 
 def get_work_assistant_provider() -> WorkAssistantProvider:

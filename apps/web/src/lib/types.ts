@@ -333,3 +333,34 @@ export interface LeaveAvailability {
   days: LeaveAvailabilityDay[];
   reasons: LeaveAvailabilityReason[];
 }
+
+export type LeaveAssistantIntent = 'CHECK_DATES' | 'RECOMMEND_DATES' | 'UNSUPPORTED';
+export type LeaveAssistantStatus = 'NEEDS_INPUT' | 'READY' | 'UNSUPPORTED';
+
+export interface LeaveAssistantQuestion {
+  field: string;
+  prompt: string;
+}
+
+export interface LeaveAssistantQuery {
+  intent: LeaveAssistantIntent;
+  searchStart: string | null;
+  searchEnd: string | null;
+  requestedDays: string | null;
+}
+
+export interface LeaveAssistantResponse {
+  status: LeaveAssistantStatus;
+  assistantMessage: string;
+  query: LeaveAssistantQuery;
+  missingFields: string[];
+  questions: LeaveAssistantQuestion[];
+  availability: LeaveAvailability | null;
+  policyContext: PolicySearchResponse;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  usage: AIReviewUsage;
+  latencyMs: number;
+  generatedAt: string;
+}

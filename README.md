@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 7 — Deterministic Leave Availability까지 완료했다.** 근태·휴가를 정식 도메인으로 만들고, 휴가 전자결재 상태 전이와 잔여 일수·업무 일정을 이용한 결정적 가능일 탐색까지 연결했다.
+**Phase 8 — Grounded Leave AI Assistant까지 완료했다.** 근태·휴가를 정식 도메인으로 만들고, 자연어 휴가 질문을 실제 날짜로 구조화한 뒤 결정적 가능일과 활성 정책 근거를 설명한다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -47,8 +47,13 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 잔여 연차·주말·휴무일·회사 행사·프로젝트·팀 휴가를 결합한 `/attendance/leave-availability`
 - 가능·주의·제외 날짜 근거와 충돌 없는 후보 우선 정렬
 - 추천 후보에서 휴가 전자결재 날짜·유형을 자동 입력하는 사용자 흐름
+- `Asia/Seoul` 기준 자연어 날짜·탐색 범위·희망 일수 Structured Output
+- 여러 round 후속 질문과 실제 날짜가 명시된 읽기 전용 휴가 상담
+- 활성 휴가 정책 RAG와 결정적 availability 결과를 분리한 grounded 설명
+- 휴일·프로젝트·잔여 부족·prompt injection에서도 서버 reason code를 유지하는 경계
+- 휴가 상담 provider/model/prompt version/usage/latency 관측성
 
-쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. AI는 업무 데이터를 조회하고 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
+휴가 쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. 휴가 상담은 읽기 전용이며 사용자의 명시적 확인 없이 데이터를 저장하거나 문서를 제출하지 않는다.
 
 ## Why This Problem
 
@@ -74,6 +79,7 @@ FastAPI modular monolith
     ├── Attendance calendar + yearly leave account
     ├── Transactional leave approval workflow
     ├── Deterministic leave availability engine
+    ├── Grounded leave request structuring + policy RAG explanation
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
@@ -139,7 +145,7 @@ docker compose exec api python -m app.scripts.index_policies
 
 API container가 migration과 idempotent seed를 실행한 뒤 시작한다.
 
-API key가 없어도 일반 결재 기능은 모두 사용할 수 있다. AI 검토만 안전하게 `503 AI_REVIEW_UNAVAILABLE`로 실패하며 Draft는 변경되지 않는다.
+API key가 없어도 일반 결재 기능은 모두 사용할 수 있다. AI 기능은 각 기능별 안전한 `503`으로 실패하며 업무 데이터는 변경되지 않는다.
 
 ## Local Development
 
@@ -193,6 +199,7 @@ pnpm eval:ai-review
 pnpm eval:policy-rag
 pnpm eval:approval-draft
 pnpm eval:work-assistant
+pnpm eval:leave-assistant
 ```
 
 ## Security Boundary
@@ -208,6 +215,7 @@ pnpm eval:work-assistant
 - 업무 조회 Assistant에는 읽기 전용 allowlist Tool만 제공하고 arbitrary employee ID를 입력받지 않는다.
 - LLM이 선택한 Tool 이름과 인자는 서버 registry와 Pydantic schema를 다시 통과해야 한다.
 - 현재 demo auth는 local 실행용이다. Production에는 secret manager, secure cookie, CSRF 대응, account lifecycle과 SSO 검토가 필요하다.
+- 휴가 상담 모델 schema에는 상태·차감·충돌·후보·citation·쓰기 명령이 없고, 서버 계산 결과만 사용자에게 설명한다.
 
 ## Technical Decisions
 
@@ -225,9 +233,10 @@ pnpm eval:work-assistant
 - **Attendance before recommendation**: AI가 날짜를 추측하지 않도록 연도별 휴가 계정과 전사·부서·팀 일정을 먼저 application domain으로 만든다.
 - **Server-owned leave accounting**: 클라이언트가 보낸 차감 일수를 신뢰하지 않고 업무 캘린더로 다시 계산하며 결재와 휴가 계정을 함께 commit한다.
 - **Deterministic availability**: 휴가 후보와 충돌 여부는 LLM이 아니라 actor 범위의 휴가 계정과 일정으로 계산하고 근거 코드를 함께 반환한다.
+- **Grounded leave conversation**: LLM은 상대 날짜와 의도만 구조화하고 여러 번의 모호성 질문, 정책 allowlist와 결정적 계산은 서버가 담당한다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md)에 기록한다.
 
 ## Roadmap
 
@@ -238,8 +247,9 @@ pnpm eval:work-assistant
 5. Phase 5 — Read-only Enterprise Tool Calling ✅
 6. Phase 6 — Attendance and Leave Workflow ✅
 7. Phase 7 — Deterministic Leave Availability ✅
-8. Phase 8 — Leave AI Assistant and Confirmed Write Tools
-9. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
+8. Phase 8 — Grounded Leave AI Assistant ✅
+9. Phase 9 — Confirmed Leave Draft and Submit Tools
+10. Phase 10~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
 ## Contributing
 

@@ -134,7 +134,7 @@ export const LeaveAvailabilityExplorer = () => {
   );
 };
 
-const AvailabilityResult = ({ result }: { result: LeaveAvailability }) => (
+export const AvailabilityResult = ({ result }: { result: LeaveAvailability }) => (
   <>
     <section className="availability-summary">
       <div>

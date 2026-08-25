@@ -269,3 +269,67 @@ export interface WorkAssistantResponse {
   latencyMs: number;
   answeredAt: string;
 }
+
+export type AttendanceImpact = 'NONE' | 'CAUTION' | 'BLOCKED';
+export type LeaveAvailabilityStatus =
+  | 'READY'
+  | 'NO_CANDIDATE'
+  | 'INSUFFICIENT_BALANCE'
+  | 'ACCOUNT_UNAVAILABLE';
+export type LeaveCandidateStatus = 'AVAILABLE' | 'CAUTION';
+export type LeaveAvailabilityReasonCode =
+  | 'NO_CONFLICT'
+  | 'WEEKEND'
+  | 'HOLIDAY'
+  | 'COMPANY_EVENT'
+  | 'PROJECT_MILESTONE'
+  | 'TEAM_LEAVE'
+  | 'OWN_LEAVE'
+  | 'INSUFFICIENT_BALANCE'
+  | 'ACCOUNT_UNAVAILABLE'
+  | 'NO_CANDIDATE';
+
+export interface LeaveBalance {
+  year: number;
+  grantedDays: string;
+  carriedOverDays: string;
+  usedDays: string;
+  pendingDays: string;
+  availableDays: string;
+  version: number;
+  updatedAt: string;
+}
+
+export interface LeaveAvailabilityReason {
+  code: LeaveAvailabilityReasonCode;
+  impact: AttendanceImpact;
+  message: string;
+  eventIds: string[];
+}
+
+export interface LeaveAvailabilityDay {
+  date: string;
+  isWorkday: boolean;
+  isSelectable: boolean;
+  reasons: LeaveAvailabilityReason[];
+}
+
+export interface LeaveAvailabilityCandidate {
+  startDate: string;
+  endDate: string;
+  workDates: string[];
+  requestedDays: string;
+  status: LeaveCandidateStatus;
+  reasons: LeaveAvailabilityReason[];
+}
+
+export interface LeaveAvailability {
+  status: LeaveAvailabilityStatus;
+  rangeStart: string;
+  rangeEnd: string;
+  requestedDays: string;
+  leaveBalance: LeaveBalance | null;
+  candidates: LeaveAvailabilityCandidate[];
+  days: LeaveAvailabilityDay[];
+  reasons: LeaveAvailabilityReason[];
+}

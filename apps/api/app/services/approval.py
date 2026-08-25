@@ -1,8 +1,8 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -25,6 +25,7 @@ from app.models.enums import (
     AttendanceImpact,
 )
 from app.schemas.approval import ApprovalCreate, ApprovalDecision, ApprovalUpdate
+from app.services.leave_calendar import calculate_leave_days
 
 
 def _approval_query() -> Select[tuple[Approval]]:
@@ -87,52 +88,6 @@ def _parse_detail_date(value: object) -> date | None:
         return None
 
 
-def _calculate_leave_days(
-    db: Session,
-    employee: Employee,
-    start_date: date,
-    end_date: date,
-    leave_unit: str,
-) -> Decimal | None:
-    if start_date > end_date or start_date.year != end_date.year:
-        return None
-
-    holiday_events = db.scalars(
-        select(WorkCalendarEvent).where(
-            WorkCalendarEvent.category == AttendanceEventCategory.HOLIDAY,
-            WorkCalendarEvent.status == AttendanceEventStatus.CONFIRMED,
-            WorkCalendarEvent.start_date <= end_date,
-            WorkCalendarEvent.end_date >= start_date,
-            or_(
-                WorkCalendarEvent.scope == AttendanceEventScope.COMPANY,
-                WorkCalendarEvent.department_id == employee.department_id,
-            ),
-        )
-    )
-    holiday_dates: set[date] = set()
-    for event in holiday_events:
-        current = max(start_date, event.start_date)
-        last = min(end_date, event.end_date)
-        while current <= last:
-            holiday_dates.add(current)
-            current += timedelta(days=1)
-
-    business_days = 0
-    current = start_date
-    while current <= end_date:
-        if current.weekday() < 5 and current not in holiday_dates:
-            business_days += 1
-        current += timedelta(days=1)
-
-    if leave_unit in {"HALF_DAY_AM", "HALF_DAY_PM"}:
-        if start_date != end_date or business_days != 1:
-            return None
-        return Decimal("0.5")
-    if leave_unit != "FULL_DAY" or business_days == 0:
-        return None
-    return Decimal(business_days).quantize(Decimal("0.1"))
-
-
 def _normalized_details(
     db: Session,
     employee: Employee,
@@ -148,7 +103,7 @@ def _normalized_details(
     leave_unit = normalized.get("leaveUnit")
     calculated = None
     if start_date is not None and end_date is not None and isinstance(leave_unit, str):
-        calculated = _calculate_leave_days(db, employee, start_date, end_date, leave_unit)
+        calculated = calculate_leave_days(db, employee, start_date, end_date, leave_unit)
     normalized["requestedDays"] = str(calculated) if calculated is not None else None
     return normalized
 
@@ -190,7 +145,7 @@ def _validate_for_submit(db: Session, approval: Approval) -> None:
             elif start_date.year != end_date.year:
                 errors["details.endDate"] = "Leave must start and end in the same year"
             elif isinstance(leave_unit, str):
-                requested_days = _calculate_leave_days(
+                requested_days = calculate_leave_days(
                     db, approval.author, start_date, end_date, leave_unit
                 )
                 if requested_days is None:

@@ -15,6 +15,14 @@ import type {
 
 interface ApprovalFormProps {
   initial?: Approval;
+  preset?: ApprovalFormPreset;
+}
+
+export interface ApprovalFormPreset {
+  type: 'LEAVE';
+  startDate: string;
+  endDate: string;
+  leaveUnit: LeaveUnit;
 }
 
 const blankTripDetails: BusinessTripDetails = {
@@ -45,13 +53,26 @@ const blankLeaveDetails: LeaveDetails = {
 
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
-export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
+export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
   const router = useRouter();
   const initialTrip = initial?.details.kind === 'BUSINESS_TRIP' ? initial.details : blankTripDetails;
-  const initialLeave = initial?.details.kind === 'LEAVE' ? initial.details : blankLeaveDetails;
-  const [type, setType] = useState<ApprovalType>(initial?.type ?? 'BUSINESS_TRIP');
-  const [title, setTitle] = useState(initial?.title ?? '');
-  const [content, setContent] = useState(initial?.content ?? '');
+  const initialLeave =
+    initial?.details.kind === 'LEAVE'
+      ? initial.details
+      : {
+          ...blankLeaveDetails,
+          startDate: preset?.startDate ?? '',
+          endDate: preset?.endDate ?? '',
+          leaveUnit: preset?.leaveUnit ?? 'FULL_DAY',
+        };
+  const [type, setType] = useState<ApprovalType>(initial?.type ?? preset?.type ?? 'BUSINESS_TRIP');
+  const [title, setTitle] = useState(
+    initial?.title ?? (preset ? `${preset.startDate} 휴가 신청` : ''),
+  );
+  const [content, setContent] = useState(
+    initial?.content ??
+      (preset ? '업무 일정과 인수인계를 확인한 후 연차 사용을 신청합니다.' : ''),
+  );
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? '');
   const [destination, setDestination] = useState(initialTrip.destination ?? '');
   const [tripStartDate, setTripStartDate] = useState(initialTrip.startDate ?? '');

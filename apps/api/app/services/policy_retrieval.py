@@ -1,4 +1,5 @@
 import hashlib
+import json
 import logging
 import math
 from collections.abc import Sequence
@@ -65,6 +66,21 @@ def _current_policies(db: Session, policy_type: PolicyType | None) -> list[Compa
     for policy in db.scalars(statement).unique():
         latest.setdefault(policy.policy_id, policy)
     return list(latest.values())
+
+
+def active_policy_fingerprint(db: Session, policy_type: PolicyType) -> str:
+    policies = _current_policies(db, policy_type)
+    canonical = [
+        {
+            "policyId": policy.policy_id,
+            "version": policy.version,
+            "effectiveFrom": policy.effective_from.isoformat(),
+            "contentHash": policy.content_hash,
+        }
+        for policy in sorted(policies, key=lambda item: (item.policy_id, item.version))
+    ]
+    encoded = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
 
 
 def index_active_policy_sections(

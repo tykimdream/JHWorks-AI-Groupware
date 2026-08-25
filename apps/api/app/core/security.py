@@ -50,6 +50,18 @@ class ApprovalDraftConfirmation:
     preview_hash: str
 
 
+@dataclass(frozen=True)
+class LeaveDraftConfirmation:
+    employee_id: str
+    confirmation_id: str
+    preview_hash: str
+    candidate_hash: str
+    account_version: int
+    calendar_fingerprint: str
+    manager_id: str
+    policy_fingerprint: str
+
+
 def create_approval_draft_confirmation_token(
     employee_id: str,
     confirmation_id: str,
@@ -95,4 +107,72 @@ def decode_approval_draft_confirmation_token(token: str) -> ApprovalDraftConfirm
         employee_id=employee_id,
         confirmation_id=confirmation_id,
         preview_hash=preview_hash,
+    )
+
+
+def create_leave_draft_confirmation_token(
+    employee_id: str,
+    confirmation_id: str,
+    preview_hash: str,
+    candidate_hash: str,
+    account_version: int,
+    calendar_fingerprint: str,
+    manager_id: str,
+    policy_fingerprint: str,
+) -> str:
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {
+        "sub": employee_id,
+        "jti": confirmation_id,
+        "preview_hash": preview_hash,
+        "candidate_hash": candidate_hash,
+        "account_version": account_version,
+        "calendar_fingerprint": calendar_fingerprint,
+        "manager_id": manager_id,
+        "policy_fingerprint": policy_fingerprint,
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.leave_draft_confirmation_ttl_minutes),
+        "type": "leave_draft_confirmation",
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_leave_draft_confirmation_token(token: str) -> LeaveDraftConfirmation:
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except jwt.PyJWTError as exc:
+        raise ConflictError(
+            "INVALID_LEAVE_CONFIRMATION",
+            "The leave draft confirmation is invalid or expired.",
+        ) from exc
+
+    required_strings = (
+        "sub",
+        "jti",
+        "preview_hash",
+        "candidate_hash",
+        "calendar_fingerprint",
+        "manager_id",
+        "policy_fingerprint",
+    )
+    if (
+        payload.get("type") != "leave_draft_confirmation"
+        or not all(isinstance(payload.get(key), str) for key in required_strings)
+        or not isinstance(payload.get("account_version"), int)
+    ):
+        raise ConflictError(
+            "INVALID_LEAVE_CONFIRMATION",
+            "The leave draft confirmation is invalid.",
+        )
+    return LeaveDraftConfirmation(
+        employee_id=payload["sub"],
+        confirmation_id=payload["jti"],
+        preview_hash=payload["preview_hash"],
+        candidate_hash=payload["candidate_hash"],
+        account_version=payload["account_version"],
+        calendar_fingerprint=payload["calendar_fingerprint"],
+        manager_id=payload["manager_id"],
+        policy_fingerprint=payload["policy_fingerprint"],
     )

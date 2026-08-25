@@ -1,10 +1,17 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
 import { AvailabilityResult } from '@/components/leave-availability-explorer';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
-import type { LeaveAssistantResponse } from '@/lib/types';
+import type {
+  Approval,
+  LeaveAssistantResponse,
+  LeaveAvailabilityCandidate,
+  LeaveDetails,
+  LeaveDraftPrepareResponse,
+} from '@/lib/types';
 
 const examples = [
   '다음 주 목요일과 금요일 연차 가능한지 알려줘.',
@@ -22,6 +29,7 @@ const dateRangeLabel = (result: LeaveAssistantResponse) => {
 };
 
 export const LeaveAssistant = () => {
+  const router = useRouter();
   const [input, setInput] = useState('');
   const [request, setRequest] = useState<string | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
@@ -29,6 +37,10 @@ export const LeaveAssistant = () => {
   const [result, setResult] = useState<LeaveAssistantResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [draftResult, setDraftResult] = useState<LeaveDraftPrepareResponse | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [isPreparingDraft, setIsPreparingDraft] = useState(false);
+  const [isConfirmingDraft, setIsConfirmingDraft] = useState(false);
 
   const reset = () => {
     setInput('');
@@ -37,6 +49,8 @@ export const LeaveAssistant = () => {
     setConversation([]);
     setResult(null);
     setError(null);
+    setDraftResult(null);
+    setDraftError(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -57,6 +71,7 @@ export const LeaveAssistant = () => {
       setRequest(nextRequest);
       setAnswers(nextAnswers);
       setResult(response);
+      setDraftResult(null);
       setConversation((current) => [
         ...current,
         { role: 'assistant', text: response.assistantMessage },
@@ -65,6 +80,46 @@ export const LeaveAssistant = () => {
       setError(getUserErrorMessage(caught, '휴가 상담 결과를 만들지 못했습니다.'));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const prepareDraft = async (candidate: LeaveAvailabilityCandidate) => {
+    setDraftError(null);
+    setDraftResult(null);
+    setIsPreparingDraft(true);
+    try {
+      const prepared = await apiFetch<LeaveDraftPrepareResponse>('/leave-draft-tool/prepare', {
+        method: 'POST',
+        body: JSON.stringify({
+          candidate,
+          leaveUnit: candidate.requestedDays === '0.5' ? 'HALF_DAY_AM' : 'FULL_DAY',
+        }),
+      });
+      setDraftResult(prepared);
+    } catch (caught: unknown) {
+      setDraftError(getUserErrorMessage(caught, '휴가 Draft 미리보기를 만들지 못했습니다.'));
+    } finally {
+      setIsPreparingDraft(false);
+    }
+  };
+
+  const confirmDraft = async () => {
+    if (!draftResult) return;
+    setDraftError(null);
+    setIsConfirmingDraft(true);
+    try {
+      const approval = await apiFetch<Approval>('/leave-draft-tool/confirm', {
+        method: 'POST',
+        body: JSON.stringify({
+          preview: draftResult.preview,
+          confirmationToken: draftResult.confirmationToken,
+        }),
+      });
+      router.push(`/approvals/${approval.id}`);
+    } catch (caught: unknown) {
+      setDraftError(getUserErrorMessage(caught, '휴가 Draft를 저장하지 못했습니다.'));
+    } finally {
+      setIsConfirmingDraft(false);
     }
   };
 
@@ -150,7 +205,90 @@ export const LeaveAssistant = () => {
           </p>
         </div>
       )}
-      {result?.availability && <AvailabilityResult result={result.availability} />}
+      {result?.availability && (
+        <AvailabilityResult
+          candidateActionDisabled={isPreparingDraft}
+          candidateActionLabel={isPreparingDraft ? '미리보기 준비 중…' : '이 날짜로 exact preview 만들기'}
+          onCandidateSelect={prepareDraft}
+          result={result.availability}
+        />
+      )}
+      {draftError && <p className="error-banner">{draftError}</p>}
+      {draftResult && (
+        <LeaveDraftPreview
+          isConfirming={isConfirmingDraft}
+          onCancel={() => setDraftResult(null)}
+          onConfirm={confirmDraft}
+          result={draftResult}
+        />
+      )}
+    </section>
+  );
+};
+
+const leaveUnitLabels = {
+  FULL_DAY: '종일 연차',
+  HALF_DAY_AM: '오전 반차',
+  HALF_DAY_PM: '오후 반차',
+} as const;
+
+const LeaveDraftPreview = ({
+  result,
+  isConfirming,
+  onCancel,
+  onConfirm,
+}: {
+  result: LeaveDraftPrepareResponse;
+  isConfirming: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) => {
+  const preview = result.preview;
+  const details = preview.approval.details as LeaveDetails;
+  return (
+    <section className="leave-draft-preview" aria-label="휴가 Draft exact preview">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">SIGNED EXACT PREVIEW</p>
+          <h2>저장 전 최종 확인</h2>
+        </div>
+        <span className="read-only-badge">아직 저장되지 않음</span>
+      </div>
+      <h3>{preview.approval.title}</h3>
+      <p>{preview.approval.content}</p>
+      <dl className="preview-detail-grid">
+        <div><dt>실제 날짜</dt><dd>{details.startDate} → {details.endDate}</dd></div>
+        <div><dt>차감</dt><dd>{preview.requestedDays}일</dd></div>
+        <div><dt>단위</dt><dd>{leaveUnitLabels[preview.leaveUnit]}</dd></div>
+        <div><dt>현재 가용 연차</dt><dd>{preview.availableDays}일</dd></div>
+        <div><dt>결재자</dt><dd>{preview.manager.name} · {preview.manager.position}</dd></div>
+        <div><dt>계정 version</dt><dd>v{preview.accountVersion}</dd></div>
+      </dl>
+      {preview.warnings.length > 0 && (
+        <div className="availability-notice">
+          {preview.warnings.map((warning) => <p key={warning.code}>{warning.message}</p>)}
+        </div>
+      )}
+      <div className="assistant-policy-evidence">
+        <h3>저장에 결합된 정책 근거</h3>
+        <div className="policy-citation-list">
+          {preview.policyContext.items.map((citation) => (
+            <article className="policy-citation" key={citation.citationKey}>
+              <div><strong>{citation.sectionTitle}</strong><code>{citation.citationKey}</code></div>
+              <p>{citation.excerpt}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+      <p className="subtle">
+        확인 시 연차 계정, 일정, 결재자, 활성 정책과 이 미리보기를 다시 검증합니다. 저장 결과는 DRAFT이며 자동 제출되지 않습니다.
+      </p>
+      <div className="leave-assistant-actions">
+        <button className="ghost-button" disabled={isConfirming} onClick={onCancel} type="button">취소</button>
+        <button className="primary-button" disabled={isConfirming} onClick={onConfirm} type="button">
+          {isConfirming ? '재검증 후 저장 중…' : '내용을 확인했고 Draft로 저장'}
+        </button>
+      </div>
     </section>
   );
 };

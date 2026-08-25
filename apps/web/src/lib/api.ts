@@ -33,6 +33,11 @@ const errorMessages: Record<string, string> = {
   VERSION_CONFLICT: '다른 변경이 먼저 저장되었습니다. 새로고침 후 다시 시도해주세요.',
   WORK_ASSISTANT_UNAVAILABLE: 'AI 업무 조회를 사용할 수 없습니다. 잠시 후 다시 시도해주세요.',
   LEAVE_ASSISTANT_UNAVAILABLE: 'AI 휴가 상담을 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
+  LEAVE_CANDIDATE_STALE: '선택한 휴가 후보가 더 이상 유효하지 않습니다. 다시 상담해주세요.',
+  LEAVE_DRAFT_STALE: '연차·일정·결재자 또는 정책이 변경되었습니다. 미리보기를 다시 만들어주세요.',
+  LEAVE_POLICY_UNAVAILABLE: '활성 휴가 정책 근거를 확인할 수 없어 Draft를 준비하지 않았습니다.',
+  LEAVE_PREVIEW_CHANGED: '확인한 휴가 미리보기가 변경되었습니다. 다시 준비해주세요.',
+  INVALID_LEAVE_CONFIRMATION: '휴가 Draft 확인 시간이 만료되었거나 확인 정보가 올바르지 않습니다.',
 };
 
 export const getUserErrorMessage = (error: unknown, fallback: string): string => {

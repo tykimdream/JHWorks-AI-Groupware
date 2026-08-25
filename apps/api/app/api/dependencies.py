@@ -9,7 +9,9 @@ from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalRe
 from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
 from app.ai.openai_approval_review import OpenAIApprovalReviewProvider
 from app.ai.openai_policy_embedding import OpenAIPolicyEmbeddingProvider
+from app.ai.openai_work_assistant import OpenAIWorkAssistantProvider
 from app.ai.policy_embedding import PolicyEmbeddingProvider, UnavailablePolicyEmbeddingProvider
+from app.ai.work_assistant import UnavailableWorkAssistantProvider, WorkAssistantProvider
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.errors import AuthenticationError
@@ -70,6 +72,24 @@ def get_approval_draft_provider() -> ApprovalDraftProvider:
 
 
 AIApprovalDraftProvider = Annotated[ApprovalDraftProvider, Depends(get_approval_draft_provider)]
+
+
+def get_work_assistant_provider() -> WorkAssistantProvider:
+    settings = get_settings()
+    api_key = settings.openai_api_key
+    secret = api_key.get_secret_value() if api_key else ""
+    if not secret:
+        return UnavailableWorkAssistantProvider()
+    return OpenAIWorkAssistantProvider(
+        api_key=secret,
+        model=settings.openai_model,
+        timeout_seconds=settings.ai_review_timeout_seconds,
+    )
+
+
+WorkAssistantProviderDependency = Annotated[
+    WorkAssistantProvider, Depends(get_work_assistant_provider)
+]
 
 
 def get_policy_embedding_provider() -> PolicyEmbeddingProvider:

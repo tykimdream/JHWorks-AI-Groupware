@@ -819,6 +819,75 @@ dd {
   background: #edf1f7;
 }
 
+.policy-review-status {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid #a9c6b7;
+  border-radius: 9px;
+  color: #214f3d;
+  background: #f1faf5;
+}
+
+.policy-review-status span,
+.policy-review-status small {
+  font-size: 12px;
+}
+
+.policy-review-status small {
+  grid-column: 2;
+  color: var(--muted);
+}
+
+.policy-status-not_indexed,
+.policy-status-unavailable {
+  border-color: #e5bb72;
+  color: #76530d;
+  background: #fff7df;
+}
+
+.policy-status-not_applicable {
+  border-color: var(--line);
+  color: var(--muted);
+  background: #f7f8fa;
+}
+
+.policy-citation-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.policy-citation {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #c9d9d0;
+  border-radius: 8px;
+  background: #f7fcf9;
+}
+
+.policy-citation div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.policy-citation code,
+.policy-citation small {
+  color: #557164;
+  font-size: 11px;
+}
+
+.policy-citation p {
+  margin: 0;
+  color: #34463e;
+  white-space: pre-wrap;
+}
+
 .revised-content {
   padding: 16px;
   border: 1px dashed #9aaccc;

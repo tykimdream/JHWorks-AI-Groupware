@@ -1,6 +1,6 @@
 # Phase 7 — Grounded Leave AI Assistant
 
-상태: **Checkpoint 14 완료 (2026-08-25)**
+상태: **Checkpoint 15 완료 (2026-08-25)**
 
 ## 1. 목표
 
@@ -94,7 +94,40 @@ calendar fingerprint, manager ID와 policy fingerprint를 결합한다. `POST /l
 테스트는 정상 exact preview, 확인 전 무변경, 만료, token/preview 변조, 다른 사용자, 임의 employeeId,
 account/calendar/manager/policy 변경, 중복 confirmation을 포함한다.
 
-## 7. 다음 체크포인트
+## 7. Checkpoint 15 — Durable Confirmed Leave Submit Agent
 
-Checkpoint 15는 Draft 저장 확인과 별도의 제출 preview·확인을 durable state로 관리하고, 두 번째 확인 뒤
-기존 submit service를 호출한다. 취소·만료·stale은 무변경으로 종료한다.
+`leave_agent_runs`는 상담 입력·후속 답변, 결정적 상담 결과, 두 개의 exact preview, confirmation 만료,
+재시도 횟수와 정제된 transition trace를 저장한다. 브라우저나 API process가 끊겨도 actor-scoped run ID로
+현재 중단점을 다시 읽을 수 있다.
+
+```text
+CONSULTING → NEEDS_INPUT ──answer──┐
+     │                            │
+     └──── CANDIDATES_READY ←─────┘
+                 ↓ prepare Draft
+     AWAITING_DRAFT_CONFIRMATION
+                 ↓ first confirmation
+            DRAFT_CREATED
+                 ↓ prepare submit
+    AWAITING_SUBMIT_CONFIRMATION
+       ├── cancel/expiry/stale → unchanged terminal state
+       └── second confirmation → SUBMITTING → SUBMITTED
+                                  └ failure → FAILED → retry
+```
+
+제출 preview는 Approval version, 서버 재계산 차감 일수, 현재 available/pending, LeaveAccount version,
+현재 manager와 candidate의 주의 사유를 포함한다. signed token에는 actor, run, Approval과 preview hash,
+Approval/계정 version, manager와 calendar fingerprint를 결합한다. 두 번째 확인 직전과 기존 submit
+service transaction 안에서 status/version/manager/account/calendar를 다시 검증한다.
+
+AI 상담으로 생성된 휴가 Draft는 일반 submit endpoint를 직접 호출할 수 없다. Agent confirmation snapshot을
+전달한 좁은 Tool만 기존 submit service를 실행한다. 동일 confirmation replay와 제출 완료 뒤 process 실패는
+PENDING Approval을 재조회해 한 번의 ApprovalLine과 한 번의 pending 연차 예약으로 수렴한다.
+
+trace는 `fromStatus`, `toStatus`, event, result code와 시각만 최대 100개 보존한다. 사용자 요청·답변,
+signed token, 이메일과 정책 원문은 trace에 넣지 않는다. 테스트는 정상, 취소, 만료, account/calendar/
+manager/approval stale, replay, provider/Tool 실패 재시도, token 변조, 다른 actor와 prompt injection을 포함한다.
+
+LangGraph의 durable execution도 검토했지만 고정된 workflow에 별도 checkpointer를 추가하면 application DB와
+상태가 이중화되고 승인·연차 변경과의 원자적 commit이 어려워진다. 현재는 SQLAlchemy 상태 머신을 선택했으며
+판단 근거와 재평가 조건은 [ADR-0001](../adr/0001-durable-leave-agent-state-machine.md)에 기록했다.

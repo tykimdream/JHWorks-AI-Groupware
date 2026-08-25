@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 2 — AI Approval Review까지 구현되었다.** 권한과 상태가 정확한 기준 업무 시스템 위에 제출 전 AI 문서 검토를 추가했다.
+**Phase 3 — Policy RAG까지 구현되었다.** 제출 전 AI 검토가 JHWorks의 가상 사내 규정을 검색하고 정확한 정책 section을 근거로 제시한다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -21,8 +21,13 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 문서 품질 issue, 서버 계산 점수와 선택적인 수정 문안
 - 문서 version 기반 stale 결과 차단
 - model, prompt version, latency와 token usage 추적
+- OpenAI embedding과 PostgreSQL `pgvector` 기반 정책 section 검색
+- `policyId + version + sectionId`가 포함된 검증 가능한 정책 인용
+- 숙박비 한도와 증빙처럼 계산 가능한 정책 rule의 결정적 검사
+- 허위 citation, 추측성 risk와 중복 issue의 서버 후처리
+- `READY`, `NOT_APPLICABLE`, `NOT_INDEXED`, `UNAVAILABLE` 검색 상태 표시
 
-Policy RAG, Tool Calling과 Agent는 아직 구현하지 않았다. Phase 2 AI Review는 회사 정책을 인용하거나 위반을 단정하지 않으며 Phase 3에서 정책 근거를 연결한다.
+Tool Calling과 Agent는 아직 구현하지 않았다. AI는 정책을 검색하고 문서를 검토할 수 있지만 원문을 자동 수정하거나 제출하지 않는다.
 
 ## Why This Problem
 
@@ -38,14 +43,15 @@ Next.js web
 FastAPI modular monolith
     ├── Authentication / Organization
     ├── Approval domain + Authorization
-    ├── Company Policy
-    ├── Deterministic review + OpenAI adapter
+    ├── Company Policy + structured policy rules
+    ├── Deterministic review + OpenAI adapters
+    ├── Policy retrieval + citation allowlist
     └── SQLAlchemy + Alembic
               ↓
-          PostgreSQL
+      PostgreSQL + pgvector
 ```
 
-AI Review는 OpenAI Responses API를 한 번 호출하고 Pydantic schema로 결과를 제한한다. RAG나 Agent framework는 아직 사용하지 않는다.
+AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산하고, LLM은 문서 의미와 검색된 정책의 관계를 판단한다. 아직 Agent framework는 사용하지 않는다.
 
 Repository structure:
 
@@ -93,6 +99,12 @@ cp .env.example .env
 docker compose up --build
 ```
 
+정책 RAG를 처음 사용할 때는 다른 terminal에서 active policy section을 한 번 색인한다.
+
+```bash
+docker compose exec api python -m app.scripts.index_policies
+```
+
 - Web: `http://localhost:3000`
 - API docs: `http://localhost:8000/docs`
 - API health: `http://localhost:8000/api/v1/health`
@@ -117,9 +129,16 @@ AI Review를 실행하려면 root `.env`에 다음 값을 설정한다.
 ```dotenv
 JHWORKS_OPENAI_API_KEY=your-api-key
 JHWORKS_OPENAI_MODEL=gpt-5.4-mini
+JHWORKS_POLICY_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 `.env`는 Git에 포함하지 않는다. API key는 browser에 전달되지 않고 FastAPI에서만 사용한다.
+
+최초 1회 또는 정책 내용·embedding model 변경 후 정책 인덱스를 갱신한다. 변경되지 않은 section은 다시 호출하지 않는다.
+
+```bash
+pnpm policy:index
+```
 
 두 terminal에서 실행한다.
 
@@ -142,11 +161,14 @@ pnpm validate
 
 ```bash
 pnpm eval:ai-review
+pnpm eval:policy-rag
 ```
 
 ## Security Boundary
 
 - LLM은 문서 의미와 표현만 검토하며 security boundary로 취급하지 않는다.
+- 검색된 policy section은 명령이 아닌 untrusted reference data로 취급한다.
+- 정책 issue는 검색 결과에 존재하는 citation key만 허용하고 원문 인용은 DB에서 구성한다.
 - backend service가 작성자와 지정 결재자를 검증한다.
 - UI에서 action을 숨겨도 backend 검증은 생략하지 않는다.
 - 실제 업무 실행용 idempotency와 confirmation token은 Agent phase에서 추가한다.
@@ -158,16 +180,19 @@ pnpm eval:ai-review
 - **Command endpoint**: 범용 status 수정 대신 업무 의도와 권한을 endpoint별로 강제한다.
 - **Optimistic concurrency**: 장시간 DB lock 없이 오래된 UI와 AI 결과의 덮어쓰기를 방지한다.
 - **Structured policy sections**: RAG 이전부터 `policyId + version + sectionId`를 안정적인 근거 식별자로 사용한다.
+- **Local policy source of truth**: 정책 원본은 application DB에 두고 embedding만 함께 저장한다.
+- **pgvector with SQLite fallback**: Production은 PostgreSQL cosine search, local/test의 작은 corpus는 application cosine search를 사용한다.
+- **Structured policy rules**: 숫자 한도와 증빙 조건은 LLM이 아니라 policy metadata와 일반 코드가 계산한다.
 - **Structured Output**: OpenAI Responses API와 Pydantic schema로 출력 형식을 제한하고 서버 domain validation을 다시 수행한다.
-- **No LangGraph yet**: Phase 2는 한 번의 입력→검토→출력으로 끝나므로 Agent workflow를 도입하지 않는다.
+- **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md)에 기록한다.
 
 ## Roadmap
 
 1. Phase 1 — Minimal Groupware ✅
 2. Phase 2 — Structured AI Approval Review ✅
-3. Phase 3 — Policy RAG
+3. Phase 3 — Policy RAG ✅
 4. Phase 4 — AI Approval Draft
 5. Phase 5~6 — Tool Calling, Agent workflow, Human-in-the-loop
 6. Phase 7~8 — Leave and Expense Agent

@@ -1,6 +1,6 @@
 # Phase 3 — Policy-grounded Approval Review
 
-상태: **구현 중 (2026-08-25)**
+상태: **완료 (2026-08-25)**
 
 ## 1. 목표
 
@@ -24,9 +24,9 @@
 | 영역 | 일반 코드 | Retrieval | LLM |
 | --- | --- | --- | --- |
 | 권한과 상태 | 작성자, DRAFT, version 검증 | 담당하지 않음 | 담당하지 않음 |
-| 결정적 검사 | 필수 field, 날짜 순서, 비용 합계 | 담당하지 않음 | 재계산하지 않음 |
+| 결정적 검사 | 필수 field, 날짜 순서, 비용 합계, 구조화 policy rule | 담당하지 않음 | 재계산하지 않음 |
 | 정책 후보 | 결재 유형 filter, active/effective version 제한 | 유사한 policy section 순위화 | 제공된 후보 밖 정책을 사용하지 않음 |
-| 정책 판단 | 인용 ID allowlist 검증 | 원문과 stable ID 제공 | 문서 의미와 검색된 정책 비교 |
+| 정책 판단 | 숫자 한도·증빙 조건 계산, 인용 ID allowlist 검증 | 원문과 stable ID 제공 | 문서 의미와 검색된 정책 비교 |
 | 데이터 변경 | 기존 명령 API만 가능 | 담당하지 않음 | 원문 수정·제출 권한 없음 |
 | 결과 표시 | 정확한 원문 발췌와 상태 반환 | score와 retrieval metadata 제공 | 한국어 issue와 수정 제안 생성 |
 
@@ -37,6 +37,7 @@
 - 단위: `PolicySection`
 - 안정 식별자: `policyId + version + sectionId`
 - 검색 text: 정책 type, 정책 제목, section 제목과 본문
+- 결정적 조건: 선택적인 `ruleConfig` metadata
 - 대상: `ACTIVE`이며 현재 효력이 있는 version
 - 변경 감지: 검색 text hash와 embedding model을 함께 저장
 - embedding model: 기본 `text-embedding-3-small`
@@ -93,11 +94,14 @@ POST /api/v1/policies/search
 
 ## 7. AI 출력과 인용 검증
 
-정책 issue는 `POLICY` category와 하나 이상의 `policySectionIds`를 반환해야 한다. 서버는 다음 규칙을 적용한다.
+정책 issue는 `POLICY` category와 하나 이상의 `citationKeys`를 반환해야 한다. 서버는 다음 규칙을 적용한다.
 
 - 제공된 검색 결과에 없는 section ID가 하나라도 있으면 해당 정책 issue를 폐기한다.
 - 정책 인용이 없는 `POLICY` issue는 폐기한다.
 - 일반 품질 issue에는 정책 인용을 허용하지 않는다.
+- 숫자 한도와 증빙 조건은 검색된 section의 구조화 rule metadata로 일반 코드가 계산한다.
+- 이미 진행 중인 사전승인 workflow를 다시 수정 issue로 만들거나 결정적 검사와 같은 field를 중복 지적하지 않는다.
+- 명시적 고위험 근거가 없는 추측성 privacy issue는 폐기한다.
 - 사용자 응답의 citation 원문은 LLM 출력에서 복사하지 않고 database 검색 결과로 구성한다.
 - 검색된 정책 내용 안의 명령문은 prompt 지시로 취급하지 않는다.
 
@@ -143,6 +147,24 @@ POST /api/v1/policies/search
 - 검색 및 생성 latency, embedding/generation token usage
 
 기본 test suite는 fake embedding/review provider로 외부 API와 비용 없이 실행한다. 실제 embedding indexing과 review 평가는 명시적 명령으로만 실행한다.
+
+### Live evaluation
+
+2026-08-25에 실제 OpenAI API와 local SQLite fallback으로 다음을 검증했다.
+
+- Policy indexing: 10 sections, `text-embedding-3-small`, 396 tokens
+- Retrieval dataset: 6/6 hit, hit rate@4 `1.0`
+- PostgreSQL 17 + pgvector 0.8.6: migration, HNSW index, 10 section indexing과 cosine query 확인
+- Review model: `gpt-5.4-mini-2026-03-17`
+- Prompt version: `approval-review-v3-policy-rag`
+- End-to-end 결과: HTTP 200, `READY`, `NEEDS_REVISION`, score 52
+- 검출·인용: 숙박비 초과 → `TRAVEL-1`, 교통비 증빙 누락 → `TRAVEL-2`
+- 최종 smoke usage: retrieval 204 tokens, generation 1,654 tokens
+- UI: 검색 상태, section/version, 원문 발췌와 similarity score 렌더링 확인
+- 자동 검증: Ruff, mypy strict, pytest 32개, ESLint, TypeScript, Next.js production build
+- Container 검증: API/Web Phase 3 image build 성공
+
+위 수치는 단일 local 실행의 관측값이며 성능 보장이 아니다. 검색 임계값은 실제 dataset의 1차 결과를 근거로 `0.15`로 조정했으며 corpus가 늘어나면 precision과 recall을 함께 재평가한다.
 
 ## 11. 완료 조건
 

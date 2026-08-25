@@ -1,6 +1,6 @@
 # Phase 5 — Read-only Enterprise Tool Calling
 
-상태: **구현 중**
+상태: **완료 (2026-08-25)**
 
 ## 1. 이번 단계의 목표
 
@@ -97,6 +97,23 @@ answer + executed tool audit + exact policy citations
 - 응답이 실행된 Tool과 정책 citation을 노출한다.
 - 어떤 요청도 업무 데이터를 변경할 수 없다.
 - routing, 권한, unknown Tool, provider 실패와 call limit을 자동 검증한다.
+
+### Live evaluation
+
+2026-08-25에 실제 OpenAI API, local SQLite와 정책 인덱스로 다음을 검증했다.
+
+- 모델: `gpt-5.4-mini-2026-03-17`
+- prompt version: `work-assistant-v3-plain-answer`
+- Tool routing dataset: 5/5 통과
+- `get_current_employee`: 잔여 연차 9.5일, 2 rounds, 1,465 tokens
+- `get_my_manager`: 현재 actor의 직속 관리자 조회, 2 rounds, 1,443 tokens
+- `list_my_approvals`: `status=null`, `limit=5`, actor 소유 문서만 조회
+- 출장 숙박비: `policyType=TRAVEL`, `TRAVEL-1` 검색
+- 사용 완료 경비 영수증: `policyType=EXPENSE`, `EXPENSE-2` 검색
+- 실제 브라우저: 답변, 실행 Tool audit, 인자·서버 결과와 정책 원문 렌더링 확인
+- 자동 검증: Ruff, mypy strict, pytest 48개, ESLint, TypeScript, Next.js production build
+
+초기 smoke test에서는 출장 숙박비 질문을 `EXPENSE`로 라우팅했지만, 제공된 정책 밖의 한도를 단정하지 않고 검증 실패를 표시했다. 정책 domain mapping을 prompt에 명시한 뒤 같은 질문을 `TRAVEL`로 라우팅해 1박 120,000원과 `policy_travel:1.0:TRAVEL-1`을 정확히 반환했고, 최종 dataset 5/5를 통과했다. 이 수치는 작은 synthetic dataset의 단일 실행 결과로 품질 보장을 의미하지 않는다.
 
 ## 11. 다음 단계
 

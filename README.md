@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 4 — AI Approval Draft까지 구현되었다.** 짧은 자연어 요청을 JHWorks 결재 양식으로 구조화하고, 빠진 정보를 질문한 뒤 사용자가 확인한 미리보기만 Draft로 저장한다.
+**Phase 5 — Read-only Enterprise Tool Calling까지 구현되었다.** AI가 현재 사용자 권한으로 조직·결재·정책 데이터를 필요한 만큼만 조회하고, 실행 Tool과 근거를 사용자에게 공개한다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -33,8 +33,13 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 사용자·preview hash·만료 시간에 결합된 signed confirmation token
 - 같은 confirmation 재시도에도 하나의 Draft만 만드는 idempotent 저장
 - 이미 사용한 비용과 휴가 요청을 잘못된 양식으로 저장하지 않는 unsupported intent 경계
+- `get_current_employee`, `get_my_manager`, `list_my_approvals`, `search_company_policy` 읽기 Tool
+- OpenAI strict function schema와 서버 Pydantic argument 이중 검증
+- 임의 직원 ID를 받지 않는 actor-scoped 조직·결재 조회
+- 최대 3 provider rounds, 최대 4 Tool calls와 unknown Tool 차단
+- 최종 답변과 실행 Tool audit, 입력 인자, 서버 결과, 정책 citation 표시
 
-Tool Calling과 범용 Agent는 아직 구현하지 않았다. AI는 정책을 검색하고 문서를 검토하거나 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
+쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. AI는 업무 데이터를 조회하고 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
 
 ## Why This Problem
 
@@ -55,6 +60,8 @@ FastAPI modular monolith
     ├── Policy retrieval + citation allowlist
     ├── Natural-language draft extraction + deterministic completeness checks
     ├── Signed preview confirmation + idempotent Draft creation
+    ├── Read-only enterprise tool registry + actor-scoped executor
+    ├── OpenAI function calling loop + tool execution audit
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
@@ -173,6 +180,7 @@ pnpm validate
 pnpm eval:ai-review
 pnpm eval:policy-rag
 pnpm eval:approval-draft
+pnpm eval:work-assistant
 ```
 
 ## Security Boundary
@@ -185,6 +193,8 @@ pnpm eval:approval-draft
 - 제출·휴가 신청 같은 추가 실행 Tool의 idempotency와 confirmation 계약은 Agent phase에서 확장한다.
 - AI Draft는 exact preview hash, 현재 사용자와 만료 시간에 결합된 confirmation token을 검증한다.
 - 같은 confirmation token을 재사용해도 unique confirmation ID로 기존 Draft를 반환한다.
+- 업무 조회 Assistant에는 읽기 전용 allowlist Tool만 제공하고 arbitrary employee ID를 입력받지 않는다.
+- LLM이 선택한 Tool 이름과 인자는 서버 registry와 Pydantic schema를 다시 통과해야 한다.
 - 현재 demo auth는 local 실행용이다. Production에는 secret manager, secure cookie, CSRF 대응, account lifecycle과 SSO 검토가 필요하다.
 
 ## Technical Decisions
@@ -199,6 +209,7 @@ pnpm eval:approval-draft
 - **Structured Output**: OpenAI Responses API와 Pydantic schema로 출력 형식을 제한하고 서버 domain validation을 다시 수행한다.
 - **Preview before write**: 자연어 변환과 추가 질문 중에는 Approval row를 만들지 않고, 확정된 exact preview만 저장한다.
 - **Unsupported intent is explicit**: 경비·휴가 요청을 현재 지원하는 일반/출장 양식으로 조용히 바꾸지 않는다.
+- **Narrow read tools**: 현재 actor에 고정된 작은 조회 Tool만 노출하고 DB나 범용 API 접근권을 주지 않는다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
 상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md)에 기록한다.
@@ -209,7 +220,7 @@ pnpm eval:approval-draft
 2. Phase 2 — Structured AI Approval Review ✅
 3. Phase 3 — Policy RAG ✅
 4. Phase 4 — AI Approval Draft ✅
-5. Phase 5 — Read-only Enterprise Tool Calling 🚧
+5. Phase 5 — Read-only Enterprise Tool Calling ✅
 6. Phase 6 — Agent workflow, Human-in-the-loop
 7. Phase 7~8 — Leave and Expense Agent
 8. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio

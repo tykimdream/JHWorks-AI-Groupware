@@ -6,8 +6,11 @@ import { useState, type FormEvent } from 'react';
 import { AvailabilityResult } from '@/components/leave-availability-explorer';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import type {
-  Approval,
   LeaveAssistantResponse,
+  LeaveAgentConsultation,
+  LeaveAgentDraftConfirmation,
+  LeaveAgentDraftPreparation,
+  LeaveAgentRun,
   LeaveAvailabilityCandidate,
   LeaveDetails,
   LeaveDraftPrepareResponse,
@@ -41,6 +44,7 @@ export const LeaveAssistant = () => {
   const [draftError, setDraftError] = useState<string | null>(null);
   const [isPreparingDraft, setIsPreparingDraft] = useState(false);
   const [isConfirmingDraft, setIsConfirmingDraft] = useState(false);
+  const [agentRun, setAgentRun] = useState<LeaveAgentRun | null>(null);
 
   const reset = () => {
     setInput('');
@@ -51,6 +55,7 @@ export const LeaveAssistant = () => {
     setError(null);
     setDraftResult(null);
     setDraftError(null);
+    setAgentRun(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -64,18 +69,28 @@ export const LeaveAssistant = () => {
     setError(null);
     setIsLoading(true);
     try {
-      const response = await apiFetch<LeaveAssistantResponse>('/leave-assistant/consult', {
-        method: 'POST',
-        body: JSON.stringify({ request: nextRequest, answers: nextAnswers }),
-      });
+      const response = request && agentRun
+        ? await apiFetch<LeaveAgentConsultation>(
+            `/leave-agent/runs/${agentRun.id}/consultation/answer`,
+            { method: 'POST', body: JSON.stringify({ answer: message }) },
+          )
+        : await apiFetch<LeaveAgentConsultation>('/leave-agent/runs', {
+            method: 'POST',
+            body: JSON.stringify({ request: nextRequest, answers: nextAnswers }),
+          });
       setRequest(nextRequest);
       setAnswers(nextAnswers);
-      setResult(response);
+      setAgentRun(response.run);
+      setResult(response.consultation);
       setDraftResult(null);
-      setConversation((current) => [
-        ...current,
-        { role: 'assistant', text: response.assistantMessage },
-      ]);
+      if (response.consultation) {
+        setConversation((current) => [
+          ...current,
+          { role: 'assistant', text: response.consultation?.assistantMessage ?? '' },
+        ]);
+      } else {
+        setError('AI 구조화 단계가 일시적으로 실패했습니다. 저장된 workflow에서 다시 시도할 수 있습니다.');
+      }
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '휴가 상담 결과를 만들지 못했습니다.'));
     } finally {
@@ -83,19 +98,48 @@ export const LeaveAssistant = () => {
     }
   };
 
+  const retryConsultation = async () => {
+    if (!agentRun) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await apiFetch<LeaveAgentConsultation>(
+        `/leave-agent/runs/${agentRun.id}/consultation/retry`,
+        { method: 'POST' },
+      );
+      setAgentRun(response.run);
+      setResult(response.consultation);
+      if (response.consultation) {
+        setConversation((current) => [
+          ...current,
+          { role: 'assistant', text: response.consultation?.assistantMessage ?? '' },
+        ]);
+      }
+    } catch (caught: unknown) {
+      setError(getUserErrorMessage(caught, '상담 workflow를 재개하지 못했습니다.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const prepareDraft = async (candidate: LeaveAvailabilityCandidate) => {
+    if (!agentRun) return;
     setDraftError(null);
     setDraftResult(null);
     setIsPreparingDraft(true);
     try {
-      const prepared = await apiFetch<LeaveDraftPrepareResponse>('/leave-draft-tool/prepare', {
-        method: 'POST',
-        body: JSON.stringify({
-          candidate,
-          leaveUnit: candidate.requestedDays === '0.5' ? 'HALF_DAY_AM' : 'FULL_DAY',
-        }),
-      });
-      setDraftResult(prepared);
+      const prepared = await apiFetch<LeaveAgentDraftPreparation>(
+        `/leave-agent/runs/${agentRun.id}/draft/prepare`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            candidate,
+            leaveUnit: candidate.requestedDays === '0.5' ? 'HALF_DAY_AM' : 'FULL_DAY',
+          }),
+        },
+      );
+      setAgentRun(prepared.run);
+      setDraftResult(prepared.preparation);
     } catch (caught: unknown) {
       setDraftError(getUserErrorMessage(caught, '휴가 Draft 미리보기를 만들지 못했습니다.'));
     } finally {
@@ -104,18 +148,22 @@ export const LeaveAssistant = () => {
   };
 
   const confirmDraft = async () => {
-    if (!draftResult) return;
+    if (!draftResult || !agentRun) return;
     setDraftError(null);
     setIsConfirmingDraft(true);
     try {
-      const approval = await apiFetch<Approval>('/leave-draft-tool/confirm', {
-        method: 'POST',
-        body: JSON.stringify({
-          preview: draftResult.preview,
-          confirmationToken: draftResult.confirmationToken,
-        }),
-      });
-      router.push(`/approvals/${approval.id}`);
+      const confirmed = await apiFetch<LeaveAgentDraftConfirmation>(
+        `/leave-agent/runs/${agentRun.id}/draft/confirm`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            preview: draftResult.preview,
+            confirmationToken: draftResult.confirmationToken,
+          }),
+        },
+      );
+      setAgentRun(confirmed.run);
+      router.push(`/approvals/${confirmed.approval.id}?leaveRunId=${confirmed.run.id}`);
     } catch (caught: unknown) {
       setDraftError(getUserErrorMessage(caught, '휴가 Draft를 저장하지 못했습니다.'));
     } finally {
@@ -179,6 +227,20 @@ export const LeaveAssistant = () => {
         </div>
       )}
       {error && <p className="error-banner">{error}</p>}
+      {agentRun?.status === 'CONSULTATION_FAILED' && (
+        <button className="secondary-button" disabled={isLoading} onClick={retryConsultation} type="button">
+          저장된 상담에서 다시 시도
+        </button>
+      )}
+
+      {agentRun && (
+        <div className="leave-agent-runtime">
+          <span>durable run</span>
+          <code>{agentRun.id}</code>
+          <strong>{agentRun.status}</strong>
+          <span>{agentRun.trace.length} transitions · retry {agentRun.retryCount}</span>
+        </div>
+      )}
 
       {result && (
         <div className="leave-assistant-result">

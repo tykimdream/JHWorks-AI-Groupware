@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 9 — Confirmed Leave Draft Tool까지 완료했다.** 자연어 휴가 상담 후보를 signed exact preview로 만들고, 현재 상태를 재검증한 뒤에만 편집 가능한 DRAFT 하나를 저장한다.
+**Phase 10 — Durable Confirmed Leave Submit Agent까지 완료했다.** 자연어 상담부터 Draft 저장 확인과 별도의 제출 확인까지 이어지는 상태를 DB에 보존하고, 두 번째 확인 직전에 모든 제출 조건을 재검증한다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -56,8 +56,14 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - preview·사용자·candidate·account version·calendar/policy fingerprint signed confirmation
 - 명시적 확인 시 연차·일정·결재자·정책을 재검증하는 actor-scoped Draft Tool
 - 동일 confirmation 재시도에도 하나의 LEAVE DRAFT만 만드는 idempotency
+- 상담·후속 질문·Draft 확인·제출 확인·실패 재시도를 보존하는 durable leave workflow
+- Approval version·차감·가용/대기 연차·최종 결재자·주의 사유를 포함한 제출 exact preview
+- Draft 저장과 분리된 두 번째 signed confirmation 뒤 기존 submit service 호출
+- 제출 직전 status/version/manager/account/calendar 재검증과 stale 무변경 종료
+- confirmation replay·동시 제출에서도 결재선과 연차 예약을 한 번만 만드는 idempotency
+- 비밀정보와 원문 대화를 제외한 상태 transition·Tool result code trace
 
-휴가 Draft Tool은 사용자의 명시적 확인 뒤 DRAFT까지만 저장한다. 제출 Tool과 durable Agent workflow는 아직 구현하지 않았으며, Draft 저장 확인과 제출 확인은 다음 단계에서도 분리한다.
+휴가 Agent는 첫 번째 확인에서 DRAFT만 저장하고, 두 번째 제출 preview와 명시적 확인 전에는 제출하지 않는다. 취소·만료·stale이면 DRAFT와 연차 계정을 변경하지 않는다.
 
 ## Why This Problem
 
@@ -85,12 +91,13 @@ FastAPI modular monolith
     ├── Deterministic leave availability engine
     ├── Grounded leave request structuring + policy RAG explanation
     ├── Actor-scoped confirmed leave Draft capability
+    ├── Durable leave workflow + confirmed submit capability
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
 ```
 
-AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. AI Draft도 같은 Structured Output 경계를 사용하지만, 필수 field·날짜·비용 일관성은 서버가 다시 검사한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산한다. 고정된 workflow에는 아직 Agent framework를 사용하지 않는다.
+AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. AI Draft도 같은 Structured Output 경계를 사용하지만, 필수 field·날짜·비용 일관성은 서버가 다시 검사한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산한다. 휴가 workflow는 별도 framework가 아니라 application DB의 명시적 상태 머신으로 중단·재개한다.
 
 Repository structure:
 
@@ -171,6 +178,7 @@ JHWORKS_OPENAI_MODEL=gpt-5.4-mini
 JHWORKS_POLICY_EMBEDDING_MODEL=text-embedding-3-small
 JHWORKS_APPROVAL_DRAFT_CONFIRMATION_TTL_MINUTES=15
 JHWORKS_LEAVE_DRAFT_CONFIRMATION_TTL_MINUTES=15
+JHWORKS_LEAVE_SUBMIT_CONFIRMATION_TTL_MINUTES=10
 ```
 
 `.env`는 Git에 포함하지 않는다. API key는 browser에 전달되지 않고 FastAPI에서만 사용한다.
@@ -217,6 +225,10 @@ pnpm eval:leave-assistant
 - UI에서 action을 숨겨도 backend 검증은 생략하지 않는다.
 - 휴가 Draft Tool은 candidate와 account/calendar/policy/manager snapshot을 signed confirmation에 결합하고 확인 시 재검증한다.
 - Draft confirmation 재시도는 unique confirmation ID로 기존 문서를 반환하며 제출은 실행하지 않는다.
+- AI 휴가 Draft의 일반 submit endpoint 직접 호출은 거절하고 durable Agent의 두 번째 확인을 요구한다.
+- 제출 token은 actor·run·approval/계정 version·manager·calendar·preview hash에 결합하며 실행 직전에 다시 검증한다.
+- 제출 replay는 이미 PENDING인 동일 Approval을 반환하고 결재선과 pending 연차를 중복 생성하지 않는다.
+- workflow trace에는 상태·event·result code만 보존하고 token, 원문 대화와 불필요한 개인정보를 남기지 않는다.
 - AI Draft는 exact preview hash, 현재 사용자와 만료 시간에 결합된 confirmation token을 검증한다.
 - 같은 confirmation token을 재사용해도 unique confirmation ID로 기존 Draft를 반환한다.
 - 업무 조회 Assistant에는 읽기 전용 allowlist Tool만 제공하고 arbitrary employee ID를 입력받지 않는다.
@@ -242,9 +254,9 @@ pnpm eval:leave-assistant
 - **Deterministic availability**: 휴가 후보와 충돌 여부는 LLM이 아니라 actor 범위의 휴가 계정과 일정으로 계산하고 근거 코드를 함께 반환한다.
 - **Grounded leave conversation**: LLM은 상대 날짜와 의도만 구조화하고 여러 번의 모호성 질문, 정책 allowlist와 결정적 계산은 서버가 담당한다.
 - **Confirmed narrow write**: 휴가 Draft 저장은 범용 DB Tool이 아니라 actor에 고정된 prepare/confirm capability이며, preview 이후 변경은 stale로 거절한다.
-- **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
+- **Durable application state machine**: 상담→Draft 확인→제출 확인이 고정된 workflow이고 승인·연차와 같은 DB 원자성이 중요하므로 SQLAlchemy 상태 머신을 사용한다. LangGraph 도입 검토와 재평가 조건은 [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md), [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
 ## Roadmap
 
@@ -257,7 +269,7 @@ pnpm eval:leave-assistant
 7. Phase 7 — Deterministic Leave Availability ✅
 8. Phase 8 — Grounded Leave AI Assistant ✅
 9. Phase 9 — Confirmed Leave Draft Tool ✅
-10. Phase 10 — Durable Confirmed Leave Submit Agent
+10. Phase 10 — Durable Confirmed Leave Submit Agent ✅
 11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
 ## Contributing

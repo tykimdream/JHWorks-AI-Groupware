@@ -1429,6 +1429,45 @@ dd {
   margin: 0;
 }
 
+.leave-agent-runtime {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.leave-agent-runtime code {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #eef1f6;
+}
+
+.leave-agent-runtime strong {
+  color: #334d7b;
+}
+
+.leave-submit-agent,
+.leave-submit-preview {
+  display: grid;
+  gap: 16px;
+}
+
+.leave-submit-agent {
+  padding: 20px;
+  border: 1px solid #9aaccc;
+  border-radius: 13px;
+  background: #f7f9fc;
+}
+
+.leave-submit-preview {
+  padding: 18px;
+  border: 2px solid #7990bc;
+  border-radius: 12px;
+  background: white;
+}
+
 .leave-query-facts {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;

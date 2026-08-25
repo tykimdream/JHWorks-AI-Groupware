@@ -38,6 +38,12 @@ const errorMessages: Record<string, string> = {
   LEAVE_POLICY_UNAVAILABLE: '활성 휴가 정책 근거를 확인할 수 없어 Draft를 준비하지 않았습니다.',
   LEAVE_PREVIEW_CHANGED: '확인한 휴가 미리보기가 변경되었습니다. 다시 준비해주세요.',
   INVALID_LEAVE_CONFIRMATION: '휴가 Draft 확인 시간이 만료되었거나 확인 정보가 올바르지 않습니다.',
+  INVALID_LEAVE_SUBMIT_CONFIRMATION: '휴가 제출 확인이 만료되었거나 올바르지 않습니다.',
+  INVALID_LEAVE_AGENT_STATE: '현재 휴가 workflow 단계에서는 이 작업을 수행할 수 없습니다.',
+  LEAVE_SUBMIT_CONFIRMATION_REQUIRED: 'AI로 만든 휴가 Draft는 별도의 제출 미리보기와 확인이 필요합니다.',
+  LEAVE_SUBMIT_PREVIEW_CHANGED: '확인한 제출 미리보기가 변경되었습니다. 다시 준비해주세요.',
+  LEAVE_SUBMIT_STALE: '제출 직전 상태가 변경되어 Draft를 제출하지 않았습니다.',
+  LEAVE_SUBMIT_RETRYABLE: '제출 Tool이 일시적으로 실패했습니다. 같은 workflow에서 다시 시도해주세요.',
 };
 
 export const getUserErrorMessage = (error: unknown, fallback: string): string => {

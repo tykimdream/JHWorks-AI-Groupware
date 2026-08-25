@@ -40,3 +40,28 @@ class PolicyStatus(StrEnum):
     DRAFT = "DRAFT"
     ACTIVE = "ACTIVE"
     ARCHIVED = "ARCHIVED"
+
+
+class AttendanceEventCategory(StrEnum):
+    COMPANY_EVENT = "COMPANY_EVENT"
+    PROJECT_MILESTONE = "PROJECT_MILESTONE"
+    HOLIDAY = "HOLIDAY"
+    LEAVE = "LEAVE"
+
+
+class AttendanceEventScope(StrEnum):
+    COMPANY = "COMPANY"
+    DEPARTMENT = "DEPARTMENT"
+    EMPLOYEE = "EMPLOYEE"
+
+
+class AttendanceEventStatus(StrEnum):
+    TENTATIVE = "TENTATIVE"
+    CONFIRMED = "CONFIRMED"
+    CANCELED = "CANCELED"
+
+
+class AttendanceImpact(StrEnum):
+    NONE = "NONE"
+    CAUTION = "CAUTION"
+    BLOCKED = "BLOCKED"

@@ -10,6 +10,7 @@ from app.models.enums import EmployeeRole
 
 if TYPE_CHECKING:
     from app.models.approval import Approval, ApprovalLine
+    from app.models.attendance import LeaveAccount, WorkCalendarEvent
 
 
 class Department(Base):
@@ -46,6 +47,8 @@ class Employee(Base):
         back_populates="author", foreign_keys="Approval.author_id"
     )
     assigned_lines: Mapped[list["ApprovalLine"]] = relationship(back_populates="approver")
+    leave_accounts: Mapped[list["LeaveAccount"]] = relationship(back_populates="employee")
+    calendar_events: Mapped[list["WorkCalendarEvent"]] = relationship(back_populates="employee")
     credential: Mapped["Credential | None"] = relationship(
         back_populates="employee", uselist=False, cascade="all, delete-orphan"
     )

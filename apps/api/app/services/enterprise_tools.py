@@ -1,12 +1,15 @@
+from datetime import date
 from typing import Any
 
 from pydantic import Field, ValidationError
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.policy_embedding import PolicyEmbeddingProvider
 from app.ai.work_assistant import ToolExecutionError
 from app.core.config import get_settings
 from app.core.schema import ApiSchema
+from app.models.attendance import LeaveAccount
 from app.models.employee import Employee
 from app.models.enums import ApprovalStatus, PolicyType
 from app.services import approval as approval_service
@@ -58,6 +61,12 @@ class ReadOnlyEnterpriseToolExecutor:
         raise ToolExecutionError(f"Unknown enterprise tool: {name}")
 
     def _current_employee(self) -> dict[str, Any]:
+        leave_account = self._db.scalar(
+            select(LeaveAccount).where(
+                LeaveAccount.employee_id == self._actor.id,
+                LeaveAccount.year == date.today().year,
+            )
+        )
         return {
             "employee": {
                 "id": self._actor.id,
@@ -66,7 +75,11 @@ class ReadOnlyEnterpriseToolExecutor:
                 "department": self._actor.department.name,
                 "position": self._actor.position,
                 "role": self._actor.role.value,
-                "leaveBalanceDays": float(self._actor.leave_balance),
+                "leaveBalanceDays": float(
+                    leave_account.available_days
+                    if leave_account is not None
+                    else self._actor.leave_balance
+                ),
             }
         }
 

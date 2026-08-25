@@ -700,6 +700,151 @@ dd {
   font-size: 13px;
 }
 
+.ai-review-card {
+  display: grid;
+  gap: 20px;
+  padding: 26px;
+  border: 1px solid #b9c9e8;
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, #f8faff 0%, #f3f7ff 100%);
+}
+
+.ai-review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.ai-review-heading h2 {
+  margin-bottom: 6px;
+}
+
+.ai-review-heading p:not(.eyebrow),
+.review-summary p,
+.review-issue p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.ai-button {
+  flex: 0 0 auto;
+  padding: 11px 16px;
+  border: 1px solid #294f9c;
+  border-radius: 9px;
+  color: white;
+  font-weight: 800;
+  background: #315eb7;
+  cursor: pointer;
+}
+
+.ai-button:hover:not(:disabled) {
+  background: #244b99;
+}
+
+.ai-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.ai-review-result,
+.review-issue-list {
+  display: grid;
+  gap: 12px;
+}
+
+.review-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.review-score {
+  min-width: 78px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: #86521d;
+}
+
+.review-score strong {
+  font-size: 28px;
+}
+
+.review-score-pass {
+  color: var(--accent-dark);
+}
+
+.review-score span,
+.review-summary p,
+.review-runtime,
+.revised-content span {
+  font-size: 12px;
+}
+
+.review-issue {
+  display: grid;
+  gap: 7px;
+  padding: 14px 15px;
+  border-left: 4px solid #d39a49;
+  border-radius: 9px;
+  background: white;
+}
+
+.review-issue.severity-high {
+  border-left-color: #b5483f;
+}
+
+.review-issue.severity-low,
+.review-issue.severity-info {
+  border-left-color: #73849d;
+}
+
+.review-issue-meta,
+.review-runtime {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.review-issue-meta span,
+.review-issue-meta code {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #edf1f7;
+}
+
+.revised-content {
+  padding: 16px;
+  border: 1px dashed #9aaccc;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.revised-content p {
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+
+.revised-content span,
+.review-runtime {
+  color: var(--muted);
+}
+
+.stale-banner {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #e5bb72;
+  border-radius: 9px;
+  color: #76530d;
+  background: #fff7df;
+}
+
 .danger-soft {
   border-color: #efc5c1;
   background: #fff9f8;
@@ -777,7 +922,8 @@ dd {
 
   .page-header,
   .detail-title-row,
-  .action-panel {
+  .action-panel,
+  .ai-review-heading {
     align-items: stretch;
     flex-direction: column;
   }
@@ -799,4 +945,3 @@ dd {
     text-align: left;
   }
 }
-

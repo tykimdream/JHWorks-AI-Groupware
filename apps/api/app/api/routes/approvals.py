@@ -2,8 +2,9 @@ from typing import Literal
 
 from fastapi import APIRouter, Query
 
-from app.api.dependencies import CurrentEmployee, DbSession
+from app.api.dependencies import AIReviewProvider, CurrentEmployee, DbSession
 from app.models.enums import ApprovalStatus
+from app.schemas.ai_review import AIReviewRequest, AIReviewResponse
 from app.schemas.approval import (
     ApprovalCommand,
     ApprovalCreate,
@@ -13,6 +14,7 @@ from app.schemas.approval import (
     ApprovalUpdate,
 )
 from app.services import approval as approval_service
+from app.services import approval_review as approval_review_service
 from app.services.mappers import approval_read
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -113,4 +115,21 @@ def revise_approval(
 ) -> ApprovalRead:
     return approval_read(
         approval_service.revise_approval(db, current_employee, approval_id, payload.version)
+    )
+
+
+@router.post("/{approval_id}/ai-review", response_model=AIReviewResponse)
+def review_approval(
+    approval_id: str,
+    payload: AIReviewRequest,
+    db: DbSession,
+    current_employee: CurrentEmployee,
+    provider: AIReviewProvider,
+) -> AIReviewResponse:
+    return approval_review_service.review_approval(
+        db,
+        current_employee,
+        approval_id,
+        payload.version,
+        provider,
     )

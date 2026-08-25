@@ -21,6 +21,7 @@ export class ApiError extends Error {
 
 const errorMessages: Record<string, string> = {
   APPROVAL_NOT_READY: '제출에 필요한 정보를 모두 입력해주세요.',
+  AI_REVIEW_UNAVAILABLE: 'AI 검토를 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
   AUTHENTICATION_REQUIRED: '로그인이 필요합니다.',
   COMMENT_REQUIRED: '반려 사유를 입력해주세요.',
   FORBIDDEN: '이 작업을 수행할 권한이 없습니다.',

@@ -1,12 +1,12 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=("../../.env", ".env"),
         env_prefix="JHWORKS_",
         extra="ignore",
     )
@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     cookie_secure: bool = False
     cookie_samesite: str = Field(default="lax", pattern="^(lax|strict|none)$")
+    openai_api_key: SecretStr | None = None
+    openai_model: str = "gpt-5.4-mini"
+    ai_review_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
 
 
 @lru_cache

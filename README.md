@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 1 — Minimal Groupware가 완료되었다.** AI를 연결하기 전에 권한과 상태가 정확한 기준 업무 시스템을 구축했다.
+**Phase 2 — AI Approval Review까지 구현되었다.** 권한과 상태가 정확한 기준 업무 시스템 위에 제출 전 AI 문서 검토를 추가했다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -16,8 +16,13 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 서버 Authorization, 상태 전이, optimistic concurrency
 - version과 section ID를 가진 가상 정책 원문
 - FastAPI integration test와 Next.js production build 검증
+- 작성자 전용 `AI로 검토하기`와 Structured Output
+- 일반 코드의 필수 field·날짜·금액 검사와 LLM 의미 검토 분리
+- 문서 품질 issue, 서버 계산 점수와 선택적인 수정 문안
+- 문서 version 기반 stale 결과 차단
+- model, prompt version, latency와 token usage 추적
 
-AI Review, RAG, Tool Calling과 Agent는 아직 구현하지 않았다. 기반 시스템이 안정된 뒤 phase별로 추가한다.
+Policy RAG, Tool Calling과 Agent는 아직 구현하지 않았다. Phase 2 AI Review는 회사 정책을 인용하거나 위반을 단정하지 않으며 Phase 3에서 정책 근거를 연결한다.
 
 ## Why This Problem
 
@@ -34,10 +39,13 @@ FastAPI modular monolith
     ├── Authentication / Organization
     ├── Approval domain + Authorization
     ├── Company Policy
+    ├── Deterministic review + OpenAI adapter
     └── SQLAlchemy + Alembic
               ↓
           PostgreSQL
 ```
+
+AI Review는 OpenAI Responses API를 한 번 호출하고 Pydantic schema로 결과를 제한한다. RAG나 Agent framework는 아직 사용하지 않는다.
 
 Repository structure:
 
@@ -81,6 +89,7 @@ Requirements: Docker Engine과 Docker Compose v2 plugin
 
 ```bash
 cp .env.example .env
+# .env의 JHWORKS_OPENAI_API_KEY에 본인의 API key를 입력한다.
 docker compose up --build
 ```
 
@@ -89,6 +98,8 @@ docker compose up --build
 - API health: `http://localhost:8000/api/v1/health`
 
 API container가 migration과 idempotent seed를 실행한 뒤 시작한다.
+
+API key가 없어도 일반 결재 기능은 모두 사용할 수 있다. AI 검토만 안전하게 `503 AI_REVIEW_UNAVAILABLE`로 실패하며 Draft는 변경되지 않는다.
 
 ## Local Development
 
@@ -100,6 +111,15 @@ uv sync --project apps/api
 pnpm db:migrate
 pnpm db:seed
 ```
+
+AI Review를 실행하려면 root `.env`에 다음 값을 설정한다.
+
+```dotenv
+JHWORKS_OPENAI_API_KEY=your-api-key
+JHWORKS_OPENAI_MODEL=gpt-5.4-mini
+```
+
+`.env`는 Git에 포함하지 않는다. API key는 browser에 전달되지 않고 FastAPI에서만 사용한다.
 
 두 terminal에서 실행한다.
 
@@ -118,9 +138,15 @@ pnpm validate
 
 이 명령은 backend lint/type-check/test와 frontend lint/type-check/production build를 실행한다.
 
+실제 모델을 사용하는 명시적 AI 평가 명령은 기본 검증과 분리되어 있다. 실행 시 API 비용이 발생한다.
+
+```bash
+pnpm eval:ai-review
+```
+
 ## Security Boundary
 
-- LLM과 Agent는 현재 존재하지 않으며, 이후에도 security boundary로 취급하지 않는다.
+- LLM은 문서 의미와 표현만 검토하며 security boundary로 취급하지 않는다.
 - backend service가 작성자와 지정 결재자를 검증한다.
 - UI에서 action을 숨겨도 backend 검증은 생략하지 않는다.
 - 실제 업무 실행용 idempotency와 confirmation token은 Agent phase에서 추가한다.
@@ -132,14 +158,15 @@ pnpm validate
 - **Command endpoint**: 범용 status 수정 대신 업무 의도와 권한을 endpoint별로 강제한다.
 - **Optimistic concurrency**: 장시간 DB lock 없이 오래된 UI와 AI 결과의 덮어쓰기를 방지한다.
 - **Structured policy sections**: RAG 이전부터 `policyId + version + sectionId`를 안정적인 근거 식별자로 사용한다.
-- **No LangGraph yet**: Phase 1에는 중단·재개가 필요한 Agent workflow가 없으므로 도입하지 않는다.
+- **Structured Output**: OpenAI Responses API와 Pydantic schema로 출력 형식을 제한하고 서버 domain validation을 다시 수행한다.
+- **No LangGraph yet**: Phase 2는 한 번의 입력→검토→출력으로 끝나므로 Agent workflow를 도입하지 않는다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md)와 [Phase 1 설계](docs/product/phase-1-minimal-groupware.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md)에 기록한다.
 
 ## Roadmap
 
-1. Phase 1 — Minimal Groupware
-2. Phase 2 — Structured AI Approval Review
+1. Phase 1 — Minimal Groupware ✅
+2. Phase 2 — Structured AI Approval Review ✅
 3. Phase 3 — Policy RAG
 4. Phase 4 — AI Approval Draft
 5. Phase 5~6 — Tool Calling, Agent workflow, Human-in-the-loop

@@ -1,5 +1,5 @@
 export type EmployeeRole = 'EMPLOYEE' | 'MANAGER' | 'POLICY_OWNER';
-export type ApprovalType = 'GENERAL' | 'BUSINESS_TRIP';
+export type ApprovalType = 'GENERAL' | 'BUSINESS_TRIP' | 'LEAVE';
 export type ApprovalStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type ApprovalLineStatus = 'WAITING' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -53,7 +53,20 @@ export interface BusinessTripDetails {
   visitPurpose: string | null;
 }
 
-export type ApprovalDetails = GeneralDetails | BusinessTripDetails;
+export type LeaveUnit = 'FULL_DAY' | 'HALF_DAY_AM' | 'HALF_DAY_PM';
+
+export interface LeaveDetails {
+  kind: 'LEAVE';
+  leaveType: 'ANNUAL';
+  leaveUnit: LeaveUnit;
+  startDate: string | null;
+  endDate: string | null;
+  requestedDays: string | null;
+  reason: string | null;
+  handoverNote: string | null;
+}
+
+export type ApprovalDetails = GeneralDetails | BusinessTripDetails | LeaveDetails;
 
 export interface ApprovalLine {
   id: string;
@@ -115,6 +128,11 @@ export type ReviewField =
   | 'details.costBreakdown'
   | 'details.clientName'
   | 'details.visitPurpose'
+  | 'details.leaveType'
+  | 'details.leaveUnit'
+  | 'details.requestedDays'
+  | 'details.reason'
+  | 'details.handoverNote'
   | 'attachmentMetadata';
 
 export interface AIReviewIssue {

@@ -7,9 +7,15 @@ import { AppShell } from '@/components/app-shell';
 import { StatusBadge } from '@/components/status-badge';
 import { ApiError, apiFetch } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { ApprovalListResponse } from '@/lib/types';
+import type { ApprovalListResponse, ApprovalType } from '@/lib/types';
 
 type Scope = 'mine' | 'assigned';
+
+const approvalTypeLabels: Record<ApprovalType, string> = {
+  GENERAL: '일반 결재',
+  BUSINESS_TRIP: '출장 신청',
+  LEAVE: '휴가 신청',
+};
 
 export default function ApprovalListPage() {
   const [scope, setScope] = useState<Scope>('mine');
@@ -75,7 +81,7 @@ export default function ApprovalListPage() {
             <Link className="approval-row" href={`/approvals/${approval.id}`} key={approval.id}>
               <div>
                 <div className="row-meta">
-                  <span>{approval.type === 'BUSINESS_TRIP' ? '출장 신청' : '일반 결재'}</span>
+                  <span>{approvalTypeLabels[approval.type]}</span>
                   <span>·</span>
                   <span>{formatDate(approval.updatedAt)}</span>
                 </div>
@@ -84,7 +90,11 @@ export default function ApprovalListPage() {
               </div>
               <div className="row-end">
                 <StatusBadge status={approval.status} />
-                <strong>{formatCurrency(approval.amount)}</strong>
+                <strong>
+                  {approval.details.kind === 'LEAVE'
+                    ? `${approval.details.requestedDays ?? '-'}일`
+                    : formatCurrency(approval.amount)}
+                </strong>
                 <span>{scope === 'mine' ? `결재선 ${approval.lines.length}건` : `작성자 ${approval.author.name}`}</span>
               </div>
             </Link>

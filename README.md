@@ -6,11 +6,11 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 6 — Attendance and Leave Foundation을 구현 중이다.** AI 기능보다 먼저 근태·휴가를 그룹웨어의 정식 도메인으로 만들고, 현재 사용자 권한으로 휴가 잔여 내역과 관련 일정만 조회할 수 있는 기반을 추가했다.
+**Phase 6 — Attendance and Leave Workflow를 구현 중이다.** 근태·휴가를 그룹웨어의 정식 도메인으로 만들고, 휴가 전자결재의 제출·승인·반려를 잔여 일수와 팀 캘린더에 transaction으로 연결했다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
-- GENERAL/BUSINESS_TRIP 결재 Draft 작성·수정
+- GENERAL/BUSINESS_TRIP/LEAVE 결재 Draft 작성·수정
 - 작성자 제출, 직속 관리자 승인·반려
 - 반려 문서 재작성과 제출 회차 이력
 - 서버 Authorization, 상태 전이, optimistic concurrency
@@ -41,6 +41,9 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 연도별 휴가 부여·이월·사용·대기·가용 일수 계정
 - 전사 행사·공휴일·부서 프로젝트 일정·팀 휴가를 구분한 근태 캘린더
 - 현재 부서 일정과 같은 팀 휴가만 반환하는 `/attendance/overview` 권한 경계
+- 주말·확정 휴무일을 제외한 서버 기준 휴가 차감 일수 계산
+- 휴가 제출 시 예약, 승인 시 사용 확정, 반려 시 복원되는 원자적 상태 전이
+- 휴가 결재와 캘린더 이벤트의 1:1 연결 및 사유 비공개 경계
 
 쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. AI는 업무 데이터를 조회하고 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
 
@@ -66,6 +69,7 @@ FastAPI modular monolith
     ├── Read-only enterprise tool registry + actor-scoped executor
     ├── OpenAI function calling loop + tool execution audit
     ├── Attendance calendar + yearly leave account
+    ├── Transactional leave approval workflow
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
@@ -215,6 +219,7 @@ pnpm eval:work-assistant
 - **Unsupported intent is explicit**: 경비·휴가 요청을 현재 지원하는 일반/출장 양식으로 조용히 바꾸지 않는다.
 - **Narrow read tools**: 현재 actor에 고정된 작은 조회 Tool만 노출하고 DB나 범용 API 접근권을 주지 않는다.
 - **Attendance before recommendation**: AI가 날짜를 추측하지 않도록 연도별 휴가 계정과 전사·부서·팀 일정을 먼저 application domain으로 만든다.
+- **Server-owned leave accounting**: 클라이언트가 보낸 차감 일수를 신뢰하지 않고 업무 캘린더로 다시 계산하며 결재와 휴가 계정을 함께 commit한다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
 상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md)에 기록한다.
@@ -226,9 +231,9 @@ pnpm eval:work-assistant
 3. Phase 3 — Policy RAG ✅
 4. Phase 4 — AI Approval Draft ✅
 5. Phase 5 — Read-only Enterprise Tool Calling ✅
-6. Phase 6 — Attendance and Leave Foundation 🚧
+6. Phase 6 — Attendance and Leave Workflow 🚧
 7. Phase 7 — Deterministic Leave Availability
-8. Phase 8 — Leave Approval and AI Assistant
+8. Phase 8 — Leave AI Assistant and Confirmed Write Tools
 9. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
 ## Contributing

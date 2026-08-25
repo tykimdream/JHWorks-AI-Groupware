@@ -1,6 +1,6 @@
 # Phase 4 — AI Approval Draft
 
-상태: **구현 중**
+상태: **완료 (2026-08-25)**
 
 ## 1. 이번 단계의 목표
 
@@ -121,6 +121,23 @@ LangGraph는 사용하지 않는다. 현재 workflow는 `질문 필요`, `미리
 - 동일 confirmation을 재시도해도 Draft는 하나만 생성된다.
 - provider 장애 시 기존 결재 기능과 데이터는 영향을 받지 않는다.
 - frontend lint, type-check와 production build를 통과한다.
+
+### Live evaluation
+
+2026-08-25에 실제 OpenAI API와 local application으로 다음을 검증했다.
+
+- 모델: `gpt-5.4-mini-2026-03-17`
+- 최종 prompt version: `approval-draft-v3-related-party-mapping`
+- extraction dataset: 5/5 통과
+- 평가 intent: 향후 출장, 이미 사용한 경비, 휴가, 일반 결재
+- multi-turn 평가: 후속 답변의 교통비·식비·총액과 행사명을 원 요청에 결합
+- 실제 UI: 최초 요청 → 비용 추가 질문 → 날짜 추가 질문 → 정책 근거 미리보기 → Draft 저장
+- 실제 생성 Draft: `apr_e7509ff8b2934287a58d8b31a9cb249f`
+- 미리보기 검색: `TRAVEL-1`, `TRAVEL-2`, `TRAVEL-3`, `TRAVEL-4`
+- 자동 검증: Ruff, mypy strict, pytest 40개, ESLint, TypeScript, Next.js production build
+- fresh SQLite migration과 `source_confirmation_id` unique constraint 확인
+
+초기 평가에서는 후속 답변의 비용 또는 행사명 mapping이 간헐적으로 누락되었다. 서버 누락 검사가 잘못된 저장을 차단했으며, 후속 답변 결합과 `행사명 → clientName` mapping을 prompt에 명시한 v3에서 5/5를 통과했다. 이 수치는 작은 synthetic dataset의 단일 실행 결과로 품질 보장을 의미하지 않는다.
 
 ## 10. 완료 조건
 

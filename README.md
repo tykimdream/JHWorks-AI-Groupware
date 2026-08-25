@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 3 — Policy RAG까지 구현되었다.** 제출 전 AI 검토가 JHWorks의 가상 사내 규정을 검색하고 정확한 정책 section을 근거로 제시한다.
+**Phase 4 — AI Approval Draft까지 구현되었다.** 짧은 자연어 요청을 JHWorks 결재 양식으로 구조화하고, 빠진 정보를 질문한 뒤 사용자가 확인한 미리보기만 Draft로 저장한다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -26,8 +26,15 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 숙박비 한도와 증빙처럼 계산 가능한 정책 rule의 결정적 검사
 - 허위 citation, 추측성 risk와 중복 issue의 서버 후처리
 - `READY`, `NOT_APPLICABLE`, `NOT_INDEXED`, `UNAVAILABLE` 검색 상태 표시
+- 자연어 일반/출장 결재 intent 분류와 Structured Approval Draft 생성
+- 누락된 출장 기간·관계처·목적·비용을 위한 여러 번의 후속 질문
+- 상대 날짜를 현재 날짜와 `Asia/Seoul` 기준으로 구조화
+- 저장 전 정책 근거가 포함된 exact preview와 명시적 사용자 확인
+- 사용자·preview hash·만료 시간에 결합된 signed confirmation token
+- 같은 confirmation 재시도에도 하나의 Draft만 만드는 idempotent 저장
+- 이미 사용한 비용과 휴가 요청을 잘못된 양식으로 저장하지 않는 unsupported intent 경계
 
-Tool Calling과 Agent는 아직 구현하지 않았다. AI는 정책을 검색하고 문서를 검토할 수 있지만 원문을 자동 수정하거나 제출하지 않는다.
+Tool Calling과 범용 Agent는 아직 구현하지 않았다. AI는 정책을 검색하고 문서를 검토하거나 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
 
 ## Why This Problem
 
@@ -46,12 +53,14 @@ FastAPI modular monolith
     ├── Company Policy + structured policy rules
     ├── Deterministic review + OpenAI adapters
     ├── Policy retrieval + citation allowlist
+    ├── Natural-language draft extraction + deterministic completeness checks
+    ├── Signed preview confirmation + idempotent Draft creation
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
 ```
 
-AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산하고, LLM은 문서 의미와 검색된 정책의 관계를 판단한다. 아직 Agent framework는 사용하지 않는다.
+AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. AI Draft도 같은 Structured Output 경계를 사용하지만, 필수 field·날짜·비용 일관성은 서버가 다시 검사한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산한다. 고정된 workflow에는 아직 Agent framework를 사용하지 않는다.
 
 Repository structure:
 
@@ -130,6 +139,7 @@ AI Review를 실행하려면 root `.env`에 다음 값을 설정한다.
 JHWORKS_OPENAI_API_KEY=your-api-key
 JHWORKS_OPENAI_MODEL=gpt-5.4-mini
 JHWORKS_POLICY_EMBEDDING_MODEL=text-embedding-3-small
+JHWORKS_APPROVAL_DRAFT_CONFIRMATION_TTL_MINUTES=15
 ```
 
 `.env`는 Git에 포함하지 않는다. API key는 browser에 전달되지 않고 FastAPI에서만 사용한다.
@@ -162,6 +172,7 @@ pnpm validate
 ```bash
 pnpm eval:ai-review
 pnpm eval:policy-rag
+pnpm eval:approval-draft
 ```
 
 ## Security Boundary
@@ -171,7 +182,9 @@ pnpm eval:policy-rag
 - 정책 issue는 검색 결과에 존재하는 citation key만 허용하고 원문 인용은 DB에서 구성한다.
 - backend service가 작성자와 지정 결재자를 검증한다.
 - UI에서 action을 숨겨도 backend 검증은 생략하지 않는다.
-- 실제 업무 실행용 idempotency와 confirmation token은 Agent phase에서 추가한다.
+- 제출·휴가 신청 같은 추가 실행 Tool의 idempotency와 confirmation 계약은 Agent phase에서 확장한다.
+- AI Draft는 exact preview hash, 현재 사용자와 만료 시간에 결합된 confirmation token을 검증한다.
+- 같은 confirmation token을 재사용해도 unique confirmation ID로 기존 Draft를 반환한다.
 - 현재 demo auth는 local 실행용이다. Production에는 secret manager, secure cookie, CSRF 대응, account lifecycle과 SSO 검토가 필요하다.
 
 ## Technical Decisions
@@ -184,6 +197,8 @@ pnpm eval:policy-rag
 - **pgvector with SQLite fallback**: Production은 PostgreSQL cosine search, local/test의 작은 corpus는 application cosine search를 사용한다.
 - **Structured policy rules**: 숫자 한도와 증빙 조건은 LLM이 아니라 policy metadata와 일반 코드가 계산한다.
 - **Structured Output**: OpenAI Responses API와 Pydantic schema로 출력 형식을 제한하고 서버 domain validation을 다시 수행한다.
+- **Preview before write**: 자연어 변환과 추가 질문 중에는 Approval row를 만들지 않고, 확정된 exact preview만 저장한다.
+- **Unsupported intent is explicit**: 경비·휴가 요청을 현재 지원하는 일반/출장 양식으로 조용히 바꾸지 않는다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
 상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md)에 기록한다.
@@ -193,7 +208,7 @@ pnpm eval:policy-rag
 1. Phase 1 — Minimal Groupware ✅
 2. Phase 2 — Structured AI Approval Review ✅
 3. Phase 3 — Policy RAG ✅
-4. Phase 4 — AI Approval Draft 🚧
+4. Phase 4 — AI Approval Draft ✅
 5. Phase 5~6 — Tool Calling, Agent workflow, Human-in-the-loop
 6. Phase 7~8 — Leave and Expense Agent
 7. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio

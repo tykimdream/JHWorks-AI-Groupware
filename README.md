@@ -201,7 +201,7 @@ pnpm eval:approval-draft
 - **Unsupported intent is explicit**: 경비·휴가 요청을 현재 지원하는 일반/출장 양식으로 조용히 바꾸지 않는다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md)에 기록한다.
 
 ## Roadmap
 
@@ -209,9 +209,10 @@ pnpm eval:approval-draft
 2. Phase 2 — Structured AI Approval Review ✅
 3. Phase 3 — Policy RAG ✅
 4. Phase 4 — AI Approval Draft ✅
-5. Phase 5~6 — Tool Calling, Agent workflow, Human-in-the-loop
-6. Phase 7~8 — Leave and Expense Agent
-7. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
+5. Phase 5 — Read-only Enterprise Tool Calling 🚧
+6. Phase 6 — Agent workflow, Human-in-the-loop
+7. Phase 7~8 — Leave and Expense Agent
+8. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
 ## Contributing
 

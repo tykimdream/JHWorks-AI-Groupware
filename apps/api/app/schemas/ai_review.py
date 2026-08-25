@@ -61,7 +61,7 @@ class AIReviewResponse(ApiSchema):
     status: ReviewStatus
     score: int = Field(ge=0, le=100)
     issues: list[AIReviewIssue]
-    revised_content: str | None
+    revised_content: str
     provider: str
     model: str
     prompt_version: str

@@ -131,35 +131,7 @@ export default function ApprovalDetailPage() {
 
           {trip && <TripDetails trip={trip} amount={approval.amount} />}
 
-          <AIReviewPanel
-            approval={approval}
-            canReview={Boolean(isAuthor && approval.status === 'DRAFT')}
-            key={`${approval.id}:${approval.version}`}
-          />
-
           {error && <p className="error-banner">{error}</p>}
-
-          {isAuthor && approval.status === 'DRAFT' && (
-            <div className="action-panel">
-              <div>
-                <strong>제출 준비가 되었나요?</strong>
-                <p>서버가 현재 조직 정보에서 직속 관리자를 다시 계산합니다.</p>
-              </div>
-              <div className="button-row">
-                <Link className="secondary-button" href={`/approvals/${approval.id}/edit`}>
-                  수정
-                </Link>
-                <button
-                  className="primary-button"
-                  disabled={isActing}
-                  onClick={() => runCommand('submit')}
-                  type="button"
-                >
-                  제출
-                </button>
-              </div>
-            </div>
-          )}
 
           {isAuthor && approval.status === 'REJECTED' && (
             <div className="action-panel danger-soft">
@@ -237,6 +209,35 @@ export default function ApprovalDetailPage() {
             ))}
           </section>
         </aside>
+
+        {isAuthor && approval.status === 'DRAFT' && (
+          <section className="draft-review-flow">
+            <AIReviewPanel
+              approval={approval}
+              canReview
+              onApprovalUpdated={setApproval}
+            />
+            <div className="action-panel">
+              <div>
+                <strong>제출 준비가 되었나요?</strong>
+                <p>서버가 현재 조직 정보에서 직속 관리자를 다시 계산합니다.</p>
+              </div>
+              <div className="button-row">
+                <Link className="secondary-button" href={`/approvals/${approval.id}/edit`}>
+                  수정
+                </Link>
+                <button
+                  className="primary-button"
+                  disabled={isActing}
+                  onClick={() => runCommand('submit')}
+                  type="button"
+                >
+                  제출
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </AppShell>
   );

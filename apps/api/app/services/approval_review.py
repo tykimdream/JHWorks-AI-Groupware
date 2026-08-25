@@ -504,7 +504,7 @@ def review_approval(
         policy_search.latency_ms,
         policy_search.usage.input_tokens,
     )
-    revised_content = (provider_result.output.revised_content or "").strip() or None
+    revised_content = provider_result.output.revised_content.strip()
     return AIReviewResponse(
         approval_id=approval_id,
         approval_version=expected_version,

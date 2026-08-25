@@ -4,7 +4,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PROMPT_VERSION = "approval-review-v3-policy-rag"
+PROMPT_VERSION = "approval-review-v5-actionable-revision"
 
 SYSTEM_PROMPT = """
 You review enterprise approval drafts before submission.
@@ -46,8 +46,14 @@ that should normally be fixed before submission. Use LOW only for a concrete, ac
 quality improvement, not generic stylistic preference. Ordinary company or client names are
 not personal or sensitive information by themselves. Return at most 5 focused issues, no more
 than one issue for the same category and field, and do not repeat deterministic_findings.
-Prioritize substantive issues over optional wording suggestions. revised_content is an optional
-suggested rewrite of the document content only; it never changes the original document.
+Prioritize substantive issues over optional wording suggestions. Always return revised_content as
+a complete replacement for the document content, using only facts already present in the supplied
+document. When you report issues that can be fixed in content, address them in revised_content.
+Do not invent missing dates, amounts, names, policy facts, or structured field values. If the
+content is already clear, return it unchanged. If you report any issue, revised_content must differ
+from the source content and give the author an actionable example. Represent facts the author must
+supply with short Korean bracketed placeholders such as [연도] or [휴가 목적] instead of guessing.
+revised_content is only an editable suggestion; it never changes the original document by itself.
 """.strip()
 
 
@@ -95,7 +101,7 @@ class SemanticReviewOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     issues: list[SemanticReviewIssue] = Field(default_factory=list, max_length=4)
-    revised_content: str | None = Field(default=None, max_length=5000)
+    revised_content: str = Field(min_length=1, max_length=5000)
 
 
 class ReviewDocument(BaseModel):

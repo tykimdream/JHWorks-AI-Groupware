@@ -177,7 +177,7 @@ export interface AIReview {
   status: ReviewStatus;
   score: number;
   issues: AIReviewIssue[];
-  revisedContent: string | null;
+  revisedContent: string;
   provider: string;
   model: string;
   promptVersion: string;

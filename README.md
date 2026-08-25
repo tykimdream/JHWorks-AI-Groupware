@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 8 — Grounded Leave AI Assistant까지 완료했다.** 근태·휴가를 정식 도메인으로 만들고, 자연어 휴가 질문을 실제 날짜로 구조화한 뒤 결정적 가능일과 활성 정책 근거를 설명한다.
+**Phase 9 — Confirmed Leave Draft Tool까지 완료했다.** 자연어 휴가 상담 후보를 signed exact preview로 만들고, 현재 상태를 재검증한 뒤에만 편집 가능한 DRAFT 하나를 저장한다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -52,8 +52,12 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 활성 휴가 정책 RAG와 결정적 availability 결과를 분리한 grounded 설명
 - 휴일·프로젝트·잔여 부족·prompt injection에서도 서버 reason code를 유지하는 경계
 - 휴가 상담 provider/model/prompt version/usage/latency 관측성
+- 실제 날짜·차감·단위·가용 연차·결재자·정책·주의 사유를 포함한 휴가 exact preview
+- preview·사용자·candidate·account version·calendar/policy fingerprint signed confirmation
+- 명시적 확인 시 연차·일정·결재자·정책을 재검증하는 actor-scoped Draft Tool
+- 동일 confirmation 재시도에도 하나의 LEAVE DRAFT만 만드는 idempotency
 
-휴가 쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. 휴가 상담은 읽기 전용이며 사용자의 명시적 확인 없이 데이터를 저장하거나 문서를 제출하지 않는다.
+휴가 Draft Tool은 사용자의 명시적 확인 뒤 DRAFT까지만 저장한다. 제출 Tool과 durable Agent workflow는 아직 구현하지 않았으며, Draft 저장 확인과 제출 확인은 다음 단계에서도 분리한다.
 
 ## Why This Problem
 
@@ -80,6 +84,7 @@ FastAPI modular monolith
     ├── Transactional leave approval workflow
     ├── Deterministic leave availability engine
     ├── Grounded leave request structuring + policy RAG explanation
+    ├── Actor-scoped confirmed leave Draft capability
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
@@ -165,6 +170,7 @@ JHWORKS_OPENAI_API_KEY=your-api-key
 JHWORKS_OPENAI_MODEL=gpt-5.4-mini
 JHWORKS_POLICY_EMBEDDING_MODEL=text-embedding-3-small
 JHWORKS_APPROVAL_DRAFT_CONFIRMATION_TTL_MINUTES=15
+JHWORKS_LEAVE_DRAFT_CONFIRMATION_TTL_MINUTES=15
 ```
 
 `.env`는 Git에 포함하지 않는다. API key는 browser에 전달되지 않고 FastAPI에서만 사용한다.
@@ -209,7 +215,8 @@ pnpm eval:leave-assistant
 - 정책 issue는 검색 결과에 존재하는 citation key만 허용하고 원문 인용은 DB에서 구성한다.
 - backend service가 작성자와 지정 결재자를 검증한다.
 - UI에서 action을 숨겨도 backend 검증은 생략하지 않는다.
-- 제출·휴가 신청 같은 추가 실행 Tool의 idempotency와 confirmation 계약은 Agent phase에서 확장한다.
+- 휴가 Draft Tool은 candidate와 account/calendar/policy/manager snapshot을 signed confirmation에 결합하고 확인 시 재검증한다.
+- Draft confirmation 재시도는 unique confirmation ID로 기존 문서를 반환하며 제출은 실행하지 않는다.
 - AI Draft는 exact preview hash, 현재 사용자와 만료 시간에 결합된 confirmation token을 검증한다.
 - 같은 confirmation token을 재사용해도 unique confirmation ID로 기존 Draft를 반환한다.
 - 업무 조회 Assistant에는 읽기 전용 allowlist Tool만 제공하고 arbitrary employee ID를 입력받지 않는다.
@@ -234,6 +241,7 @@ pnpm eval:leave-assistant
 - **Server-owned leave accounting**: 클라이언트가 보낸 차감 일수를 신뢰하지 않고 업무 캘린더로 다시 계산하며 결재와 휴가 계정을 함께 commit한다.
 - **Deterministic availability**: 휴가 후보와 충돌 여부는 LLM이 아니라 actor 범위의 휴가 계정과 일정으로 계산하고 근거 코드를 함께 반환한다.
 - **Grounded leave conversation**: LLM은 상대 날짜와 의도만 구조화하고 여러 번의 모호성 질문, 정책 allowlist와 결정적 계산은 서버가 담당한다.
+- **Confirmed narrow write**: 휴가 Draft 저장은 범용 DB Tool이 아니라 actor에 고정된 prepare/confirm capability이며, preview 이후 변경은 stale로 거절한다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
 상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md)에 기록한다.
@@ -248,8 +256,9 @@ pnpm eval:leave-assistant
 6. Phase 6 — Attendance and Leave Workflow ✅
 7. Phase 7 — Deterministic Leave Availability ✅
 8. Phase 8 — Grounded Leave AI Assistant ✅
-9. Phase 9 — Confirmed Leave Draft and Submit Tools
-10. Phase 10~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
+9. Phase 9 — Confirmed Leave Draft Tool ✅
+10. Phase 10 — Durable Confirmed Leave Submit Agent
+11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
 ## Contributing
 

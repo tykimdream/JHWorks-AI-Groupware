@@ -364,3 +364,28 @@ export interface LeaveAssistantResponse {
   latencyMs: number;
   generatedAt: string;
 }
+
+export interface LeaveDraftApprover {
+  id: string;
+  name: string;
+  position: string;
+}
+
+export interface LeaveDraftExactPreview {
+  approval: ApprovalDraftInput;
+  candidate: LeaveAvailabilityCandidate;
+  requestedDays: string;
+  leaveUnit: LeaveUnit;
+  availableDays: string;
+  accountVersion: number;
+  manager: LeaveDraftApprover;
+  policyContext: PolicySearchResponse;
+  warnings: LeaveAvailabilityReason[];
+  calendarFingerprint: string;
+  policyFingerprint: string;
+}
+
+export interface LeaveDraftPrepareResponse {
+  preview: LeaveDraftExactPreview;
+  confirmationToken: string;
+}

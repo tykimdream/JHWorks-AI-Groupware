@@ -1,6 +1,6 @@
 # Phase 7 — Grounded Leave AI Assistant
 
-상태: **Checkpoint 13 완료 (2026-08-25)**
+상태: **Checkpoint 14 완료 (2026-08-25)**
 
 ## 1. 목표
 
@@ -63,7 +63,38 @@ pnpm eval:leave-assistant
 
 평가 데이터는 모두 JHWorks synthetic 요청이며 애플리케이션 데이터를 변경하지 않는다.
 
-## 6. 다음 체크포인트
+## 6. Checkpoint 14 — 확인 기반 휴가 Draft Tool
 
-Checkpoint 14는 상담 후보를 exact LEAVE Draft preview로 만들고, 사용자·candidate·account version·calendar
-fingerprint에 결합된 signed confirmation을 검증한 뒤에만 하나의 `DRAFT`를 생성한다. 자동 제출은 하지 않는다.
+상담의 결정적 candidate를 다음 단계의 exact preview로 변환한다.
+
+- 실제 시작·종료일, 차감 일수와 종일/반차 단위
+- 현재 가용 연차와 LeaveAccount version
+- 서버가 현재 조직도에서 계산한 최종 결재자
+- 활성 휴가 정책 RAG citation과 candidate 주의 사유
+- calendar fingerprint와 active policy fingerprint
+
+`POST /leave-draft-tool/prepare`는 읽기만 수행한다. candidate 전체를 기존 availability service로 다시
+계산해 일치하는 결과가 없으면 `LEAVE_CANDIDATE_STALE`로 거절한다. 반차 candidate에는 오전/오후 단위,
+정수 일수에는 종일 단위만 허용한다.
+
+signed confirmation에는 사용자, confirmation ID, exact preview hash, candidate hash, account version,
+calendar fingerprint, manager ID와 policy fingerprint를 결합한다. `POST /leave-draft-tool/confirm`은 다음을
+모두 재검증한 뒤 기존 approval service로 `DRAFT`만 만든다.
+
+1. token 만료·서명·현재 actor와 preview/candidate hash
+2. 현재 LeaveAccount version, 가용 일수와 차감 일수
+3. 현재 manager의 존재·활성 상태·ID
+4. 현재 업무 캘린더 fingerprint와 결정적 candidate
+5. 활성 휴가 정책 version/content fingerprint
+
+이미 성공한 confirmation ID는 환경이 이후 바뀌어도 같은 Draft를 반환한다. 최초 확인의 동시 재시도는
+`approvals.source_confirmation_id` unique constraint와 기존 create service의 충돌 복구로 하나의 row만
+생성한다. Draft에는 결재선이 없고 `submittedAt`도 비어 있으며 자동 제출하지 않는다.
+
+테스트는 정상 exact preview, 확인 전 무변경, 만료, token/preview 변조, 다른 사용자, 임의 employeeId,
+account/calendar/manager/policy 변경, 중복 confirmation을 포함한다.
+
+## 7. 다음 체크포인트
+
+Checkpoint 15는 Draft 저장 확인과 별도의 제출 preview·확인을 durable state로 관리하고, 두 번째 확인 뒤
+기존 submit service를 호출한다. 취소·만료·stale은 무변경으로 종료한다.

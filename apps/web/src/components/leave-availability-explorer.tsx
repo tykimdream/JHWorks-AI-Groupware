@@ -134,7 +134,17 @@ export const LeaveAvailabilityExplorer = () => {
   );
 };
 
-export const AvailabilityResult = ({ result }: { result: LeaveAvailability }) => (
+export const AvailabilityResult = ({
+  result,
+  onCandidateSelect,
+  candidateActionLabel,
+  candidateActionDisabled = false,
+}: {
+  result: LeaveAvailability;
+  onCandidateSelect?: (candidate: LeaveAvailabilityCandidate) => void;
+  candidateActionLabel?: string;
+  candidateActionDisabled?: boolean;
+}) => (
   <>
     <section className="availability-summary">
       <div>
@@ -174,7 +184,13 @@ export const AvailabilityResult = ({ result }: { result: LeaveAvailability }) =>
         </div>
         <div className="candidate-grid">
           {result.candidates.map((candidate) => (
-            <CandidateCard candidate={candidate} key={`${candidate.startDate}-${candidate.endDate}`} />
+            <CandidateCard
+              actionLabel={candidateActionLabel}
+              actionDisabled={candidateActionDisabled}
+              candidate={candidate}
+              key={`${candidate.startDate}-${candidate.endDate}`}
+              onSelect={onCandidateSelect}
+            />
           ))}
         </div>
       </section>
@@ -199,7 +215,17 @@ export const AvailabilityResult = ({ result }: { result: LeaveAvailability }) =>
   </>
 );
 
-const CandidateCard = ({ candidate }: { candidate: LeaveAvailabilityCandidate }) => (
+const CandidateCard = ({
+  candidate,
+  onSelect,
+  actionLabel,
+  actionDisabled,
+}: {
+  candidate: LeaveAvailabilityCandidate;
+  onSelect?: (candidate: LeaveAvailabilityCandidate) => void;
+  actionLabel?: string;
+  actionDisabled?: boolean;
+}) => (
   <article className={`candidate-card candidate-${candidate.status.toLowerCase()}`}>
     <div className="candidate-card-heading">
       <span>{candidateLabels[candidate.status]}</span>
@@ -216,9 +242,20 @@ const CandidateCard = ({ candidate }: { candidate: LeaveAvailabilityCandidate })
         <li key={`${reason.code}-${reason.eventIds.join('-')}`}>{reason.message}</li>
       ))}
     </ul>
-    <Link className="secondary-button full-width" href={draftHref(candidate)}>
-      이 날짜로 휴가 Draft 작성
-    </Link>
+    {onSelect ? (
+      <button
+        className="secondary-button full-width"
+        disabled={actionDisabled}
+        onClick={() => onSelect(candidate)}
+        type="button"
+      >
+        {actionLabel ?? '이 날짜로 exact preview 만들기'}
+      </button>
+    ) : (
+      <Link className="secondary-button full-width" href={draftHref(candidate)}>
+        이 날짜로 휴가 Draft 작성
+      </Link>
+    )}
   </article>
 );
 

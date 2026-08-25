@@ -25,6 +25,7 @@ from app.models.enums import (
 )
 
 if TYPE_CHECKING:
+    from app.models.approval import Approval
     from app.models.employee import Department, Employee
 
 
@@ -99,6 +100,9 @@ class WorkCalendarEvent(Base):
     employee_id: Mapped[str | None] = mapped_column(
         ForeignKey("employees.id"), nullable=True, index=True
     )
+    approval_id: Mapped[str | None] = mapped_column(
+        ForeignKey("approvals.id", ondelete="CASCADE"), nullable=True, unique=True
+    )
     status: Mapped[AttendanceEventStatus] = mapped_column(
         Enum(AttendanceEventStatus, native_enum=False, length=32), nullable=False, index=True
     )
@@ -116,4 +120,7 @@ class WorkCalendarEvent(Base):
         "Employee",
         back_populates="calendar_events",
         foreign_keys=[employee_id],
+    )
+    approval: Mapped["Approval | None"] = relationship(
+        "Approval", back_populates="calendar_event", foreign_keys=[approval_id]
     )

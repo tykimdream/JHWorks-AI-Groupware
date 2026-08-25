@@ -1,7 +1,8 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -12,8 +13,17 @@ from app.core.errors import (
     NotFoundError,
 )
 from app.models.approval import Approval, ApprovalLine
+from app.models.attendance import LeaveAccount, WorkCalendarEvent
 from app.models.employee import Employee
-from app.models.enums import ApprovalLineStatus, ApprovalStatus, ApprovalType
+from app.models.enums import (
+    ApprovalLineStatus,
+    ApprovalStatus,
+    ApprovalType,
+    AttendanceEventCategory,
+    AttendanceEventScope,
+    AttendanceEventStatus,
+    AttendanceImpact,
+)
 from app.schemas.approval import ApprovalCreate, ApprovalDecision, ApprovalUpdate
 
 
@@ -68,7 +78,82 @@ def _current_line(approval: Approval) -> ApprovalLine:
     return pending[0]
 
 
-def _validate_for_submit(approval: Approval) -> None:
+def _parse_detail_date(value: object) -> date | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _calculate_leave_days(
+    db: Session,
+    employee: Employee,
+    start_date: date,
+    end_date: date,
+    leave_unit: str,
+) -> Decimal | None:
+    if start_date > end_date or start_date.year != end_date.year:
+        return None
+
+    holiday_events = db.scalars(
+        select(WorkCalendarEvent).where(
+            WorkCalendarEvent.category == AttendanceEventCategory.HOLIDAY,
+            WorkCalendarEvent.status == AttendanceEventStatus.CONFIRMED,
+            WorkCalendarEvent.start_date <= end_date,
+            WorkCalendarEvent.end_date >= start_date,
+            or_(
+                WorkCalendarEvent.scope == AttendanceEventScope.COMPANY,
+                WorkCalendarEvent.department_id == employee.department_id,
+            ),
+        )
+    )
+    holiday_dates: set[date] = set()
+    for event in holiday_events:
+        current = max(start_date, event.start_date)
+        last = min(end_date, event.end_date)
+        while current <= last:
+            holiday_dates.add(current)
+            current += timedelta(days=1)
+
+    business_days = 0
+    current = start_date
+    while current <= end_date:
+        if current.weekday() < 5 and current not in holiday_dates:
+            business_days += 1
+        current += timedelta(days=1)
+
+    if leave_unit in {"HALF_DAY_AM", "HALF_DAY_PM"}:
+        if start_date != end_date or business_days != 1:
+            return None
+        return Decimal("0.5")
+    if leave_unit != "FULL_DAY" or business_days == 0:
+        return None
+    return Decimal(business_days).quantize(Decimal("0.1"))
+
+
+def _normalized_details(
+    db: Session,
+    employee: Employee,
+    approval_type: ApprovalType,
+    details: dict[str, object],
+) -> dict[str, object]:
+    if approval_type != ApprovalType.LEAVE:
+        return details
+
+    normalized = details.copy()
+    start_date = _parse_detail_date(normalized.get("startDate"))
+    end_date = _parse_detail_date(normalized.get("endDate"))
+    leave_unit = normalized.get("leaveUnit")
+    calculated = None
+    if start_date is not None and end_date is not None and isinstance(leave_unit, str):
+        calculated = _calculate_leave_days(db, employee, start_date, end_date, leave_unit)
+    normalized["requestedDays"] = str(calculated) if calculated is not None else None
+    return normalized
+
+
+def _validate_for_submit(db: Session, approval: Approval) -> None:
     errors: dict[str, str] = {}
     if not approval.title.strip():
         errors["title"] = "Title is required"
@@ -89,6 +174,31 @@ def _validate_for_submit(approval: Approval) -> None:
             errors["details.endDate"] = "End date must be on or after start date"
         if approval.amount is None:
             errors["amount"] = "Estimated amount is required for a business trip"
+
+    if approval.type == ApprovalType.LEAVE:
+        details = approval.details
+        start_date = _parse_detail_date(details.get("startDate"))
+        end_date = _parse_detail_date(details.get("endDate"))
+        leave_unit = details.get("leaveUnit")
+        if start_date is None:
+            errors["details.startDate"] = "Start date is required for leave"
+        if end_date is None:
+            errors["details.endDate"] = "End date is required for leave"
+        if start_date is not None and end_date is not None:
+            if start_date > end_date:
+                errors["details.endDate"] = "End date must be on or after start date"
+            elif start_date.year != end_date.year:
+                errors["details.endDate"] = "Leave must start and end in the same year"
+            elif isinstance(leave_unit, str):
+                requested_days = _calculate_leave_days(
+                    db, approval.author, start_date, end_date, leave_unit
+                )
+                if requested_days is None:
+                    errors["details.leaveUnit"] = (
+                        "The selected dates do not contain a valid leave workday"
+                    )
+                elif Decimal(str(details.get("requestedDays"))) != requested_days:
+                    errors["details.requestedDays"] = "Requested days must match the work calendar"
 
     if errors:
         raise DomainValidationError(
@@ -130,6 +240,12 @@ def create_draft(
             item.model_dump(mode="json", by_alias=True) for item in payload.attachment_metadata
         ],
         source_confirmation_id=source_confirmation_id,
+    )
+    approval.details = _normalized_details(
+        db,
+        actor,
+        payload.type,
+        approval.details,
     )
     db.add(approval)
     try:
@@ -184,7 +300,12 @@ def update_draft(
     approval.title = payload.title.strip()
     approval.content = payload.content.strip()
     approval.amount = payload.amount
-    approval.details = payload.details.model_dump(mode="json", by_alias=True)
+    approval.details = _normalized_details(
+        db,
+        actor,
+        payload.type,
+        payload.details.model_dump(mode="json", by_alias=True),
+    )
     approval.attachment_metadata = [
         item.model_dump(mode="json", by_alias=True) for item in payload.attachment_metadata
     ]
@@ -205,11 +326,15 @@ def submit_approval(
     _require_version(approval, expected_version)
     if approval.status != ApprovalStatus.DRAFT:
         raise ConflictError("INVALID_STATUS", "Only draft approvals can be submitted")
-    _validate_for_submit(approval)
+    approval.details = _normalized_details(db, actor, approval.type, approval.details)
+    _validate_for_submit(db, approval)
 
     manager = db.get(Employee, actor.manager_id) if actor.manager_id else None
     if manager is None or not manager.is_active or manager.id == actor.id:
         raise ConflictError("MANAGER_UNAVAILABLE", "An active manager is required for submission")
+
+    if approval.type == ApprovalType.LEAVE:
+        _reserve_leave(db, approval)
 
     current_round = db.scalar(
         select(func.max(ApprovalLine.round)).where(ApprovalLine.approval_id == approval.id)
@@ -263,8 +388,103 @@ def decide_approval(
     approval.decided_at = now
     approval.version += 1
     approval.updated_at = now
+    if approval.type == ApprovalType.LEAVE:
+        _finalize_leave(db, approval, decision)
     db.commit()
     return _get_approval(db, approval.id)
+
+
+def _leave_request_values(approval: Approval) -> tuple[date, date, Decimal]:
+    start_date = _parse_detail_date(approval.details.get("startDate"))
+    end_date = _parse_detail_date(approval.details.get("endDate"))
+    requested_value = approval.details.get("requestedDays")
+    if start_date is None or end_date is None or requested_value is None:
+        raise ConflictError("INVALID_LEAVE_REQUEST", "The leave request is incomplete")
+    return start_date, end_date, Decimal(str(requested_value))
+
+
+def _locked_leave_account(db: Session, employee_id: str, year: int) -> LeaveAccount:
+    account = db.scalar(
+        select(LeaveAccount)
+        .where(LeaveAccount.employee_id == employee_id, LeaveAccount.year == year)
+        .with_for_update()
+    )
+    if account is None:
+        raise ConflictError(
+            "LEAVE_ACCOUNT_UNAVAILABLE",
+            f"No leave account is available for {year}",
+        )
+    return account
+
+
+def _reserve_leave(db: Session, approval: Approval) -> None:
+    start_date, end_date, requested_days = _leave_request_values(approval)
+    account = _locked_leave_account(db, approval.author_id, start_date.year)
+    if account.available_days < requested_days:
+        raise DomainValidationError(
+            "INSUFFICIENT_LEAVE_BALANCE",
+            "The requested leave exceeds the available balance",
+            {
+                "requestedDays": str(requested_days),
+                "availableDays": str(account.available_days),
+            },
+        )
+
+    event = db.scalar(
+        select(WorkCalendarEvent)
+        .where(WorkCalendarEvent.approval_id == approval.id)
+        .with_for_update()
+    )
+    if event is None:
+        event = WorkCalendarEvent(
+            id=f"cal_{uuid4().hex}",
+            approval_id=approval.id,
+            category=AttendanceEventCategory.LEAVE,
+            title="연차",
+            start_date=start_date,
+            end_date=end_date,
+            scope=AttendanceEventScope.EMPLOYEE,
+            employee_id=approval.author_id,
+            status=AttendanceEventStatus.TENTATIVE,
+            impact=AttendanceImpact.CAUTION,
+        )
+        db.add(event)
+    else:
+        event.start_date = start_date
+        event.end_date = end_date
+        event.employee_id = approval.author_id
+        event.status = AttendanceEventStatus.TENTATIVE
+
+    account.pending_days += requested_days
+    account.version += 1
+
+
+def _finalize_leave(db: Session, approval: Approval, decision: ApprovalStatus) -> None:
+    start_date, _, requested_days = _leave_request_values(approval)
+    account = _locked_leave_account(db, approval.author_id, start_date.year)
+    event = db.scalar(
+        select(WorkCalendarEvent)
+        .where(WorkCalendarEvent.approval_id == approval.id)
+        .with_for_update()
+    )
+    if event is None or event.status != AttendanceEventStatus.TENTATIVE:
+        raise ConflictError(
+            "LEAVE_RESERVATION_INCONSISTENT",
+            "The leave calendar reservation is missing or invalid",
+        )
+    if account.pending_days < requested_days:
+        raise ConflictError(
+            "LEAVE_RESERVATION_INCONSISTENT",
+            "The pending leave balance is smaller than the request",
+        )
+
+    account.pending_days -= requested_days
+    account.version += 1
+    if decision == ApprovalStatus.APPROVED:
+        account.used_days += requested_days
+        event.status = AttendanceEventStatus.CONFIRMED
+    else:
+        event.status = AttendanceEventStatus.CANCELED
 
 
 def revise_approval(

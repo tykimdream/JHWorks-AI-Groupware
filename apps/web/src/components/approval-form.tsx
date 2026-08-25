@@ -9,6 +9,8 @@ import type {
   ApprovalDraftInput,
   ApprovalType,
   BusinessTripDetails,
+  LeaveDetails,
+  LeaveUnit,
 } from '@/lib/types';
 
 interface ApprovalFormProps {
@@ -30,18 +32,30 @@ const blankTripDetails: BusinessTripDetails = {
   visitPurpose: '',
 };
 
+const blankLeaveDetails: LeaveDetails = {
+  kind: 'LEAVE',
+  leaveType: 'ANNUAL',
+  leaveUnit: 'FULL_DAY',
+  startDate: '',
+  endDate: '',
+  requestedDays: null,
+  reason: '',
+  handoverNote: '',
+};
+
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
 export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
   const router = useRouter();
   const initialTrip = initial?.details.kind === 'BUSINESS_TRIP' ? initial.details : blankTripDetails;
+  const initialLeave = initial?.details.kind === 'LEAVE' ? initial.details : blankLeaveDetails;
   const [type, setType] = useState<ApprovalType>(initial?.type ?? 'BUSINESS_TRIP');
   const [title, setTitle] = useState(initial?.title ?? '');
   const [content, setContent] = useState(initial?.content ?? '');
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? '');
   const [destination, setDestination] = useState(initialTrip.destination ?? '');
-  const [startDate, setStartDate] = useState(initialTrip.startDate ?? '');
-  const [endDate, setEndDate] = useState(initialTrip.endDate ?? '');
+  const [tripStartDate, setTripStartDate] = useState(initialTrip.startDate ?? '');
+  const [tripEndDate, setTripEndDate] = useState(initialTrip.endDate ?? '');
   const [clientName, setClientName] = useState(initialTrip.clientName ?? '');
   const [visitPurpose, setVisitPurpose] = useState(initialTrip.visitPurpose ?? '');
   const [transportation, setTransportation] = useState(
@@ -50,6 +64,11 @@ export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
   const [lodging, setLodging] = useState(initialTrip.costBreakdown?.lodging?.toString() ?? '');
   const [meals, setMeals] = useState(initialTrip.costBreakdown?.meals?.toString() ?? '');
   const [other, setOther] = useState(initialTrip.costBreakdown?.other?.toString() ?? '');
+  const [leaveUnit, setLeaveUnit] = useState<LeaveUnit>(initialLeave.leaveUnit);
+  const [leaveStartDate, setLeaveStartDate] = useState(initialLeave.startDate ?? '');
+  const [leaveEndDate, setLeaveEndDate] = useState(initialLeave.endDate ?? '');
+  const [leaveReason, setLeaveReason] = useState(initialLeave.reason ?? '');
+  const [handoverNote, setHandoverNote] = useState(initialLeave.handoverNote ?? '');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,19 +77,52 @@ export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
     [transportation, lodging, meals, other],
   );
 
+  const estimatedLeaveDays = useMemo(() => {
+    if (!leaveStartDate || !leaveEndDate) {
+      return null;
+    }
+    const start = new Date(`${leaveStartDate}T00:00:00`);
+    const end = new Date(`${leaveEndDate}T00:00:00`);
+    if (start > end || (leaveUnit !== 'FULL_DAY' && leaveStartDate !== leaveEndDate)) {
+      return null;
+    }
+    if (leaveUnit !== 'FULL_DAY') {
+      return start.getDay() === 0 || start.getDay() === 6 ? null : 0.5;
+    }
+    let weekdays = 0;
+    for (const current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
+      if (current.getDay() !== 0 && current.getDay() !== 6) {
+        weekdays += 1;
+      }
+    }
+    return weekdays || null;
+  }, [leaveEndDate, leaveStartDate, leaveUnit]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setIsSaving(true);
 
-    const details: ApprovalDraftInput['details'] =
-      type === 'GENERAL'
-        ? { kind: 'GENERAL' }
-        : {
+    let details: ApprovalDraftInput['details'];
+    if (type === 'GENERAL') {
+      details = { kind: 'GENERAL' };
+    } else if (type === 'LEAVE') {
+      details = {
+        kind: 'LEAVE',
+        leaveType: 'ANNUAL',
+        leaveUnit,
+        startDate: leaveStartDate || null,
+        endDate: leaveEndDate || null,
+        requestedDays: null,
+        reason: leaveReason || null,
+        handoverNote: handoverNote || null,
+      };
+    } else {
+      details = {
             kind: 'BUSINESS_TRIP',
             destination: destination || null,
-            startDate: startDate || null,
-            endDate: endDate || null,
+            startDate: tripStartDate || null,
+            endDate: tripEndDate || null,
             clientName: clientName || null,
             visitPurpose: visitPurpose || null,
             costBreakdown: {
@@ -80,12 +132,13 @@ export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
               other: numberOrNull(other),
             },
           };
+    }
 
     const payload: ApprovalDraftInput = {
       type,
       title,
       content,
-      amount: numberOrNull(amount),
+      amount: type === 'LEAVE' ? null : numberOrNull(amount),
       details,
       attachmentMetadata: initial?.attachmentMetadata ?? [],
       ...(initial ? { version: initial.version } : {}),
@@ -111,13 +164,16 @@ export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
           <span>결재 종류</span>
           <select value={type} onChange={(event) => setType(event.target.value as ApprovalType)}>
             <option value="BUSINESS_TRIP">출장 신청</option>
+            <option value="LEAVE">휴가 신청</option>
             <option value="GENERAL">일반 결재</option>
           </select>
         </label>
-        <label>
-          <span>예상 금액 (원)</span>
-          <input min="0" onChange={(event) => setAmount(event.target.value)} type="number" value={amount} />
-        </label>
+        {type !== 'LEAVE' && (
+          <label>
+            <span>예상 금액 (원)</span>
+            <input min="0" onChange={(event) => setAmount(event.target.value)} type="number" value={amount} />
+          </label>
+        )}
       </div>
 
       <div className="form-section">
@@ -157,11 +213,11 @@ export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
             </label>
             <label>
               <span>시작일</span>
-              <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+              <input onChange={(event) => setTripStartDate(event.target.value)} type="date" value={tripStartDate} />
             </label>
             <label>
               <span>종료일</span>
-              <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
+              <input onChange={(event) => setTripEndDate(event.target.value)} type="date" value={tripEndDate} />
             </label>
           </div>
           <label>
@@ -187,6 +243,75 @@ export const ApprovalForm = ({ initial }: ApprovalFormProps) => {
             ))}
           </div>
           <p className="calculated-total">세부 비용 합계: {breakdownTotal.toLocaleString('ko-KR')}원</p>
+        </div>
+      )}
+
+      {type === 'LEAVE' && (
+        <div className="form-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">LEAVE REQUEST</p>
+              <h2>휴가 정보</h2>
+            </div>
+            <span className="subtle">주말과 회사 휴무일을 제외해 서버가 일수를 확정합니다.</span>
+          </div>
+          <div className="form-grid-two">
+            <label>
+              <span>휴가 단위</span>
+              <select
+                onChange={(event) => setLeaveUnit(event.target.value as LeaveUnit)}
+                value={leaveUnit}
+              >
+                <option value="FULL_DAY">종일 연차</option>
+                <option value="HALF_DAY_AM">오전 반차</option>
+                <option value="HALF_DAY_PM">오후 반차</option>
+              </select>
+            </label>
+            <label>
+              <span>예상 차감 일수</span>
+              <input
+                aria-label="예상 차감 일수"
+                readOnly
+                value={estimatedLeaveDays === null ? '날짜를 선택해주세요' : `${estimatedLeaveDays}일`}
+              />
+            </label>
+            <label>
+              <span>시작일</span>
+              <input
+                onChange={(event) => setLeaveStartDate(event.target.value)}
+                type="date"
+                value={leaveStartDate}
+              />
+            </label>
+            <label>
+              <span>종료일</span>
+              <input
+                onChange={(event) => setLeaveEndDate(event.target.value)}
+                type="date"
+                value={leaveEndDate}
+              />
+            </label>
+          </div>
+          <label>
+            <span>휴가 사유 (선택)</span>
+            <textarea
+              maxLength={1000}
+              onChange={(event) => setLeaveReason(event.target.value)}
+              placeholder="공개 범위를 고려해 필요한 내용만 작성하세요."
+              rows={3}
+              value={leaveReason}
+            />
+          </label>
+          <label>
+            <span>인수인계 메모 (선택)</span>
+            <textarea
+              maxLength={2000}
+              onChange={(event) => setHandoverNote(event.target.value)}
+              placeholder="담당 업무와 대체 담당자 등 결재자에게 필요한 내용을 적어주세요."
+              rows={3}
+              value={handoverNote}
+            />
+          </label>
         </div>
       )}
 

@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { Approval, BusinessTripDetails } from '@/lib/types';
+import type { Approval, ApprovalType, BusinessTripDetails, LeaveDetails } from '@/lib/types';
 
 type Command = 'submit' | 'approve' | 'reject' | 'revise';
 
@@ -26,6 +26,18 @@ const costLabels = {
   lodging: '숙박비',
   meals: '식비',
   other: '기타',
+} as const;
+
+const approvalTypeLabels: Record<ApprovalType, string> = {
+  GENERAL: '일반 결재',
+  BUSINESS_TRIP: '출장 신청',
+  LEAVE: '휴가 신청',
+};
+
+const leaveUnitLabels = {
+  FULL_DAY: '종일 연차',
+  HALF_DAY_AM: '오전 반차',
+  HALF_DAY_PM: '오후 반차',
 } as const;
 
 export default function ApprovalDetailPage() {
@@ -101,6 +113,7 @@ export default function ApprovalDetailPage() {
   }
 
   const trip = approval.details.kind === 'BUSINESS_TRIP' ? approval.details : null;
+  const leave = approval.details.kind === 'LEAVE' ? approval.details : null;
 
   return (
     <AppShell>
@@ -111,7 +124,7 @@ export default function ApprovalDetailPage() {
         <div className="detail-title-row">
           <div>
             <div className="row-meta">
-              <span>{approval.type === 'BUSINESS_TRIP' ? '출장 신청' : '일반 결재'}</span>
+              <span>{approvalTypeLabels[approval.type]}</span>
               <span>·</span>
               <span>v{approval.version}</span>
             </div>
@@ -130,6 +143,7 @@ export default function ApprovalDetailPage() {
           </section>
 
           {trip && <TripDetails trip={trip} amount={approval.amount} />}
+          {leave && <LeaveRequestDetails leave={leave} />}
 
           {error && <p className="error-banner">{error}</p>}
 
@@ -259,5 +273,19 @@ const TripDetails = ({ trip, amount }: { trip: BusinessTripDetails; amount: numb
         <span key={key}>{costLabels[key as keyof typeof costLabels]} <strong>{formatCurrency(value)}</strong></span>
       ))}
     </div>
+  </section>
+);
+
+const LeaveRequestDetails = ({ leave }: { leave: LeaveDetails }) => (
+  <section>
+    <p className="eyebrow">LEAVE REQUEST</p>
+    <h2>휴가 정보</h2>
+    <dl className="detail-grid">
+      <div><dt>휴가 단위</dt><dd>{leaveUnitLabels[leave.leaveUnit]}</dd></div>
+      <div><dt>차감 일수</dt><dd>{leave.requestedDays ? `${leave.requestedDays}일` : '-'}</dd></div>
+      <div><dt>기간</dt><dd>{leave.startDate || '-'} → {leave.endDate || '-'}</dd></div>
+      <div className="wide"><dt>휴가 사유</dt><dd>{leave.reason || '-'}</dd></div>
+      <div className="wide"><dt>인수인계</dt><dd>{leave.handoverNote || '-'}</dd></div>
+    </dl>
   </section>
 );

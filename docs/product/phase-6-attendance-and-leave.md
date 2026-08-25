@@ -1,12 +1,12 @@
-# Phase 6 — Attendance and Leave Foundation
+# Phase 6 — Attendance and Leave Workflow
 
-상태: **진행 중 — Checkpoint 10 완료 (2026-08-25)**
+상태: **진행 중 — Checkpoint 11 완료 (2026-08-25)**
 
 ## 1. 목표
 
 휴가 가능일 추천을 AI의 일반 지식이나 prompt 안의 임시 데이터로 만들지 않는다. 근태와 휴가를 그룹웨어의 정식 application domain으로 구축하고, 전자결재와 AI가 함께 사용할 수 있는 휴가 잔여 내역과 일정 조회 계약을 먼저 만든다.
 
-## 2. 이번 체크포인트의 범위
+## 2. Checkpoint 10 범위
 
 - 직원별·연도별 휴가 계정
 - 전사 행사, 공휴일, 부서 프로젝트 마일스톤, 직원 휴가 일정
@@ -14,7 +14,7 @@
 - 실제 업무와 무관한 JHWorks synthetic seed data
 - migration, schema, service authorization과 API integration test
 
-휴가 결재 생성·승인과 추천 후보 계산은 다음 체크포인트에서 연결한다.
+Checkpoint 11에서 이 기반을 휴가 결재 상태 전이에 연결했다.
 
 ## 3. Domain Model
 
@@ -91,8 +91,51 @@ GET /api/v1/attendance/overview?startDate=2026-09-01&endDate=2026-09-30
 - 역전된 날짜와 93일 초과 조회를 거절한다.
 - API key 없이 전체 기본 검증을 실행할 수 있다.
 
-## 8. 다음 체크포인트
+## 8. Checkpoint 11 — 휴가 전자결재
 
-Checkpoint 11에서는 `LEAVE` 결재 details를 실제 생성·제출·승인 workflow에 연결한다. 승인 대기 시 `pendingDays`, 승인 시 `usedDays`와 근태 캘린더를 transaction으로 갱신한다.
+`LEAVE`를 일반 결재의 제목만 바꾼 문서가 아니라 별도의 structured details로 제공한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `leaveType` | 현재 지원하는 연차 유형 `ANNUAL` |
+| `leaveUnit` | 종일, 오전 반차, 오후 반차 |
+| `startDate`, `endDate` | 휴가 시작·종료일 |
+| `requestedDays` | 서버가 계산하고 저장한 실제 차감 일수 |
+| `reason` | 선택 입력이며 팀 캘린더에는 노출하지 않음 |
+| `handoverNote` | 결재자에게 전달할 선택 인수인계 메모 |
+
+Draft 저장 시 클라이언트가 보낸 `requestedDays`는 사용하지 않는다. 서버가 주말과 현재 사용자의 범위에 적용되는 `CONFIRMED` 휴무일을 제외해 다시 계산한다. 반차는 하나의 유효한 근무일에만 신청할 수 있고, 하나의 신청은 연도를 넘을 수 없다.
+
+### 상태 전이와 회계 처리
+
+```text
+DRAFT
+  └─ submit  → pendingDays 증가 + TENTATIVE 캘린더 이벤트
+       ├─ approve → pendingDays 감소 + usedDays 증가 + CONFIRMED 이벤트
+       └─ reject  → pendingDays 감소 + CANCELED 이벤트
+                        └─ revise/edit/resubmit → 새 일수 예약 + 기존 이벤트 재사용
+```
+
+Approval, ApprovalLine, LeaveAccount, WorkCalendarEvent 변경은 하나의 DB transaction에서 commit한다. LeaveAccount와 연결 이벤트는 상태 전이 시 잠가 중복 승인과 동시에 제출되는 요청의 초과 예약을 방지한다. 가용 일수가 부족하면 `INSUFFICIENT_LEAVE_BALANCE`, 연도 계정이 없으면 `LEAVE_ACCOUNT_UNAVAILABLE`, 예약 상태가 맞지 않으면 `LEAVE_RESERVATION_INCONSISTENT`로 실패하며 결재 상태도 변경하지 않는다.
+
+WorkCalendarEvent의 nullable unique `approvalId`가 휴가 결재와 일정의 1:1 연결을 보장한다. 팀 캘린더 API는 기존과 동일하게 사유·인수인계·결재 본문을 반환하지 않는다.
+
+### 사용자 화면
+
+- 직접 작성 화면에서 휴가 신청, 종일·반차, 기간, 사유와 인수인계를 입력한다.
+- 화면의 예상 일수는 주말을 제외한 빠른 안내이며, 저장 결과의 확정 일수는 회사 휴무일까지 반영한 서버 값이다.
+- 목록에서는 금액 대신 차감 일수를 표시한다.
+- 상세 화면에서 휴가 단위, 확정 차감 일수, 기간과 결재자용 정보를 확인한다.
+
+### 검증 범위
+
+- 클라이언트가 임의로 보낸 일수를 서버 계산값으로 교체
+- 기간에 포함된 주말과 JHWorks 확정 휴무일 제외
+- 오전·오후 반차 0.5일 계산
+- 제출·승인 시 `pendingDays`와 `usedDays` 전환
+- 반려 시 예약 복원, 수정 후 재제출 시 기존 일정 재사용
+- 잔여 일수 부족 시 결재·계정·일정 무변경
+
+## 9. 다음 체크포인트
 
 Checkpoint 12에서는 공휴일·주말·회사 행사·프로젝트 기간·팀 휴가·잔여 일수를 일반 코드로 계산해 여러 휴가 후보와 제외 사유를 만든다. AI는 계산된 후보를 설명하고 자연어 요청을 구조화하지만 날짜 가능 여부를 직접 결정하지 않는다.

@@ -52,6 +52,12 @@ class Approval(Base):
         cascade="all, delete-orphan",
         order_by="ApprovalLine.round",
     )
+    calendar_event = relationship(
+        "WorkCalendarEvent",
+        back_populates="approval",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
 
 class ApprovalLine(Base):

@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
@@ -34,7 +35,21 @@ class BusinessTripDetails(ApiSchema):
     visit_purpose: str | None = Field(default=None, max_length=1000)
 
 
-ApprovalDetails = Annotated[GeneralDetails | BusinessTripDetails, Field(discriminator="kind")]
+class LeaveDetails(ApiSchema):
+    kind: Literal["LEAVE"] = "LEAVE"
+    leave_type: Literal["ANNUAL"] = "ANNUAL"
+    leave_unit: Literal["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"] = "FULL_DAY"
+    start_date: date | None = None
+    end_date: date | None = None
+    requested_days: Decimal | None = Field(default=None, ge=Decimal("0.5"), decimal_places=1)
+    reason: str | None = Field(default=None, max_length=1000)
+    handover_note: str | None = Field(default=None, max_length=2000)
+
+
+ApprovalDetails = Annotated[
+    GeneralDetails | BusinessTripDetails | LeaveDetails,
+    Field(discriminator="kind"),
+]
 
 
 class ApprovalDraftFields(ApiSchema):

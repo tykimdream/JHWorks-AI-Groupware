@@ -1,0 +1,25 @@
+# Environment
+.env
+.env.local
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.db
+
+# JavaScript
+node_modules/
+.next/
+out/
+coverage/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+

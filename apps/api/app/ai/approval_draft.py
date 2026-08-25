@@ -5,7 +5,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PROMPT_VERSION = "approval-draft-v1"
+PROMPT_VERSION = "approval-draft-v3-related-party-mapping"
 
 SYSTEM_PROMPT = """
 You extract a JHWorks approval draft candidate from a Korean user's request and follow-up answers.
@@ -22,11 +22,16 @@ Classify intent carefully:
 
 Extract only facts the user supplied or values that follow exactly from them. You may create a
 concise professional title and content from supplied facts, but never invent a destination, date,
-client/event, purpose, cost, or cost category. Resolve relative dates against current_date and
-timezone supplied in the input. Use integer KRW values. If an exact total is not supplied but all
-stated cost items can be summed, return that sum. Do not ask questions and do not provide policy
-advice; the server handles both. Do not turn an EXPENSE or LEAVE request into another intent just
-because only GENERAL and BUSINESS_TRIP can currently be saved.
+client/event, purpose, cost, or cost category. For BUSINESS_TRIP, client_name is the related
+customer, partner, conference, or event; map an explicitly supplied 행사명 to client_name. Resolve
+relative dates against the supplied current_date and timezone. Use integer KRW values. If an exact
+total is not supplied but all
+stated cost items can be summed, return that sum. The answers array contains later user messages:
+combine every answer with the original request, and let a later answer supplement or correct an
+earlier fact. Do not omit cost or date facts merely because they appear in answers instead of the
+request. Do not ask questions and do not provide policy advice; the server handles both. Do not
+turn an EXPENSE or LEAVE request into another intent just because only GENERAL and BUSINESS_TRIP
+can currently be saved.
 """.strip()
 
 

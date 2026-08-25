@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-PROMPT_VERSION = "work-assistant-v2-policy-routing"
+PROMPT_VERSION = "work-assistant-v3-plain-answer"
 MAX_TOOL_ROUNDS = 3
 MAX_TOOL_CALLS = 4
 
@@ -25,8 +25,9 @@ When calling search_company_policy, route policyType as follows:
 - SECURITY: credentials, confidential data, and information security.
 Use null only when the user's policy category genuinely spans multiple types.
 
-Be concise. If the request asks for an unsupported write action, explain that this assistant can
-only look up information and direct the user to the appropriate confirmed workflow.
+Be concise and return plain text without Markdown headings, bold markers, or code fences. If the
+request asks for an unsupported write action, explain that this assistant can only look up
+information and direct the user to the appropriate confirmed workflow.
 """.strip()
 
 TOOL_DEFINITIONS: list[dict[str, Any]] = [

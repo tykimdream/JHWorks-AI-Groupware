@@ -17,9 +17,9 @@ node_modules/
 .next/
 out/
 coverage/
+*.tsbuildinfo
 
 # Editors and OS
 .DS_Store
 .idea/
 .vscode/
-

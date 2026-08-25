@@ -117,4 +117,4 @@ answer + executed tool audit + exact policy citations
 
 ## 11. 다음 단계
 
-Phase 6에서는 write Tool에 preview, explicit confirmation, idempotency key와 stale-state 검증을 추가한다. 그 기반 위에서 휴가 가능일 추천은 회사 행사·프로젝트 핵심 기간·팀 휴가 현황·휴가 정책을 읽기 Tool로 모으고, 결정적 availability engine이 후보 날짜를 계산하도록 구현한다.
+Phase 6에서는 휴가 추천보다 먼저 연도별 휴가 계정과 회사 행사·프로젝트 핵심 기간·팀 휴가를 application domain으로 구축한다. 이후 이 데이터를 좁은 읽기 Tool로 제공하고, 결정적 availability engine이 후보 날짜를 계산한다. 휴가 결재 쓰기 Tool은 해당 결재 domain과 preview, explicit confirmation, idempotency, stale-state 검증이 준비된 뒤 추가한다.

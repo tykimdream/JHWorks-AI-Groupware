@@ -1,13 +1,23 @@
 import hashlib
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password
+from app.models.attendance import LeaveAccount, WorkCalendarEvent
 from app.models.employee import Credential, Department, Employee
-from app.models.enums import EmployeeRole, PolicyStatus, PolicyType
+from app.models.enums import (
+    AttendanceEventCategory,
+    AttendanceEventScope,
+    AttendanceEventStatus,
+    AttendanceImpact,
+    EmployeeRole,
+    PolicyStatus,
+    PolicyType,
+)
 from app.models.policy import CompanyPolicy, PolicySection
 
 DEMO_PASSWORD = "demo1234"
@@ -26,8 +36,111 @@ def _content_hash(sections: list[tuple[str, str, str]]) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def _seed_attendance(db: Session) -> None:
+    if db.scalar(select(LeaveAccount.id).limit(1)) is None:
+        account_values = {
+            "emp_ceo_001": ("18.0", "2.0", "2.0", "0.0"),
+            "emp_sales_mgr_001": ("15.0", "2.0", "3.0", "0.0"),
+            "emp_sales_001": ("15.0", "1.5", "7.0", "0.0"),
+            "emp_sales_002": ("15.0", "0.0", "8.0", "0.0"),
+            "emp_eng_mgr_001": ("15.0", "1.0", "3.0", "0.0"),
+            "emp_eng_001": ("15.0", "0.0", "5.0", "0.0"),
+            "emp_ops_001": ("15.0", "1.0", "3.5", "0.0"),
+        }
+        db.add_all(
+            [
+                LeaveAccount(
+                    id=f"leave_{employee_id}_2026",
+                    employee_id=employee_id,
+                    year=2026,
+                    granted_days=Decimal(granted),
+                    carried_over_days=Decimal(carried),
+                    used_days=Decimal(used),
+                    pending_days=Decimal(pending),
+                )
+                for employee_id, (granted, carried, used, pending) in account_values.items()
+            ]
+        )
+
+    if db.scalar(select(WorkCalendarEvent.id).limit(1)) is None:
+        db.add_all(
+            [
+                WorkCalendarEvent(
+                    id="cal_company_townhall_20260903",
+                    category=AttendanceEventCategory.COMPANY_EVENT,
+                    title="JHWorks 전사 타운홀",
+                    description="3분기 사업 현황과 전사 공지 공유",
+                    start_date=date(2026, 9, 3),
+                    end_date=date(2026, 9, 3),
+                    scope=AttendanceEventScope.COMPANY,
+                    status=AttendanceEventStatus.CONFIRMED,
+                    impact=AttendanceImpact.CAUTION,
+                ),
+                WorkCalendarEvent(
+                    id="cal_holiday_foundation_20260924",
+                    category=AttendanceEventCategory.HOLIDAY,
+                    title="JHWorks 창립기념 휴무",
+                    description="JHWorks synthetic company holiday",
+                    start_date=date(2026, 9, 24),
+                    end_date=date(2026, 9, 26),
+                    scope=AttendanceEventScope.COMPANY,
+                    status=AttendanceEventStatus.CONFIRMED,
+                    impact=AttendanceImpact.BLOCKED,
+                ),
+                WorkCalendarEvent(
+                    id="cal_sales_q3_review_20260910",
+                    category=AttendanceEventCategory.PROJECT_MILESTONE,
+                    title="Sales 3분기 파이프라인 리뷰",
+                    description="핵심 고객별 진행 상황과 4분기 계획 확정",
+                    start_date=date(2026, 9, 10),
+                    end_date=date(2026, 9, 11),
+                    scope=AttendanceEventScope.DEPARTMENT,
+                    department_id="dept_sales",
+                    status=AttendanceEventStatus.CONFIRMED,
+                    impact=AttendanceImpact.BLOCKED,
+                ),
+                WorkCalendarEvent(
+                    id="cal_eng_release_20260916",
+                    category=AttendanceEventCategory.PROJECT_MILESTONE,
+                    title="Groupware 0.2 릴리스",
+                    description="Engineering 릴리스와 안정화 기간",
+                    start_date=date(2026, 9, 16),
+                    end_date=date(2026, 9, 18),
+                    scope=AttendanceEventScope.DEPARTMENT,
+                    department_id="dept_engineering",
+                    status=AttendanceEventStatus.CONFIRMED,
+                    impact=AttendanceImpact.BLOCKED,
+                ),
+                WorkCalendarEvent(
+                    id="cal_leave_harin_20260914",
+                    category=AttendanceEventCategory.LEAVE,
+                    title="연차",
+                    start_date=date(2026, 9, 14),
+                    end_date=date(2026, 9, 15),
+                    scope=AttendanceEventScope.EMPLOYEE,
+                    employee_id="emp_sales_002",
+                    status=AttendanceEventStatus.CONFIRMED,
+                    impact=AttendanceImpact.CAUTION,
+                ),
+                WorkCalendarEvent(
+                    id="cal_leave_doyun_20260921",
+                    category=AttendanceEventCategory.LEAVE,
+                    title="연차",
+                    start_date=date(2026, 9, 21),
+                    end_date=date(2026, 9, 22),
+                    scope=AttendanceEventScope.EMPLOYEE,
+                    employee_id="emp_sales_mgr_001",
+                    status=AttendanceEventStatus.TENTATIVE,
+                    impact=AttendanceImpact.CAUTION,
+                ),
+            ]
+        )
+
+
 def seed_database(db: Session) -> None:
     if db.scalar(select(Employee.id).limit(1)) is not None:
+        _seed_attendance(db)
+        db.commit()
         return
 
     departments = [
@@ -259,6 +372,7 @@ def seed_database(db: Session) -> None:
         ]
         db.add(policy)
 
+    _seed_attendance(db)
     db.commit()
 
 

@@ -12,6 +12,14 @@ from app.models.policy import CompanyPolicy, PolicySection
 
 DEMO_PASSWORD = "demo1234"
 
+POLICY_RULES: dict[str, dict[str, object]] = {
+    "TRAVEL-1": {"kind": "MAX_LODGING_PER_NIGHT", "limitKrw": 120000},
+    "TRAVEL-2": {"kind": "ATTACHMENT_REQUIRED_WHEN_COST_POSITIVE", "costField": "transportation"},
+    "TRAVEL-3": {"kind": "PRIOR_APPROVAL_MIN_TOTAL", "thresholdKrw": 300000},
+    "EXPENSE-2": {"kind": "RECEIPT_REQUIRED_MIN_TOTAL", "thresholdKrw": 100000},
+    "EXPENSE-3": {"kind": "PRIOR_APPROVAL_MIN_TOTAL", "thresholdKrw": 300000},
+}
+
 
 def _content_hash(sections: list[tuple[str, str, str]]) -> str:
     canonical = "\n".join("|".join(section) for section in sections)
@@ -240,7 +248,13 @@ def seed_database(db: Session) -> None:
             published_at=now,
         )
         policy.sections = [
-            PolicySection(section_id=section_id, title=section_title, content=content, order=index)
+            PolicySection(
+                section_id=section_id,
+                title=section_title,
+                content=content,
+                order=index,
+                rule_config=POLICY_RULES.get(section_id),
+            )
             for index, (section_id, section_title, content) in enumerate(sections, start=1)
         ]
         db.add(policy)

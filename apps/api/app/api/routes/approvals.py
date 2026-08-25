@@ -2,7 +2,12 @@ from typing import Literal
 
 from fastapi import APIRouter, Query
 
-from app.api.dependencies import AIReviewProvider, CurrentEmployee, DbSession
+from app.api.dependencies import (
+    AIReviewProvider,
+    CurrentEmployee,
+    DbSession,
+    PolicyEmbeddingProviderDependency,
+)
 from app.models.enums import ApprovalStatus
 from app.schemas.ai_review import AIReviewRequest, AIReviewResponse
 from app.schemas.approval import (
@@ -125,6 +130,7 @@ def review_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
     provider: AIReviewProvider,
+    embedding_provider: PolicyEmbeddingProviderDependency,
 ) -> AIReviewResponse:
     return approval_review_service.review_approval(
         db,
@@ -132,4 +138,5 @@ def review_approval(
         approval_id,
         payload.version,
         provider,
+        embedding_provider,
     )

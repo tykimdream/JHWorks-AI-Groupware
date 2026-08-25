@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.work_assistant import TOOL_DEFINITIONS, ToolExecutionError
+from app.evals.work_assistant import load_cases
 from app.models.approval import Approval
 from app.models.employee import Employee
 from app.services.enterprise_tools import ReadOnlyEnterpriseToolExecutor
@@ -171,3 +172,11 @@ def test_provider_failure_returns_503_without_changes(
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "WORK_ASSISTANT_UNAVAILABLE"
     assert approval_count(session_factory) == before
+
+
+def test_work_assistant_eval_dataset_covers_every_read_only_tool() -> None:
+    cases = load_cases()
+    covered = {name for case in cases for name in case.expected_tool_names}
+
+    assert len(cases) >= 5
+    assert covered == {tool["name"] for tool in TOOL_DEFINITIONS}

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "current-leave-balance",
+    "message": "내 남은 연차가 며칠인지 현재 데이터로 정확히 알려줘.",
+    "expected_tool_names": ["get_current_employee"],
+    "expected_arguments": {},
+    "expected_citation_keys": []
+  },
+  {
+    "id": "direct-manager",
+    "message": "내 직속 관리자의 이름과 직급을 알려줘.",
+    "expected_tool_names": ["get_my_manager"],
+    "expected_arguments": {},
+    "expected_citation_keys": []
+  },
+  {
+    "id": "my-approval-list",
+    "message": "내가 작성한 결재 문서를 최근 순서로 최대 5건 보여줘.",
+    "expected_tool_names": ["list_my_approvals"],
+    "expected_arguments": {"list_my_approvals": {"status": null, "limit": 5}},
+    "expected_citation_keys": []
+  },
+  {
+    "id": "travel-lodging-policy",
+    "message": "국내 출장 숙박비 한도를 회사 규정 근거와 함께 알려줘.",
+    "expected_tool_names": ["search_company_policy"],
+    "expected_arguments": {"search_company_policy": {"policyType": "TRAVEL"}},
+    "expected_citation_keys": ["policy_travel:1.0:TRAVEL-1"]
+  },
+  {
+    "id": "expense-receipt-policy",
+    "message": "이미 사용한 경비는 얼마부터 영수증이 필요한지 회사 규정으로 알려줘.",
+    "expected_tool_names": ["search_company_policy"],
+    "expected_arguments": {"search_company_policy": {"policyType": "EXPENSE"}},
+    "expected_citation_keys": ["policy_expense:1.0:EXPENSE-2"]
+  }
+]

@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy import Select, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.errors import (
@@ -97,9 +98,24 @@ def _validate_for_submit(approval: Approval) -> None:
         )
 
 
-def create_draft(db: Session, actor: Employee, payload: ApprovalCreate) -> Approval:
+def create_draft(
+    db: Session,
+    actor: Employee,
+    payload: ApprovalCreate,
+    source_confirmation_id: str | None = None,
+) -> Approval:
     if not actor.is_active:
         raise AuthorizationError("Inactive employees cannot create approvals")
+
+    if source_confirmation_id is not None:
+        existing = db.scalar(
+            select(Approval).where(
+                Approval.source_confirmation_id == source_confirmation_id,
+                Approval.author_id == actor.id,
+            )
+        )
+        if existing is not None:
+            return _get_approval(db, existing.id)
 
     approval = Approval(
         id=f"apr_{uuid4().hex}",
@@ -113,9 +129,24 @@ def create_draft(db: Session, actor: Employee, payload: ApprovalCreate) -> Appro
         attachment_metadata=[
             item.model_dump(mode="json", by_alias=True) for item in payload.attachment_metadata
         ],
+        source_confirmation_id=source_confirmation_id,
     )
     db.add(approval)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if source_confirmation_id is None:
+            raise
+        existing = db.scalar(
+            select(Approval).where(
+                Approval.source_confirmation_id == source_confirmation_id,
+                Approval.author_id == actor.id,
+            )
+        )
+        if existing is None:
+            raise
+        return _get_approval(db, existing.id)
     return _get_approval(db, approval.id)
 
 

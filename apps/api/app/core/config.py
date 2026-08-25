@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     openai_model: str = "gpt-5.4-mini"
     ai_review_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
+    approval_draft_confirmation_ttl_minutes: int = Field(default=15, ge=1, le=60)
     policy_embedding_model: str = "text-embedding-3-small"
     policy_embedding_dimensions: int = Field(default=1536, ge=256, le=3072)
     policy_retrieval_top_k: int = Field(default=4, ge=1, le=10)

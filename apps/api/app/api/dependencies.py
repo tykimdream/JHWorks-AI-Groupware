@@ -4,7 +4,9 @@ from fastapi import Cookie, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.ai.approval_draft import ApprovalDraftProvider, UnavailableApprovalDraftProvider
 from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalReviewProvider
+from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
 from app.ai.openai_approval_review import OpenAIApprovalReviewProvider
 from app.ai.openai_policy_embedding import OpenAIPolicyEmbeddingProvider
 from app.ai.policy_embedding import PolicyEmbeddingProvider, UnavailablePolicyEmbeddingProvider
@@ -52,6 +54,22 @@ def get_approval_review_provider() -> ApprovalReviewProvider:
 
 
 AIReviewProvider = Annotated[ApprovalReviewProvider, Depends(get_approval_review_provider)]
+
+
+def get_approval_draft_provider() -> ApprovalDraftProvider:
+    settings = get_settings()
+    api_key = settings.openai_api_key
+    secret = api_key.get_secret_value() if api_key else ""
+    if not secret:
+        return UnavailableApprovalDraftProvider()
+    return OpenAIApprovalDraftProvider(
+        api_key=secret,
+        model=settings.openai_model,
+        timeout_seconds=settings.ai_review_timeout_seconds,
+    )
+
+
+AIApprovalDraftProvider = Annotated[ApprovalDraftProvider, Depends(get_approval_draft_provider)]
 
 
 def get_policy_embedding_provider() -> PolicyEmbeddingProvider:

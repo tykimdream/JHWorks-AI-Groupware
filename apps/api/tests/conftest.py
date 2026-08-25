@@ -1,4 +1,5 @@
 from collections.abc import Callable, Generator
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,10 +27,19 @@ from app.ai.policy_embedding import (
     EmbeddingUsage,
     PolicyEmbeddingProviderError,
 )
+from app.ai.work_assistant import (
+    EnterpriseToolExecutor,
+    ToolExecution,
+    ToolExecutionError,
+    WorkAssistantProviderError,
+    WorkAssistantProviderResult,
+    WorkAssistantUsage,
+)
 from app.api.dependencies import (
     get_approval_draft_provider,
     get_approval_review_provider,
     get_policy_embedding_provider,
+    get_work_assistant_provider,
 )
 from app.core.database import Base, get_db
 from app.main import app
@@ -126,6 +136,44 @@ class FakePolicyEmbeddingProvider:
         )
 
 
+class FakeWorkAssistantProvider:
+    def __init__(self) -> None:
+        self.answer_text = "조회 결과입니다."
+        self.planned_calls: list[tuple[str, dict[str, Any]]] = []
+        self.should_fail = False
+        self.messages: list[str] = []
+        self.safety_identifiers: list[str] = []
+
+    def answer(
+        self,
+        message: str,
+        executor: EnterpriseToolExecutor,
+        safety_identifier: str,
+    ) -> WorkAssistantProviderResult:
+        if self.should_fail:
+            raise WorkAssistantProviderError("fake provider failure")
+        self.messages.append(message)
+        self.safety_identifiers.append(safety_identifier)
+        executions: list[ToolExecution] = []
+        try:
+            for name, arguments in self.planned_calls:
+                result = executor.execute(name, arguments)
+                executions.append(
+                    ToolExecution(name=name, arguments=arguments, result=result)
+                )
+        except ToolExecutionError as exc:
+            raise WorkAssistantProviderError("fake invalid tool call") from exc
+        return WorkAssistantProviderResult(
+            answer=self.answer_text,
+            executions=executions,
+            provider="fake",
+            model="fake-tool-model",
+            usage=WorkAssistantUsage(input_tokens=100, output_tokens=30, total_tokens=130),
+            latency_ms=30,
+            round_count=2 if executions else 1,
+        )
+
+
 @pytest.fixture
 def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine(
@@ -158,11 +206,17 @@ def fake_embedding_provider() -> FakePolicyEmbeddingProvider:
 
 
 @pytest.fixture
+def fake_work_assistant_provider() -> FakeWorkAssistantProvider:
+    return FakeWorkAssistantProvider()
+
+
+@pytest.fixture
 def client(
     session_factory: sessionmaker[Session],
     fake_draft_provider: FakeApprovalDraftProvider,
     fake_review_provider: FakeApprovalReviewProvider,
     fake_embedding_provider: FakePolicyEmbeddingProvider,
+    fake_work_assistant_provider: FakeWorkAssistantProvider,
 ) -> Generator[TestClient, None, None]:
     def override_get_db() -> Generator[Session, None, None]:
         with session_factory() as db:
@@ -172,6 +226,7 @@ def client(
     app.dependency_overrides[get_approval_draft_provider] = lambda: fake_draft_provider
     app.dependency_overrides[get_approval_review_provider] = lambda: fake_review_provider
     app.dependency_overrides[get_policy_embedding_provider] = lambda: fake_embedding_provider
+    app.dependency_overrides[get_work_assistant_provider] = lambda: fake_work_assistant_provider
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

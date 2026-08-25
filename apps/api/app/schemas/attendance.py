@@ -1,12 +1,17 @@
 from datetime import date, datetime
 from decimal import Decimal
 
+from pydantic import Field
+
 from app.core.schema import ApiSchema
 from app.models.enums import (
     AttendanceEventCategory,
     AttendanceEventScope,
     AttendanceEventStatus,
     AttendanceImpact,
+    LeaveAvailabilityReasonCode,
+    LeaveAvailabilityStatus,
+    LeaveCandidateStatus,
 )
 
 
@@ -54,3 +59,37 @@ class AttendanceOverviewRead(ApiSchema):
     leave_balances: list[LeaveBalanceRead]
     calendar_events: list[WorkCalendarEventRead]
     team_leaves: list[TeamLeaveRead]
+
+
+class LeaveAvailabilityReasonRead(ApiSchema):
+    code: LeaveAvailabilityReasonCode
+    impact: AttendanceImpact
+    message: str
+    event_ids: list[str] = Field(default_factory=list)
+
+
+class LeaveAvailabilityDayRead(ApiSchema):
+    date: date
+    is_workday: bool
+    is_selectable: bool
+    reasons: list[LeaveAvailabilityReasonRead]
+
+
+class LeaveAvailabilityCandidateRead(ApiSchema):
+    start_date: date
+    end_date: date
+    work_dates: list[date]
+    requested_days: Decimal
+    status: LeaveCandidateStatus
+    reasons: list[LeaveAvailabilityReasonRead]
+
+
+class LeaveAvailabilityRead(ApiSchema):
+    status: LeaveAvailabilityStatus
+    range_start: date
+    range_end: date
+    requested_days: Decimal
+    leave_balance: LeaveBalanceRead | None
+    candidates: list[LeaveAvailabilityCandidateRead]
+    days: list[LeaveAvailabilityDayRead]
+    reasons: list[LeaveAvailabilityReasonRead]

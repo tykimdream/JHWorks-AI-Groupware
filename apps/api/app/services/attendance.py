@@ -1,15 +1,10 @@
 from datetime import date
 
-from sqlalchemy import or_, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.models.attendance import LeaveAccount, WorkCalendarEvent
 from app.models.employee import Employee
-from app.models.enums import (
-    AttendanceEventCategory,
-    AttendanceEventScope,
-    AttendanceEventStatus,
-)
 from app.schemas.attendance import (
     AttendanceEmployeeRead,
     AttendanceOverviewRead,
@@ -17,6 +12,7 @@ from app.schemas.attendance import (
     TeamLeaveRead,
     WorkCalendarEventRead,
 )
+from app.services.leave_calendar import get_shared_events, get_team_leave_events
 
 
 def get_attendance_overview(
@@ -45,35 +41,8 @@ def get_attendance_overview(
         for account in accounts
     ]
 
-    shared_events = db.scalars(
-        select(WorkCalendarEvent)
-        .where(
-            WorkCalendarEvent.start_date <= end_date,
-            WorkCalendarEvent.end_date >= start_date,
-            WorkCalendarEvent.status != AttendanceEventStatus.CANCELED,
-            WorkCalendarEvent.scope != AttendanceEventScope.EMPLOYEE,
-            or_(
-                WorkCalendarEvent.scope == AttendanceEventScope.COMPANY,
-                WorkCalendarEvent.department_id == actor.department_id,
-            ),
-        )
-        .order_by(WorkCalendarEvent.start_date, WorkCalendarEvent.id)
-    )
-
-    team_leave_events = db.scalars(
-        select(WorkCalendarEvent)
-        .join(Employee, WorkCalendarEvent.employee_id == Employee.id)
-        .options(joinedload(WorkCalendarEvent.employee))
-        .where(
-            WorkCalendarEvent.category == AttendanceEventCategory.LEAVE,
-            WorkCalendarEvent.scope == AttendanceEventScope.EMPLOYEE,
-            WorkCalendarEvent.status != AttendanceEventStatus.CANCELED,
-            WorkCalendarEvent.start_date <= end_date,
-            WorkCalendarEvent.end_date >= start_date,
-            Employee.department_id == actor.department_id,
-        )
-        .order_by(WorkCalendarEvent.start_date, WorkCalendarEvent.id)
-    )
+    shared_events = get_shared_events(db, actor, start_date, end_date)
+    team_leave_events = get_team_leave_events(db, actor, start_date, end_date)
 
     return AttendanceOverviewRead(
         range_start=start_date,

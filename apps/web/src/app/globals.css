@@ -1325,6 +1325,214 @@ dd {
   background: #f8faf7;
 }
 
+.availability-workspace {
+  display: grid;
+  gap: 26px;
+}
+
+.availability-search {
+  display: grid;
+  gap: 20px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+}
+
+.availability-search-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.availability-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+}
+
+.availability-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 20px 22px;
+  border-right: 1px solid var(--line);
+}
+
+.availability-summary > div:last-child {
+  border-right: 0;
+}
+
+.availability-summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.availability-summary strong {
+  font-size: 22px;
+}
+
+.availability-notice {
+  padding: 18px 20px;
+  border: 1px solid #e6c78b;
+  border-radius: 12px;
+  color: #6f4b09;
+  background: #fff8e7;
+}
+
+.availability-notice p {
+  margin: 0;
+}
+
+.availability-section-heading {
+  margin-bottom: 14px;
+}
+
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.candidate-card {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  padding: 20px;
+  border: 1px solid #bdd2c5;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff, #f3f8f5);
+}
+
+.candidate-card.candidate-caution {
+  border-color: #e2c887;
+  background: linear-gradient(145deg, #ffffff, #fff9e9);
+}
+
+.candidate-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-card-heading span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--accent-soft);
+}
+
+.candidate-caution .candidate-card-heading span {
+  color: #76530d;
+  background: #fff0c9;
+}
+
+.candidate-card h3 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.025em;
+}
+
+.candidate-workdays {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.candidate-card ul {
+  min-height: 42px;
+  margin: 0;
+  padding-left: 18px;
+  color: #48544e;
+  font-size: 13px;
+}
+
+.candidate-card .secondary-button {
+  align-self: end;
+  margin-top: 3px;
+}
+
+.availability-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.availability-legend span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.availability-legend .clear {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.availability-legend .caution {
+  color: #76530d;
+  background: #fff0c9;
+}
+
+.availability-legend .blocked {
+  color: #8f2d27;
+  background: var(--danger-soft);
+}
+
+.availability-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+.availability-day {
+  min-height: 96px;
+  display: grid;
+  align-content: space-between;
+  gap: 2px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: white;
+}
+
+.availability-day span,
+.availability-day small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.availability-day strong {
+  font-size: 21px;
+}
+
+.availability-day.clear {
+  border-color: #bdd2c5;
+  background: #f3f8f5;
+}
+
+.availability-day.caution {
+  border-color: #e2c887;
+  background: #fff9e9;
+}
+
+.availability-day.blocked {
+  border-color: #e4c1bd;
+  color: #826762;
+  background: #fbf2f1;
+}
+
+.availability-empty {
+  min-height: 280px;
+}
+
 .button-row {
   display: flex;
   justify-content: flex-end;
@@ -1393,6 +1601,15 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .availability-search-grid,
+  .candidate-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .availability-calendar {
+    grid-template-columns: repeat(5, minmax(72px, 1fr));
+  }
+
   .review-revision-editor {
     position: static;
   }
@@ -1420,6 +1637,25 @@ dd {
   .context-column,
   .preview-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .availability-search-grid,
+  .candidate-grid,
+  .availability-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-summary > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .availability-summary > div:last-child {
+    border-bottom: 0;
+  }
+
+  .availability-calendar {
+    grid-template-columns: repeat(3, minmax(72px, 1fr));
   }
 
   .page-header-actions {

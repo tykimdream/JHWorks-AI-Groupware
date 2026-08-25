@@ -206,4 +206,4 @@ GET /api/v1/attendance/leave-availability
 
 ## 10. 다음 체크포인트
 
-Checkpoint 13에서는 자연어 휴가 요청을 실제 날짜·탐색 범위·희망 일수로 구조화하고, 이번 결정적 API 결과를 AI가 근거와 함께 설명하도록 연결한다. Draft 저장과 제출 같은 쓰기 Tool은 exact preview, 명시적 확인, idempotency와 stale account 검증을 각각 적용한다.
+Checkpoint 13의 자연어 휴가 상담은 [Phase 7 문서](phase-7-leave-ai-assistant.md)에 구현했다. Draft 저장과 제출 같은 쓰기 Tool은 exact preview, 명시적 확인, idempotency와 stale account 검증을 각각 적용한다.

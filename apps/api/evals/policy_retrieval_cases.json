@@ -1,0 +1,38 @@
+[
+  {
+    "id": "travel-accommodation-limit",
+    "query": "국내 출장 1박 숙박비 한도는 얼마인가요?",
+    "policyType": "TRAVEL",
+    "expectedSectionIds": ["TRAVEL-1"]
+  },
+  {
+    "id": "travel-transportation-documentation",
+    "query": "출장 교통비는 어떤 증빙으로 실비 정산하나요?",
+    "policyType": "TRAVEL",
+    "expectedSectionIds": ["TRAVEL-2"]
+  },
+  {
+    "id": "travel-prior-approval",
+    "query": "예상 비용 450,000원인 국내 출장은 사전 승인이 필요한가요?",
+    "policyType": "TRAVEL",
+    "expectedSectionIds": ["TRAVEL-3"]
+  },
+  {
+    "id": "travel-client-visit-purpose",
+    "query": "고객사 방문 출장 신청서에 고객명과 방문 목적을 써야 하나요?",
+    "policyType": "TRAVEL",
+    "expectedSectionIds": ["TRAVEL-4"]
+  },
+  {
+    "id": "expense-receipt-threshold",
+    "query": "경비가 100,000원 이상이면 영수증이 필요한가요?",
+    "policyType": "EXPENSE",
+    "expectedSectionIds": ["EXPENSE-2"]
+  },
+  {
+    "id": "leave-advance-notice",
+    "query": "3일 연속 휴가는 며칠 전에 신청해야 하나요?",
+    "policyType": "LEAVE",
+    "expectedSectionIds": ["LEAVE-2"]
+  }
+]

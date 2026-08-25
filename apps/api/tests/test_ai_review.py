@@ -18,7 +18,8 @@ from app.api.dependencies import get_approval_review_provider
 from app.evals.approval_review import load_cases
 from app.main import app
 from app.models.approval import Approval
-from tests.conftest import FakeApprovalReviewProvider
+from app.services.policy_retrieval import index_active_policy_sections
+from tests.conftest import FakeApprovalReviewProvider, FakePolicyEmbeddingProvider
 
 
 def trip_payload() -> dict[str, Any]:
@@ -87,6 +88,7 @@ def test_ai_review_returns_structured_semantic_findings(
     assert result["isStale"] is False
     assert fake_review_provider.documents[0].type == "BUSINESS_TRIP"
     assert fake_review_provider.safety_identifiers[0] != "emp_sales_001"
+    assert result["policyReview"]["status"] == "NOT_INDEXED"
 
 
 def test_ai_review_passes_clear_document(
@@ -251,3 +253,141 @@ def test_ai_review_eval_dataset_covers_safety_and_quality() -> None:
     assert "clear-business-trip" in case_ids
     assert "synthetic-personal-data" in case_ids
     assert "prompt-injection-in-document" in case_ids
+
+
+def test_ai_review_applies_structured_policy_rules_with_citations(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    session_factory: sessionmaker[Session],
+    fake_review_provider: FakeApprovalReviewProvider,
+    fake_embedding_provider: FakePolicyEmbeddingProvider,
+) -> None:
+    with session_factory() as db:
+        index_active_policy_sections(
+            db,
+            fake_embedding_provider,
+            fake_embedding_provider.model,
+            fake_embedding_provider.dimensions,
+        )
+    payload = trip_payload()
+    payload["amount"] = 380000
+    payload["details"]["costBreakdown"]["lodging"] = 150000
+    login(client, "seojin.yoon@jhworks.test")
+    draft = client.post("/api/v1/approvals", json=payload).json()
+    fake_review_provider.output = SemanticReviewOutput(
+        issues=[
+            SemanticReviewIssue(
+                severity=ReviewSeverity.HIGH,
+                category=ReviewCategory.POLICY,
+                field=ReviewField.COST_BREAKDOWN,
+                message="1박 숙박비가 회사 한도를 초과합니다.",
+                suggestion="숙박비를 120,000원 이하로 조정하거나 예외 사유를 확인하세요.",
+                citation_keys=["policy_travel:1.0:TRAVEL-1"],
+            )
+        ]
+    )
+
+    response = client.post(
+        f"/api/v1/approvals/{draft['id']}/ai-review",
+        json={"version": draft["version"]},
+    )
+
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["policyReview"]["status"] == "READY"
+    issues_by_code = {issue["code"]: issue for issue in result["issues"]}
+    lodging_issue = issues_by_code["POLICY_MAX_LODGING_PER_NIGHT"]
+    assert lodging_issue["source"] == "POLICY"
+    assert lodging_issue["citations"][0]["sectionId"] == "TRAVEL-1"
+    assert lodging_issue["citations"][0]["excerpt"]
+    assert "POLICY_TRANSPORTATION_DOCUMENT_REQUIRED" in issues_by_code
+
+
+def test_ai_review_drops_policy_issue_with_unretrieved_citation(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    session_factory: sessionmaker[Session],
+    fake_review_provider: FakeApprovalReviewProvider,
+    fake_embedding_provider: FakePolicyEmbeddingProvider,
+) -> None:
+    with session_factory() as db:
+        index_active_policy_sections(
+            db,
+            fake_embedding_provider,
+            fake_embedding_provider.model,
+            fake_embedding_provider.dimensions,
+        )
+    payload = trip_payload()
+    payload["attachmentMetadata"] = [
+        {"name": "transport-receipt.pdf", "contentType": "application/pdf"}
+    ]
+    login(client, "seojin.yoon@jhworks.test")
+    draft = client.post("/api/v1/approvals", json=payload).json()
+    fake_review_provider.output = SemanticReviewOutput(
+        issues=[
+            SemanticReviewIssue(
+                severity=ReviewSeverity.HIGH,
+                category=ReviewCategory.POLICY,
+                field=ReviewField.AMOUNT,
+                message="존재하지 않는 규정 위반 주장",
+                citation_keys=["invented:9.9:FAKE-1"],
+            )
+        ]
+    )
+
+    response = client.post(
+        f"/api/v1/approvals/{draft['id']}/ai-review",
+        json={"version": draft["version"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "PASS"
+    assert response.json()["issues"] == []
+
+
+def test_ai_review_drops_speculative_risk_and_satisfied_prior_approval_notice(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    session_factory: sessionmaker[Session],
+    fake_review_provider: FakeApprovalReviewProvider,
+    fake_embedding_provider: FakePolicyEmbeddingProvider,
+) -> None:
+    with session_factory() as db:
+        index_active_policy_sections(
+            db,
+            fake_embedding_provider,
+            fake_embedding_provider.model,
+            fake_embedding_provider.dimensions,
+        )
+    payload = trip_payload()
+    payload["attachmentMetadata"] = [
+        {"name": "transport-receipt.pdf", "contentType": "application/pdf"}
+    ]
+    login(client, "seojin.yoon@jhworks.test")
+    draft = client.post("/api/v1/approvals", json=payload).json()
+    fake_review_provider.output = SemanticReviewOutput(
+        issues=[
+            SemanticReviewIssue(
+                severity=ReviewSeverity.MEDIUM,
+                category=ReviewCategory.RISK,
+                field=ReviewField.CONTENT,
+                message="일반 고객사명이 민감할 수 있습니다.",
+            ),
+            SemanticReviewIssue(
+                severity=ReviewSeverity.MEDIUM,
+                category=ReviewCategory.POLICY,
+                field=ReviewField.AMOUNT,
+                message="사전 승인이 필요합니다.",
+                citation_keys=["policy_travel:1.0:TRAVEL-3"],
+            ),
+        ]
+    )
+
+    response = client.post(
+        f"/api/v1/approvals/{draft['id']}/ai-review",
+        json={"version": draft["version"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "PASS"
+    assert response.json()["issues"] == []

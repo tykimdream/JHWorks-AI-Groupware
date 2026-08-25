@@ -17,7 +17,21 @@ const categoryLabels: Record<ReviewCategory, string> = {
   CLARITY: '명확성',
   WRITING: '표현',
   RISK: '위험',
+  POLICY: '회사 정책',
 };
+
+const sourceLabels = {
+  DETERMINISTIC: '규칙 검사',
+  LLM: 'AI 판단',
+  POLICY: '정책 근거',
+} as const;
+
+const policyStatusMessages = {
+  READY: '회사 정책 검색과 인용 검증을 완료했습니다.',
+  NOT_APPLICABLE: '이 문서 유형에는 적용할 정책 검색이 없습니다.',
+  NOT_INDEXED: '정책 인덱스가 준비되지 않아 일반 문서 검토만 수행했습니다.',
+  UNAVAILABLE: '정책 검색을 사용할 수 없어 일반 문서 검토만 수행했습니다.',
+} as const;
 
 interface AIReviewPanelProps {
   approval: Approval;
@@ -60,7 +74,7 @@ export const AIReviewPanel = ({ approval, canReview }: AIReviewPanelProps) => {
         <div>
           <p className="eyebrow">AI PRE-SUBMISSION REVIEW</p>
           <h2>제출 전 AI 검토</h2>
-          <p>문서의 누락과 표현을 검토합니다. 정책 근거 검토는 Phase 3에서 추가됩니다.</p>
+          <p>문서의 누락과 표현을 검토하고, 관련 회사 정책을 정확한 섹션과 함께 인용합니다.</p>
         </div>
         <button
           className="ai-button"
@@ -93,6 +107,17 @@ export const AIReviewPanel = ({ approval, canReview }: AIReviewPanelProps) => {
             </div>
           </div>
 
+          <div className={`policy-review-status policy-status-${review.policyReview.status.toLowerCase()}`}>
+            <strong>정책 검토</strong>
+            <span>{policyStatusMessages[review.policyReview.status]}</span>
+            {review.policyReview.status === 'READY' && (
+              <small>
+                {review.policyReview.retrievedCitations.length}개 섹션 검색 ·{' '}
+                {review.policyReview.model} · {review.policyReview.latencyMs.toLocaleString()}ms
+              </small>
+            )}
+          </div>
+
           {review.issues.length > 0 && (
             <div className="review-issue-list">
               {review.issues.map((issue) => (
@@ -100,11 +125,29 @@ export const AIReviewPanel = ({ approval, canReview }: AIReviewPanelProps) => {
                   <div className="review-issue-meta">
                     <span>{severityLabels[issue.severity]}</span>
                     <span>{categoryLabels[issue.category]}</span>
-                    <span>{issue.source === 'LLM' ? 'AI 판단' : '규칙 검사'}</span>
+                    <span>{sourceLabels[issue.source]}</span>
                     <code>{issue.field}</code>
                   </div>
                   <strong>{issue.message}</strong>
                   {issue.suggestion && <p>{issue.suggestion}</p>}
+                  {issue.citations.length > 0 && (
+                    <div className="policy-citation-list">
+                      {issue.citations.map((citation) => (
+                        <blockquote className="policy-citation" key={citation.citationKey}>
+                          <div>
+                            <strong>{citation.policyTitle}</strong>
+                            <code>
+                              v{citation.version} · {citation.sectionId} · {citation.sectionTitle}
+                            </code>
+                          </div>
+                          <p>{citation.excerpt}</p>
+                          <small>
+                            검색 유사도 {citation.similarityScore.toFixed(3)} · 원문에서 확인된 근거
+                          </small>
+                        </blockquote>
+                      ))}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>

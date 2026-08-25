@@ -99,9 +99,11 @@ export interface ApprovalDraftInput {
 }
 
 export type ReviewStatus = 'PASS' | 'NEEDS_REVISION';
-export type ReviewSource = 'DETERMINISTIC' | 'LLM';
+export type ReviewSource = 'DETERMINISTIC' | 'LLM' | 'POLICY';
 export type ReviewSeverity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH';
-export type ReviewCategory = 'COMPLETENESS' | 'CLARITY' | 'WRITING' | 'RISK';
+export type ReviewCategory = 'COMPLETENESS' | 'CLARITY' | 'WRITING' | 'RISK' | 'POLICY';
+export type PolicyType = 'TRAVEL' | 'EXPENSE' | 'LEAVE' | 'APPROVAL' | 'SECURITY';
+export type PolicyRetrievalStatus = 'READY' | 'NOT_APPLICABLE' | 'NOT_INDEXED' | 'UNAVAILABLE';
 export type ReviewField =
   | 'document'
   | 'title'
@@ -123,6 +125,33 @@ export interface AIReviewIssue {
   field: ReviewField;
   message: string;
   suggestion: string | null;
+  citations: PolicyCitation[];
+}
+
+export interface PolicyCitation {
+  citationKey: string;
+  policyId: string;
+  policyTitle: string;
+  policyType: PolicyType;
+  version: string;
+  sectionId: string;
+  sectionTitle: string;
+  excerpt: string;
+  similarityScore: number;
+}
+
+export interface PolicyEmbeddingUsage {
+  inputTokens: number;
+  totalTokens: number;
+}
+
+export interface PolicyReviewMetadata {
+  status: PolicyRetrievalStatus;
+  retrievedCitations: PolicyCitation[];
+  provider: string | null;
+  model: string | null;
+  usage: PolicyEmbeddingUsage;
+  latencyMs: number;
 }
 
 export interface AIReviewUsage {
@@ -144,6 +173,7 @@ export interface AIReview {
   model: string;
   promptVersion: string;
   usage: AIReviewUsage;
+  policyReview: PolicyReviewMetadata;
   latencyMs: number;
   reviewedAt: string;
 }

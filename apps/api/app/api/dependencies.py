@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalReviewProvider
 from app.ai.openai_approval_review import OpenAIApprovalReviewProvider
+from app.ai.openai_policy_embedding import OpenAIPolicyEmbeddingProvider
+from app.ai.policy_embedding import PolicyEmbeddingProvider, UnavailablePolicyEmbeddingProvider
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.errors import AuthenticationError
@@ -50,3 +52,22 @@ def get_approval_review_provider() -> ApprovalReviewProvider:
 
 
 AIReviewProvider = Annotated[ApprovalReviewProvider, Depends(get_approval_review_provider)]
+
+
+def get_policy_embedding_provider() -> PolicyEmbeddingProvider:
+    settings = get_settings()
+    api_key = settings.openai_api_key
+    secret = api_key.get_secret_value() if api_key else ""
+    if not secret:
+        return UnavailablePolicyEmbeddingProvider()
+    return OpenAIPolicyEmbeddingProvider(
+        api_key=secret,
+        model=settings.policy_embedding_model,
+        dimensions=settings.policy_embedding_dimensions,
+        timeout_seconds=settings.ai_review_timeout_seconds,
+    )
+
+
+PolicyEmbeddingProviderDependency = Annotated[
+    PolicyEmbeddingProvider, Depends(get_policy_embedding_provider)
+]

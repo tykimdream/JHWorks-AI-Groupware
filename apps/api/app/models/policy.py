@@ -1,6 +1,18 @@
 from datetime import UTC, date, datetime
+from typing import Any
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from pgvector.sqlalchemy import VECTOR
+from sqlalchemy import (
+    JSON,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -51,5 +63,12 @@ class PolicySection(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(
+        VECTOR(1536).with_variant(JSON(), "sqlite"), nullable=True
+    )
+    embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    embedded_content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rule_config: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     policy: Mapped[CompanyPolicy] = relationship(back_populates="sections")

@@ -13,7 +13,12 @@ from app.ai.approval_review import (
     ReviewDocument,
     SemanticReviewOutput,
 )
-from app.api.dependencies import get_approval_review_provider
+from app.ai.policy_embedding import (
+    EmbeddingResult,
+    EmbeddingUsage,
+    PolicyEmbeddingProviderError,
+)
+from app.api.dependencies import get_approval_review_provider, get_policy_embedding_provider
 from app.core.database import Base, get_db
 from app.main import app
 from app.scripts.seed import seed_database
@@ -40,6 +45,46 @@ class FakeApprovalReviewProvider:
         )
 
 
+class FakePolicyEmbeddingProvider:
+    dimensions = 1536
+    model = "text-embedding-3-small"
+
+    def __init__(self) -> None:
+        self.should_fail = False
+        self.texts: list[str] = []
+
+    def _vector(self, text: str) -> list[float]:
+        normalized = text.lower().replace(",", "")
+        vector = [0.0] * self.dimensions
+        keyword_groups = (
+            ("accommodation", "lodging", "숙박"),
+            ("transportation", "교통"),
+            ("prior approval", "300000", "사전 승인"),
+            ("client visit", "clientname", "visitpurpose", "고객사", "방문 목적"),
+            ("meal", "식비"),
+            ("receipt", "영수증"),
+            ("leave", "휴가", "연차"),
+        )
+        for index, keywords in enumerate(keyword_groups):
+            if any(keyword in normalized for keyword in keywords):
+                vector[index] = 1.0
+        if not any(vector):
+            vector[-1] = 1.0
+        return vector
+
+    def embed(self, texts: list[str]) -> EmbeddingResult:
+        if self.should_fail:
+            raise PolicyEmbeddingProviderError("fake embedding failure")
+        self.texts.extend(texts)
+        return EmbeddingResult(
+            vectors=[self._vector(text) for text in texts],
+            provider="fake",
+            model=self.model,
+            usage=EmbeddingUsage(input_tokens=len(texts) * 10, total_tokens=len(texts) * 10),
+            latency_ms=5,
+        )
+
+
 @pytest.fixture
 def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine(
@@ -62,9 +107,15 @@ def fake_review_provider() -> FakeApprovalReviewProvider:
 
 
 @pytest.fixture
+def fake_embedding_provider() -> FakePolicyEmbeddingProvider:
+    return FakePolicyEmbeddingProvider()
+
+
+@pytest.fixture
 def client(
     session_factory: sessionmaker[Session],
     fake_review_provider: FakeApprovalReviewProvider,
+    fake_embedding_provider: FakePolicyEmbeddingProvider,
 ) -> Generator[TestClient, None, None]:
     def override_get_db() -> Generator[Session, None, None]:
         with session_factory() as db:
@@ -72,6 +123,7 @@ def client(
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_approval_review_provider] = lambda: fake_review_provider
+    app.dependency_overrides[get_policy_embedding_provider] = lambda: fake_embedding_provider
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

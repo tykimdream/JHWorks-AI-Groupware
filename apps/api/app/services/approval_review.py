@@ -1,20 +1,23 @@
 import hashlib
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.ai.approval_review import (
     PROMPT_VERSION,
     ApprovalReviewProvider,
     ApprovalReviewProviderError,
+    PolicyContextSection,
     ProviderReviewResult,
     ReviewCategory,
     ReviewDocument,
     ReviewField,
     ReviewSeverity,
 )
+from app.ai.policy_embedding import PolicyEmbeddingProvider
+from app.core.config import get_settings
 from app.core.errors import (
     AuthorizationError,
     ConflictError,
@@ -23,14 +26,22 @@ from app.core.errors import (
 from app.models.approval import Approval
 from app.models.employee import Employee
 from app.models.enums import ApprovalStatus, ApprovalType
+from app.models.policy import PolicySection
 from app.schemas.ai_review import (
     AIReviewIssue,
     AIReviewResponse,
     AIReviewUsage,
+    PolicyReviewMetadata,
     ReviewSource,
     ReviewStatus,
 )
+from app.schemas.policy import (
+    PolicyEmbeddingUsage,
+    PolicyRetrievalStatus,
+    PolicySearchResponse,
+)
 from app.services import approval as approval_service
+from app.services import policy_retrieval
 
 logger = logging.getLogger("jhworks.ai_review")
 
@@ -58,6 +69,7 @@ def _issue(
         field=field,
         message=message,
         suggestion=suggestion,
+        citations=[],
     )
 
 
@@ -166,31 +178,207 @@ def deterministic_review(approval: Approval) -> list[AIReviewIssue]:
     return issues
 
 
+def deterministic_policy_review(
+    db: Session,
+    approval: Approval,
+    policy_search: PolicySearchResponse,
+) -> tuple[list[AIReviewIssue], set[str]]:
+    if policy_search.status != PolicyRetrievalStatus.READY or not policy_search.items:
+        return [], set()
+
+    citations_by_key = {item.citation_key: item for item in policy_search.items}
+    section_ids = [item.section_id for item in policy_search.items]
+    sections = db.scalars(
+        select(PolicySection)
+        .options(joinedload(PolicySection.policy))
+        .where(PolicySection.section_id.in_(section_ids))
+    )
+    issues: list[AIReviewIssue] = []
+    non_actionable_citation_keys: set[str] = set()
+    for section in sections.unique():
+        key = f"{section.policy.policy_id}:{section.policy.version}:{section.section_id}"
+        citation = citations_by_key.get(key)
+        rule = section.rule_config
+        if citation is None or not isinstance(rule, dict):
+            continue
+
+        kind = rule.get("kind")
+        if kind == "PRIOR_APPROVAL_MIN_TOTAL":
+            non_actionable_citation_keys.add(key)
+
+        if kind == "MAX_LODGING_PER_NIGHT":
+            breakdown = approval.details.get("costBreakdown")
+            lodging = breakdown.get("lodging") if isinstance(breakdown, dict) else None
+            start = approval.details.get("startDate")
+            end = approval.details.get("endDate")
+            limit = rule.get("limitKrw")
+            if not (
+                isinstance(lodging, int)
+                and isinstance(start, str)
+                and isinstance(end, str)
+                and isinstance(limit, int)
+            ):
+                continue
+            try:
+                nights = max(1, (date.fromisoformat(end) - date.fromisoformat(start)).days)
+            except ValueError:
+                continue
+            allowed = limit * nights
+            if lodging > allowed:
+                issues.append(
+                    AIReviewIssue(
+                        code="POLICY_MAX_LODGING_PER_NIGHT",
+                        source=ReviewSource.POLICY,
+                        severity=ReviewSeverity.HIGH,
+                        category=ReviewCategory.POLICY,
+                        field=ReviewField.COST_BREAKDOWN,
+                        message=(
+                            f"숙박비 {lodging:,}원은 {nights}박 기준 한도 "
+                            f"{allowed:,}원을 초과합니다."
+                        ),
+                        suggestion="숙박비를 한도 안으로 조정하거나 예외 승인 사유를 작성하세요.",
+                        citations=[citation],
+                    )
+                )
+
+        if kind == "ATTACHMENT_REQUIRED_WHEN_COST_POSITIVE":
+            breakdown = approval.details.get("costBreakdown")
+            cost_field = rule.get("costField")
+            cost = (
+                breakdown.get(cost_field)
+                if isinstance(breakdown, dict) and isinstance(cost_field, str)
+                else None
+            )
+            if isinstance(cost, int) and cost > 0 and not approval.attachment_metadata:
+                issues.append(
+                    AIReviewIssue(
+                        code="POLICY_TRANSPORTATION_DOCUMENT_REQUIRED",
+                        source=ReviewSource.POLICY,
+                        severity=ReviewSeverity.MEDIUM,
+                        category=ReviewCategory.POLICY,
+                        field=ReviewField.ATTACHMENTS,
+                        message="교통비 실비 정산을 확인할 증빙이 첨부되지 않았습니다.",
+                        suggestion="교통비 영수증 또는 예약 내역을 첨부하세요.",
+                        citations=[citation],
+                    )
+                )
+
+        if kind == "RECEIPT_REQUIRED_MIN_TOTAL":
+            threshold = rule.get("thresholdKrw")
+            if (
+                isinstance(threshold, int)
+                and approval.amount is not None
+                and approval.amount >= threshold
+                and not approval.attachment_metadata
+            ):
+                issues.append(
+                    AIReviewIssue(
+                        code="POLICY_RECEIPT_REQUIRED",
+                        source=ReviewSource.POLICY,
+                        severity=ReviewSeverity.HIGH,
+                        category=ReviewCategory.POLICY,
+                        field=ReviewField.ATTACHMENTS,
+                        message=f"{threshold:,}원 이상 경비에 필요한 영수증이 없습니다.",
+                        suggestion="제출 전에 영수증을 첨부하세요.",
+                        citations=[citation],
+                    )
+                )
+    return issues, non_actionable_citation_keys
+
+
 def _merge_issues(
     deterministic: list[AIReviewIssue],
     provider_result: ProviderReviewResult,
+    policy_search: PolicySearchResponse,
+    non_actionable_citation_keys: set[str],
 ) -> list[AIReviewIssue]:
     issues = list(deterministic)
     seen = {(issue.category, issue.field) for issue in deterministic}
+    citations_by_key = {item.citation_key: item for item in policy_search.items}
+    deterministic_fields = {issue.field for issue in deterministic}
+    seen_policy = {
+        (issue.field, tuple(citation.citation_key for citation in issue.citations))
+        for issue in deterministic
+        if issue.source == ReviewSource.POLICY
+    }
     category_counts: dict[ReviewCategory, int] = {}
     for semantic in provider_result.output.issues:
-        key = (semantic.category, semantic.field)
-        if key in seen:
+        if semantic.category == ReviewCategory.RISK and semantic.severity != ReviewSeverity.HIGH:
+            logger.warning("speculative_risk_issue_dropped severity=%s", semantic.severity.value)
             continue
-        seen.add(key)
+        if semantic.field in deterministic_fields:
+            logger.info("duplicate_semantic_issue_dropped field=%s", semantic.field.value)
+            continue
+        if semantic.category == ReviewCategory.COMPLETENESS and semantic.field not in {
+            ReviewField.DOCUMENT,
+            ReviewField.TITLE,
+            ReviewField.CONTENT,
+        }:
+            logger.info("structured_completeness_issue_dropped field=%s", semantic.field.value)
+            continue
+        citations = []
+        if semantic.category == ReviewCategory.POLICY:
+            citation_keys = tuple(dict.fromkeys(semantic.citation_keys))
+            if (
+                not citation_keys
+                or policy_search.status != PolicyRetrievalStatus.READY
+                or any(key not in citations_by_key for key in citation_keys)
+            ):
+                logger.warning("unsupported_policy_issue_dropped citation_keys=%s", citation_keys)
+                continue
+            if set(citation_keys).issubset(non_actionable_citation_keys):
+                logger.info("non_actionable_policy_issue_dropped citation_keys=%s", citation_keys)
+                continue
+            policy_key = (semantic.field, citation_keys)
+            if policy_key in seen_policy:
+                continue
+            seen_policy.add(policy_key)
+            citations = [citations_by_key[key] for key in citation_keys]
+        elif semantic.citation_keys:
+            logger.warning(
+                "citations_removed_from_non_policy_issue category=%s",
+                semantic.category.value,
+            )
+
+        key = (semantic.category, semantic.field)
+        if semantic.category != ReviewCategory.POLICY and key in seen:
+            continue
+        if semantic.category != ReviewCategory.POLICY:
+            seen.add(key)
         category_counts[semantic.category] = category_counts.get(semantic.category, 0) + 1
+        code_prefix = (
+            "POLICY"
+            if semantic.category == ReviewCategory.POLICY
+            else f"LLM_{semantic.category.value}"
+        )
         issues.append(
             AIReviewIssue(
-                code=f"LLM_{semantic.category.value}_{category_counts[semantic.category]}",
-                source=ReviewSource.LLM,
+                code=f"{code_prefix}_{category_counts[semantic.category]}",
+                source=(
+                    ReviewSource.POLICY
+                    if semantic.category == ReviewCategory.POLICY
+                    else ReviewSource.LLM
+                ),
                 severity=semantic.severity,
                 category=semantic.category,
                 field=semantic.field,
                 message=semantic.message.strip(),
                 suggestion=(semantic.suggestion or "").strip() or None,
+                citations=citations,
             )
         )
     return issues
+
+
+def _not_applicable_policy_search() -> PolicySearchResponse:
+    return PolicySearchResponse(
+        status=PolicyRetrievalStatus.NOT_APPLICABLE,
+        items=[],
+        provider=None,
+        model=None,
+        usage=PolicyEmbeddingUsage(input_tokens=0, total_tokens=0),
+        latency_ms=0,
+    )
 
 
 def review_approval(
@@ -199,6 +387,7 @@ def review_approval(
     approval_id: str,
     expected_version: int,
     provider: ApprovalReviewProvider,
+    embedding_provider: PolicyEmbeddingProvider,
 ) -> AIReviewResponse:
     approval = approval_service.get_approval(db, actor, approval_id)
     if approval.author_id != actor.id:
@@ -212,6 +401,26 @@ def review_approval(
         )
 
     deterministic = deterministic_review(approval)
+    settings = get_settings()
+    policy_type = policy_retrieval.APPROVAL_POLICY_TYPES.get(approval.type)
+    policy_search = (
+        policy_retrieval.search_policy_sections(
+            db=db,
+            query=policy_retrieval.approval_policy_query(approval),
+            policy_type=policy_type,
+            top_k=settings.policy_retrieval_top_k,
+            min_score=settings.policy_retrieval_min_score,
+            provider=embedding_provider,
+            expected_model=settings.policy_embedding_model,
+            expected_dimensions=settings.policy_embedding_dimensions,
+        )
+        if policy_type is not None
+        else _not_applicable_policy_search()
+    )
+    policy_issues, non_actionable_citation_keys = deterministic_policy_review(
+        db, approval, policy_search
+    )
+    deterministic.extend(policy_issues)
     document = ReviewDocument(
         type=approval.type.value,
         title=approval.title,
@@ -220,6 +429,19 @@ def review_approval(
         details=approval.details,
         attachment_metadata=approval.attachment_metadata,
         deterministic_findings=[issue.code for issue in deterministic],
+        policy_context=[
+            PolicyContextSection(
+                citation_key=item.citation_key,
+                policy_id=item.policy_id,
+                policy_title=item.policy_title,
+                policy_type=item.policy_type.value,
+                version=item.version,
+                section_id=item.section_id,
+                section_title=item.section_title,
+                content=item.excerpt,
+            )
+            for item in policy_search.items
+        ],
     )
     safety_identifier = hashlib.sha256(actor.id.encode()).hexdigest()
 
@@ -237,7 +459,12 @@ def review_approval(
             "AI review is temporarily unavailable. The approval was not changed.",
         ) from exc
 
-    issues = _merge_issues(deterministic, provider_result)
+    issues = _merge_issues(
+        deterministic,
+        provider_result,
+        policy_search,
+        non_actionable_citation_keys,
+    )
     score = max(0, 100 - sum(SEVERITY_PENALTIES[issue.severity] for issue in issues))
 
     db.expire_all()
@@ -267,6 +494,16 @@ def review_approval(
         provider_result.usage.output_tokens,
         is_stale,
     )
+    logger.info(
+        "policy_review_completed approval_id=%s status=%s section_ids=%s model=%s "
+        "latency_ms=%s input_tokens=%s",
+        approval_id,
+        policy_search.status.value,
+        [item.section_id for item in policy_search.items],
+        policy_search.model,
+        policy_search.latency_ms,
+        policy_search.usage.input_tokens,
+    )
     revised_content = (provider_result.output.revised_content or "").strip() or None
     return AIReviewResponse(
         approval_id=approval_id,
@@ -284,6 +521,14 @@ def review_approval(
             input_tokens=provider_result.usage.input_tokens,
             output_tokens=provider_result.usage.output_tokens,
             total_tokens=provider_result.usage.total_tokens,
+        ),
+        policy_review=PolicyReviewMetadata(
+            status=policy_search.status,
+            retrieved_citations=policy_search.items,
+            provider=policy_search.provider,
+            model=policy_search.model,
+            usage=policy_search.usage,
+            latency_ms=policy_search.latency_ms,
         ),
         latency_ms=provider_result.latency_ms,
         reviewed_at=datetime.now(UTC),

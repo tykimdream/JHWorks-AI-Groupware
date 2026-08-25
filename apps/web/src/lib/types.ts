@@ -232,3 +232,22 @@ export interface ApprovalDraftPrepareResponse {
   latencyMs: number;
   generatedAt: string;
 }
+
+export interface WorkAssistantToolExecution {
+  name: string;
+  arguments: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
+export interface WorkAssistantResponse {
+  answer: string;
+  toolExecutions: WorkAssistantToolExecution[];
+  policyCitations: PolicyCitation[];
+  provider: string;
+  model: string;
+  promptVersion: string;
+  roundCount: number;
+  usage: AIReviewUsage;
+  latencyMs: number;
+  answeredAt: string;
+}

@@ -31,6 +31,7 @@ const errorMessages: Record<string, string> = {
   INVALID_CONFIRMATION: '초안 확인 시간이 만료되었습니다. 미리보기를 다시 만들어주세요.',
   PREVIEW_CHANGED: '확인한 미리보기와 저장할 내용이 다릅니다. 미리보기를 다시 만들어주세요.',
   VERSION_CONFLICT: '다른 변경이 먼저 저장되었습니다. 새로고침 후 다시 시도해주세요.',
+  WORK_ASSISTANT_UNAVAILABLE: 'AI 업무 조회를 사용할 수 없습니다. 잠시 후 다시 시도해주세요.',
 };
 
 export const getUserErrorMessage = (error: unknown, fallback: string): string => {

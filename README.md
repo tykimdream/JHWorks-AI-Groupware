@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 5 — Read-only Enterprise Tool Calling까지 구현되었다.** AI가 현재 사용자 권한으로 조직·결재·정책 데이터를 필요한 만큼만 조회하고, 실행 Tool과 근거를 사용자에게 공개한다.
+**Phase 6 — Attendance and Leave Foundation을 구현 중이다.** AI 기능보다 먼저 근태·휴가를 그룹웨어의 정식 도메인으로 만들고, 현재 사용자 권한으로 휴가 잔여 내역과 관련 일정만 조회할 수 있는 기반을 추가했다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -38,6 +38,9 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 임의 직원 ID를 받지 않는 actor-scoped 조직·결재 조회
 - 최대 3 provider rounds, 최대 4 Tool calls와 unknown Tool 차단
 - 최종 답변과 실행 Tool audit, 입력 인자, 서버 결과, 정책 citation 표시
+- 연도별 휴가 부여·이월·사용·대기·가용 일수 계정
+- 전사 행사·공휴일·부서 프로젝트 일정·팀 휴가를 구분한 근태 캘린더
+- 현재 부서 일정과 같은 팀 휴가만 반환하는 `/attendance/overview` 권한 경계
 
 쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. AI는 업무 데이터를 조회하고 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
 
@@ -62,6 +65,7 @@ FastAPI modular monolith
     ├── Signed preview confirmation + idempotent Draft creation
     ├── Read-only enterprise tool registry + actor-scoped executor
     ├── OpenAI function calling loop + tool execution audit
+    ├── Attendance calendar + yearly leave account
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
@@ -210,9 +214,10 @@ pnpm eval:work-assistant
 - **Preview before write**: 자연어 변환과 추가 질문 중에는 Approval row를 만들지 않고, 확정된 exact preview만 저장한다.
 - **Unsupported intent is explicit**: 경비·휴가 요청을 현재 지원하는 일반/출장 양식으로 조용히 바꾸지 않는다.
 - **Narrow read tools**: 현재 actor에 고정된 작은 조회 Tool만 노출하고 DB나 범용 API 접근권을 주지 않는다.
+- **Attendance before recommendation**: AI가 날짜를 추측하지 않도록 연도별 휴가 계정과 전사·부서·팀 일정을 먼저 application domain으로 만든다.
 - **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md)에 기록한다.
 
 ## Roadmap
 
@@ -221,9 +226,10 @@ pnpm eval:work-assistant
 3. Phase 3 — Policy RAG ✅
 4. Phase 4 — AI Approval Draft ✅
 5. Phase 5 — Read-only Enterprise Tool Calling ✅
-6. Phase 6 — Agent workflow, Human-in-the-loop
-7. Phase 7~8 — Leave and Expense Agent
-8. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
+6. Phase 6 — Attendance and Leave Foundation 🚧
+7. Phase 7 — Deterministic Leave Availability
+8. Phase 8 — Leave Approval and AI Assistant
+9. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
 ## Contributing
 

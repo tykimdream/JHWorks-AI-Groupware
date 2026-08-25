@@ -83,6 +83,7 @@ def test_ai_review_returns_structured_semantic_findings(
     assert result["score"] == 85
     assert result["issues"][0]["source"] == "LLM"
     assert result["issues"][0]["code"] == "LLM_CLARITY_1"
+    assert result["revisedContent"] == "고객사 담당자와 구현 범위, 산출물과 담당자를 확정합니다."
     assert result["provider"] == "fake"
     assert result["usage"]["totalTokens"] == 160
     assert result["isStale"] is False
@@ -284,7 +285,8 @@ def test_ai_review_applies_structured_policy_rules_with_citations(
                 suggestion="숙박비를 120,000원 이하로 조정하거나 예외 사유를 확인하세요.",
                 citation_keys=["policy_travel:1.0:TRAVEL-1"],
             )
-        ]
+        ],
+        revised_content="고객사 담당자와 구현 범위, 산출물과 담당자를 확정합니다.",
     )
 
     response = client.post(
@@ -332,7 +334,8 @@ def test_ai_review_drops_policy_issue_with_unretrieved_citation(
                 message="존재하지 않는 규정 위반 주장",
                 citation_keys=["invented:9.9:FAKE-1"],
             )
-        ]
+        ],
+        revised_content="고객사 담당자와 구현 범위와 다음 단계의 담당자를 합의합니다.",
     )
 
     response = client.post(
@@ -380,7 +383,8 @@ def test_ai_review_drops_speculative_risk_and_satisfied_prior_approval_notice(
                 message="사전 승인이 필요합니다.",
                 citation_keys=["policy_travel:1.0:TRAVEL-3"],
             ),
-        ]
+        ],
+        revised_content="고객사 담당자와 구현 범위와 다음 단계의 담당자를 합의합니다.",
     )
 
     response = client.post(

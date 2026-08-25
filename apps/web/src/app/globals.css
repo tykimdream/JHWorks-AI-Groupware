@@ -1002,6 +1002,12 @@ dd {
   gap: 14px;
 }
 
+.draft-review-flow {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 18px;
+}
+
 .context-card {
   display: grid;
 }
@@ -1097,9 +1103,17 @@ dd {
 }
 
 .ai-review-result,
-.review-issue-list {
+.review-issue-list,
+.review-analysis-column {
   display: grid;
   gap: 12px;
+}
+
+.ai-review-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.92fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .review-summary {
@@ -1237,21 +1251,58 @@ dd {
   white-space: pre-wrap;
 }
 
-.revised-content {
-  padding: 16px;
-  border: 1px dashed #9aaccc;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.76);
-}
-
-.revised-content p {
-  margin: 8px 0;
-  white-space: pre-wrap;
-}
-
-.revised-content span,
 .review-runtime {
   color: var(--muted);
+}
+
+.review-revision-editor {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #9aaccc;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.review-revision-editor h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.review-revision-editor p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.review-revision-editor textarea {
+  min-height: 310px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.review-revision-editor > small,
+.review-revision-actions > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.review-revision-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-success-banner {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #a9c6b7;
+  border-radius: 9px;
+  color: #214f3d;
+  background: #f1faf5;
 }
 
 .stale-banner {
@@ -1336,6 +1387,14 @@ dd {
 
   .work-assistant-layout {
     grid-template-columns: 1fr;
+  }
+
+  .ai-review-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .review-revision-editor {
+    position: static;
   }
 }
 

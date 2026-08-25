@@ -48,7 +48,7 @@ from app.scripts.seed import seed_database
 
 class FakeApprovalReviewProvider:
     def __init__(self) -> None:
-        self.output = SemanticReviewOutput()
+        self.output = SemanticReviewOutput(revised_content="검토 대상 본문입니다.")
         self.should_fail = False
         self.documents: list[ReviewDocument] = []
         self.safety_identifiers: list[str] = []

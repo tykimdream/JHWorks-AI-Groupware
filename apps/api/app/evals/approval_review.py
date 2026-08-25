@@ -51,8 +51,14 @@ def main() -> int:
             issue.severity in {ReviewSeverity.MEDIUM, ReviewSeverity.HIGH}
             for issue in result.output.issues
         )
-        passed = expected.issubset(detected) and not (
-            case.expect_no_blocking_issue and has_blocking_issue
+        has_editable_revision = bool(result.output.revised_content.strip()) and (
+            not result.output.issues
+            or result.output.revised_content.strip() != case.document.content.strip()
+        )
+        passed = (
+            expected.issubset(detected)
+            and has_editable_revision
+            and not (case.expect_no_blocking_issue and has_blocking_issue)
         )
         results.append(
             {
@@ -61,6 +67,7 @@ def main() -> int:
                 "expectedCategories": sorted(category.value for category in expected),
                 "detectedCategories": sorted(category.value for category in detected),
                 "issueCount": len(result.output.issues),
+                "hasEditableRevision": has_editable_revision,
                 "latencyMs": result.latency_ms,
                 "totalTokens": result.usage.total_tokens,
                 "model": result.model,

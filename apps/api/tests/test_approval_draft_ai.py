@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.approval_draft import ApprovalDraftCandidate, DraftIntent
+from app.evals.approval_draft import load_cases
 from app.models.approval import Approval
 from app.services.policy_retrieval import index_active_policy_sections
 from tests.conftest import FakeApprovalDraftProvider, FakePolicyEmbeddingProvider
@@ -228,3 +229,14 @@ def test_provider_failure_does_not_create_an_approval(
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "AI_DRAFT_UNAVAILABLE"
     assert approval_count(session_factory) == before
+
+
+def test_approval_draft_eval_dataset_covers_core_intents() -> None:
+    cases = load_cases()
+    intents = {case.expected_intent for case in cases}
+
+    assert len(cases) >= 5
+    assert DraftIntent.BUSINESS_TRIP in intents
+    assert DraftIntent.EXPENSE in intents
+    assert DraftIntent.LEAVE in intents
+    assert DraftIntent.GENERAL in intents

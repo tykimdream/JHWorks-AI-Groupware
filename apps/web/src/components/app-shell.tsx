@@ -35,6 +35,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         </div>
         <nav className="nav-list" aria-label="주 메뉴">
           <Link href="/approvals">전자결재</Link>
+          <Link href="/approvals/ai-draft">AI 초안 작성</Link>
           <Link href="/approvals/new">새 결재 작성</Link>
         </nav>
         <div className="profile-card">

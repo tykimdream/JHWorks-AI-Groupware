@@ -154,6 +154,15 @@ export interface PolicyReviewMetadata {
   latencyMs: number;
 }
 
+export interface PolicySearchResponse {
+  status: PolicyRetrievalStatus;
+  items: PolicyCitation[];
+  provider: string | null;
+  model: string | null;
+  usage: PolicyEmbeddingUsage;
+  latencyMs: number;
+}
+
 export interface AIReviewUsage {
   inputTokens: number;
   outputTokens: number;
@@ -176,4 +185,50 @@ export interface AIReview {
   policyReview: PolicyReviewMetadata;
   latencyMs: number;
   reviewedAt: string;
+}
+
+export type ApprovalDraftIntent =
+  | 'GENERAL'
+  | 'BUSINESS_TRIP'
+  | 'EXPENSE'
+  | 'LEAVE'
+  | 'UNSUPPORTED';
+export type ApprovalDraftAIStatus = 'NEEDS_INPUT' | 'PREVIEW' | 'UNSUPPORTED';
+
+export interface ApprovalDraftCandidate {
+  intent: ApprovalDraftIntent;
+  title: string | null;
+  content: string | null;
+  amount: number | null;
+  destination: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  transportation: number | null;
+  lodging: number | null;
+  meals: number | null;
+  other: number | null;
+  clientName: string | null;
+  visitPurpose: string | null;
+}
+
+export interface ApprovalDraftQuestion {
+  field: string;
+  prompt: string;
+}
+
+export interface ApprovalDraftPrepareResponse {
+  status: ApprovalDraftAIStatus;
+  assistantMessage: string;
+  candidate: ApprovalDraftCandidate;
+  missingFields: string[];
+  questions: ApprovalDraftQuestion[];
+  preview: ApprovalDraftInput | null;
+  confirmationToken: string | null;
+  policyContext: PolicySearchResponse;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  usage: AIReviewUsage;
+  latencyMs: number;
+  generatedAt: string;
 }

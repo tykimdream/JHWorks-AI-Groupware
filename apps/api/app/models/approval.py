@@ -33,6 +33,9 @@ class Approval(Base):
     attachment_metadata: Mapped[list[dict[str, Any]]] = mapped_column(
         JSON, nullable=False, default=list
     )
+    source_confirmation_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, unique=True
+    )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

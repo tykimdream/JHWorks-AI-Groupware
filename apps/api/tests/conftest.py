@@ -6,6 +6,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.ai.approval_draft import (
+    ApprovalDraftCandidate,
+    ApprovalDraftProviderError,
+    ApprovalDraftProviderInput,
+    DraftIntent,
+    DraftProviderResult,
+    DraftProviderUsage,
+)
 from app.ai.approval_review import (
     ApprovalReviewProviderError,
     ProviderReviewResult,
@@ -18,7 +26,11 @@ from app.ai.policy_embedding import (
     EmbeddingUsage,
     PolicyEmbeddingProviderError,
 )
-from app.api.dependencies import get_approval_review_provider, get_policy_embedding_provider
+from app.api.dependencies import (
+    get_approval_draft_provider,
+    get_approval_review_provider,
+    get_policy_embedding_provider,
+)
 from app.core.database import Base, get_db
 from app.main import app
 from app.scripts.seed import seed_database
@@ -42,6 +54,35 @@ class FakeApprovalReviewProvider:
             model="fake-review-model",
             usage=ProviderUsage(input_tokens=120, output_tokens=40, total_tokens=160),
             latency_ms=25,
+        )
+
+
+class FakeApprovalDraftProvider:
+    def __init__(self) -> None:
+        self.candidate = ApprovalDraftCandidate(
+            intent=DraftIntent.GENERAL,
+            title="업무 협조 요청",
+            content="프로젝트 업무 협조를 요청합니다.",
+        )
+        self.should_fail = False
+        self.inputs: list[ApprovalDraftProviderInput] = []
+        self.safety_identifiers: list[str] = []
+
+    def prepare(
+        self,
+        provider_input: ApprovalDraftProviderInput,
+        safety_identifier: str,
+    ) -> DraftProviderResult:
+        if self.should_fail:
+            raise ApprovalDraftProviderError("fake provider failure")
+        self.inputs.append(provider_input)
+        self.safety_identifiers.append(safety_identifier)
+        return DraftProviderResult(
+            candidate=self.candidate,
+            provider="fake",
+            model="fake-draft-model",
+            usage=DraftProviderUsage(input_tokens=80, output_tokens=40, total_tokens=120),
+            latency_ms=20,
         )
 
 
@@ -107,6 +148,11 @@ def fake_review_provider() -> FakeApprovalReviewProvider:
 
 
 @pytest.fixture
+def fake_draft_provider() -> FakeApprovalDraftProvider:
+    return FakeApprovalDraftProvider()
+
+
+@pytest.fixture
 def fake_embedding_provider() -> FakePolicyEmbeddingProvider:
     return FakePolicyEmbeddingProvider()
 
@@ -114,6 +160,7 @@ def fake_embedding_provider() -> FakePolicyEmbeddingProvider:
 @pytest.fixture
 def client(
     session_factory: sessionmaker[Session],
+    fake_draft_provider: FakeApprovalDraftProvider,
     fake_review_provider: FakeApprovalReviewProvider,
     fake_embedding_provider: FakePolicyEmbeddingProvider,
 ) -> Generator[TestClient, None, None]:
@@ -122,6 +169,7 @@ def client(
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_approval_draft_provider] = lambda: fake_draft_provider
     app.dependency_overrides[get_approval_review_provider] = lambda: fake_review_provider
     app.dependency_overrides[get_policy_embedding_provider] = lambda: fake_embedding_provider
     with TestClient(app) as test_client:

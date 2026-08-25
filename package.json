@@ -13,6 +13,7 @@
     "lint:web": "pnpm --filter @jhworks/web lint",
     "test:api": "cd apps/api && uv run pytest",
     "eval:ai-review": "cd apps/api && uv run python -m app.evals.approval_review",
+    "eval:approval-draft": "cd apps/api && uv run python -m app.evals.approval_draft",
     "eval:policy-rag": "cd apps/api && uv run python -m app.evals.policy_retrieval",
     "type-check:api": "cd apps/api && uv run mypy app tests",
     "type-check:web": "pnpm --filter @jhworks/web type-check",

@@ -38,9 +38,14 @@ export default function ApprovalListPage() {
           <h1>전자결재</h1>
           <p>내가 작성한 문서와 결재가 필요한 문서를 분리해 확인합니다.</p>
         </div>
-        <Link className="primary-button" href="/approvals/new">
-          새 결재 작성
-        </Link>
+        <div className="page-header-actions">
+          <Link className="secondary-button" href="/approvals/new">
+            직접 작성
+          </Link>
+          <Link className="primary-button" href="/approvals/ai-draft">
+            AI로 초안 만들기
+          </Link>
+        </div>
       </header>
 
       <div className="segmented-control" role="tablist" aria-label="결재 목록 범위">

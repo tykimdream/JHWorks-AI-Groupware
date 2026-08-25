@@ -59,7 +59,7 @@ export default function LoginPage() {
         </p>
         <div className="phase-marker">
           <span>현재 단계</span>
-          <strong>Phase 3 · Policy-grounded AI Review</strong>
+          <strong>Phase 4 · Natural-language Approval Draft</strong>
         </div>
       </section>
       <section className="login-panel">

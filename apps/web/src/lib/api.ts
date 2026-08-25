@@ -21,12 +21,15 @@ export class ApiError extends Error {
 
 const errorMessages: Record<string, string> = {
   APPROVAL_NOT_READY: '제출에 필요한 정보를 모두 입력해주세요.',
+  AI_DRAFT_UNAVAILABLE: 'AI 초안 작성을 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
   AI_REVIEW_UNAVAILABLE: 'AI 검토를 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
   AUTHENTICATION_REQUIRED: '로그인이 필요합니다.',
   COMMENT_REQUIRED: '반려 사유를 입력해주세요.',
   FORBIDDEN: '이 작업을 수행할 권한이 없습니다.',
   INVALID_STATUS: '현재 상태에서는 이 작업을 수행할 수 없습니다.',
   MANAGER_UNAVAILABLE: '결재자로 지정할 수 있는 직속 관리자가 없습니다.',
+  INVALID_CONFIRMATION: '초안 확인 시간이 만료되었습니다. 미리보기를 다시 만들어주세요.',
+  PREVIEW_CHANGED: '확인한 미리보기와 저장할 내용이 다릅니다. 미리보기를 다시 만들어주세요.',
   VERSION_CONFLICT: '다른 변경이 먼저 저장되었습니다. 새로고침 후 다시 시도해주세요.',
 };
 

@@ -1,0 +1,70 @@
+[
+  {
+    "id": "complete-future-business-trip",
+    "description": "날짜와 비용이 모두 포함된 향후 출장 요청",
+    "request": "출장지는 부산이고 고객사는 하버랩이야. 2026년 9월 10일부터 11일까지 파일럿 범위를 협의하는 출장 결재를 작성해줘. 교통비 10만원, 숙박비 12만원, 식비 8만원, 기타 5만원으로 총 35만원이야.",
+    "answers": [],
+    "current_date": "2026-08-25",
+    "expected_intent": "BUSINESS_TRIP",
+    "expected_values": {
+      "destination": "부산",
+      "start_date": "2026-09-10",
+      "end_date": "2026-09-11",
+      "amount": 350000,
+      "transportation": 100000,
+      "lodging": 120000,
+      "meals": 80000,
+      "other": 50000,
+      "client_name": "하버랩"
+    },
+    "expected_null_fields": []
+  },
+  {
+    "id": "multi-turn-business-trip-cost",
+    "description": "후속 답변에서 비용 내역을 보충하는 출장 요청",
+    "request": "출장지는 서울이고 행사명은 테크포럼이야. 2026년 9월 15일 참석 출장 결재를 작성해줘. 당일 복귀이고 목적은 파트너 발굴이야.",
+    "answers": ["교통비 6만원, 식비 3만원으로 총 9만원이야."],
+    "current_date": "2026-08-25",
+    "expected_intent": "BUSINESS_TRIP",
+    "expected_values": {
+      "destination": "서울",
+      "start_date": "2026-09-15",
+      "end_date": "2026-09-15",
+      "amount": 90000,
+      "transportation": 60000,
+      "meals": 30000,
+      "client_name": "테크포럼"
+    },
+    "expected_null_fields": ["lodging"]
+  },
+  {
+    "id": "past-spend-is-expense",
+    "description": "이미 사용한 출장비를 출장 신청으로 바꾸지 않음",
+    "request": "이번 CES에서 이미 사용한 출장비 50만원 정산 결재 작성해줘.",
+    "answers": [],
+    "current_date": "2026-08-25",
+    "expected_intent": "EXPENSE",
+    "expected_values": {"amount": 500000},
+    "expected_null_fields": []
+  },
+  {
+    "id": "leave-intent",
+    "description": "휴가 요청을 일반 결재로 바꾸지 않음",
+    "request": "다음 주 목요일과 금요일 연차 신청해줘.",
+    "answers": [],
+    "current_date": "2026-08-25",
+    "expected_intent": "LEAVE",
+    "expected_values": {},
+    "expected_null_fields": []
+  },
+  {
+    "id": "general-approval",
+    "description": "일반 업무 협조 요청을 일반 결재로 구조화",
+    "request": "신규 파트너 온보딩을 위해 개발팀의 API 문서 제공 협조 결재를 작성해줘.",
+    "answers": [],
+    "current_date": "2026-08-25",
+    "expected_intent": "GENERAL",
+    "expected_values": {},
+    "expected_null_fields": ["destination", "start_date", "end_date"]
+  }
+]

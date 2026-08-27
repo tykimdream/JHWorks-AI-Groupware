@@ -26,6 +26,7 @@ class ApprovalDraftEvalCase(BaseModel):
     expected_intent: DraftIntent
     expected_values: dict[str, str | int]
     expected_null_fields: list[str] = Field(default_factory=list)
+    expected_null_or_zero_fields: list[str] = Field(default_factory=list)
 
 
 def load_cases() -> list[ApprovalDraftEvalCase]:
@@ -64,10 +65,15 @@ def main() -> int:
         null_checks = {
             field: candidate.get(field) is None for field in case.expected_null_fields
         }
+        null_or_zero_checks = {
+            field: candidate.get(field) in {None, 0}
+            for field in case.expected_null_or_zero_fields
+        }
         passed = (
             result.candidate.intent == case.expected_intent
             and all(value_checks.values())
             and all(null_checks.values())
+            and all(null_or_zero_checks.values())
         )
         outcomes.append(
             {
@@ -77,9 +83,12 @@ def main() -> int:
                 "actualIntent": result.candidate.intent.value,
                 "valueChecks": value_checks,
                 "nullChecks": null_checks,
+                "nullOrZeroChecks": null_or_zero_checks,
                 "actualValues": {
                     field: candidate.get(field)
-                    for field in set(case.expected_values) | set(case.expected_null_fields)
+                    for field in set(case.expected_values)
+                    | set(case.expected_null_fields)
+                    | set(case.expected_null_or_zero_fields)
                 },
                 "latencyMs": result.latency_ms,
                 "totalTokens": result.usage.total_tokens,

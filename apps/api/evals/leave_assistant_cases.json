@@ -36,7 +36,7 @@
     "id": "multi-turn-half-day",
     "description": "후속 답변으로 기간과 반차를 보충",
     "request": "휴가 가능한 때를 찾아줘.",
-    "answers": ["2026년 9월 첫째 주", "오전 반차 하루만"],
+    "answers": ["2026년 9월 1일부터 7일까지", "오전 반차 하루만"],
     "current_date": "2026-08-25",
     "expected_intent": "RECOMMEND_DATES",
     "expected_start": "2026-09-01",

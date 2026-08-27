@@ -52,8 +52,8 @@ def main() -> int:
             )
         except LeaveAssistantProviderError:
             print(
-                "Leave assistant evaluation requires JHWORKS_OPENAI_API_KEY. "
-                "No data was changed."
+                "Leave assistant provider was unavailable or returned invalid output. "
+                "No application data was changed."
             )
             return 2
         candidate = result.candidate

@@ -1,6 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
 interface ErrorBody {
+  requestId?: string;
   error?: {
     code?: string;
     message?: string;
@@ -14,6 +15,7 @@ export class ApiError extends Error {
     public readonly code: string,
     message: string,
     public readonly details: Record<string, string> | null = null,
+    public readonly requestId: string | null = null,
   ) {
     super(message);
   }
@@ -55,6 +57,8 @@ export const getUserErrorMessage = (error: unknown, fallback: string): string =>
 
 export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
   const headers = new Headers(init.headers);
+  const requestId = headers.get('X-Request-ID') ?? globalThis.crypto.randomUUID();
+  headers.set('X-Request-ID', requestId);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -77,6 +81,7 @@ export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise
       body.error?.code ?? 'REQUEST_FAILED',
       body.error?.message ?? '요청을 처리하지 못했습니다.',
       body.error?.details ?? null,
+      body.requestId ?? response.headers.get('X-Request-ID') ?? requestId,
     );
   }
 

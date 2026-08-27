@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 10 — Durable Confirmed Leave Submit Agent까지 완료했다.** 자연어 상담부터 Draft 저장 확인과 별도의 제출 확인까지 이어지는 상태를 DB에 보존하고, 두 번째 확인 직전에 모든 제출 조건을 재검증한다.
+**Phase 11 — Operational Readiness의 Checkpoint 16까지 완료했다.** 자연어 상담부터 확인 기반 제출까지의 기능 위에 통합 AI 평가 게이트, 요청 상관관계, readiness, production 설정 검증과 CI container build를 추가했다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -62,6 +62,12 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 제출 직전 status/version/manager/account/calendar 재검증과 stale 무변경 종료
 - confirmation replay·동시 제출에서도 결재선과 연차 예약을 한 번만 만드는 idempotency
 - 비밀정보와 원문 대화를 제외한 상태 transition·Tool result code trace
+- 5개 실제 모델 평가를 capability별 품질 기준과 하나의 JSON report로 묶는 `eval:all`
+- web→API→Agent/RAG/Tool 로그를 잇는 검증된 `X-Request-ID`
+- process liveness와 DB readiness 분리, 내부 상세를 숨기는 예상 밖 오류 응답
+- JSON 구조화 로그와 production JWT/cookie/PostgreSQL/HTTPS 설정 fail-fast
+- prompt-like 명령을 AI 수정 예시에서 결정적으로 제거하는 출력 가드레일
+- lint·type-check·test·web production build·API/web container build GitHub CI
 
 휴가 Agent는 첫 번째 확인에서 DRAFT만 저장하고, 두 번째 제출 preview와 명시적 확인 전에는 제출하지 않는다. 취소·만료·stale이면 DRAFT와 연차 계정을 변경하지 않는다.
 
@@ -214,7 +220,10 @@ pnpm eval:policy-rag
 pnpm eval:approval-draft
 pnpm eval:work-assistant
 pnpm eval:leave-assistant
+pnpm eval:all
 ```
+
+`eval:all`은 capability별 최소 통과율을 검사하고 통합 결과를 `artifacts/evals/latest.json`에 저장한다. 외부 모델 비용과 비결정성 때문에 일반 CI에는 포함하지 않으며 모델·prompt·retrieval 변경 시 명시적으로 실행한다.
 
 ## Security Boundary
 
@@ -228,6 +237,8 @@ pnpm eval:leave-assistant
 - AI 휴가 Draft의 일반 submit endpoint 직접 호출은 거절하고 durable Agent의 두 번째 확인을 요구한다.
 - 제출 token은 actor·run·approval/계정 version·manager·calendar·preview hash에 결합하며 실행 직전에 다시 검증한다.
 - 제출 replay는 이미 PENDING인 동일 Approval을 반환하고 결재선과 pending 연차를 중복 생성하지 않는다.
+- 외부 `X-Request-ID`는 제한된 문자와 길이만 허용하고, 모든 API·Agent 로그에 같은 correlation ID를 붙인다.
+- production 환경은 기본 JWT secret, insecure cookie, SQLite와 non-HTTPS frontend origin으로 시작하지 않는다.
 - workflow trace에는 상태·event·result code만 보존하고 token, 원문 대화와 불필요한 개인정보를 남기지 않는다.
 - AI Draft는 exact preview hash, 현재 사용자와 만료 시간에 결합된 confirmation token을 검증한다.
 - 같은 confirmation token을 재사용해도 unique confirmation ID로 기존 Draft를 반환한다.
@@ -256,7 +267,7 @@ pnpm eval:leave-assistant
 - **Confirmed narrow write**: 휴가 Draft 저장은 범용 DB Tool이 아니라 actor에 고정된 prepare/confirm capability이며, preview 이후 변경은 stale로 거절한다.
 - **Durable application state machine**: 상담→Draft 확인→제출 확인이 고정된 workflow이고 승인·연차와 같은 DB 원자성이 중요하므로 SQLAlchemy 상태 머신을 사용한다. LangGraph 도입 검토와 재평가 조건은 [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md), [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md), [Phase 11 Operational Readiness](docs/product/phase-11-operational-readiness.md), [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
 ## Roadmap
 
@@ -270,7 +281,7 @@ pnpm eval:leave-assistant
 8. Phase 8 — Grounded Leave AI Assistant ✅
 9. Phase 9 — Confirmed Leave Draft Tool ✅
 10. Phase 10 — Durable Confirmed Leave Submit Agent ✅
-11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
+11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio 🚧 (Checkpoint 16 ✅)
 
 ## Contributing
 

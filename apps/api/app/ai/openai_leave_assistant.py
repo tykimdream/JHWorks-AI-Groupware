@@ -1,17 +1,54 @@
 import json
+from datetime import date
+from decimal import Decimal
+from enum import StrEnum
 from time import perf_counter
 
 from openai import OpenAI, OpenAIError
+from pydantic import BaseModel, ConfigDict
 
 from app.ai.leave_assistant import (
     PROMPT_VERSION,
     SYSTEM_PROMPT,
     LeaveAssistantCandidate,
+    LeaveAssistantIntent,
     LeaveAssistantProviderError,
     LeaveAssistantProviderInput,
     LeaveAssistantProviderResult,
     LeaveAssistantProviderUsage,
 )
+
+
+class LeaveAssistantRequestedDays(StrEnum):
+    HALF = "0.5"
+    ONE = "1.0"
+    TWO = "2.0"
+    THREE = "3.0"
+    FOUR = "4.0"
+    FIVE = "5.0"
+
+
+class LeaveAssistantStructuredOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    intent: LeaveAssistantIntent
+    search_start: date | None
+    search_end: date | None
+    requested_days: LeaveAssistantRequestedDays | None
+
+
+def _to_candidate(output: LeaveAssistantStructuredOutput) -> LeaveAssistantCandidate:
+    requested_days = (
+        Decimal(output.requested_days.value)
+        if output.requested_days is not None
+        else None
+    )
+    return LeaveAssistantCandidate(
+        intent=output.intent,
+        search_start=output.search_start,
+        search_end=output.search_end,
+        requested_days=requested_days,
+    )
 
 
 class OpenAILeaveAssistantProvider:
@@ -38,8 +75,8 @@ class OpenAILeaveAssistantProvider:
                         ),
                     }
                 ],
-                text_format=LeaveAssistantCandidate,
-                max_output_tokens=500,
+                text_format=LeaveAssistantStructuredOutput,
+                max_output_tokens=1200,
                 prompt_cache_key=PROMPT_VERSION,
                 safety_identifier=safety_identifier,
                 store=False,
@@ -49,11 +86,12 @@ class OpenAILeaveAssistantProvider:
                 "The AI leave assistant provider is unavailable"
             ) from exc
 
-        candidate = response.output_parsed
-        if candidate is None:
+        output = response.output_parsed
+        if output is None:
             raise LeaveAssistantProviderError(
                 "The AI leave assistant provider returned no usable result"
             )
+        candidate = _to_candidate(output)
         usage = response.usage
         return LeaveAssistantProviderResult(
             candidate=candidate,

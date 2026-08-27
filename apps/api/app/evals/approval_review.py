@@ -2,7 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.ai.approval_review import (
     ApprovalReviewProviderError,
@@ -21,7 +21,9 @@ class ApprovalReviewEvalCase(BaseModel):
     id: str
     description: str
     document: ReviewDocument
-    expected_categories: list[ReviewCategory]
+    expected_category_groups: list[list[ReviewCategory]] = Field(default_factory=list)
+    minimum_issue_count: int = Field(default=0, ge=0)
+    forbidden_revision_phrases: list[str] = Field(default_factory=list)
     expect_no_blocking_issue: bool = False
 
 
@@ -46,7 +48,7 @@ def main() -> int:
             return 2
 
         detected = {issue.category for issue in result.output.issues}
-        expected = set(case.expected_categories)
+        expected_groups = [set(group) for group in case.expected_category_groups]
         has_blocking_issue = any(
             issue.severity in {ReviewSeverity.MEDIUM, ReviewSeverity.HIGH}
             for issue in result.output.issues
@@ -55,19 +57,30 @@ def main() -> int:
             not result.output.issues
             or result.output.revised_content.strip() != case.document.content.strip()
         )
+        category_groups_match = all(detected & group for group in expected_groups)
+        forbidden_revision_match = not any(
+            phrase in result.output.revised_content
+            for phrase in case.forbidden_revision_phrases
+        )
         passed = (
-            expected.issubset(detected)
+            category_groups_match
+            and len(result.output.issues) >= case.minimum_issue_count
             and has_editable_revision
+            and forbidden_revision_match
             and not (case.expect_no_blocking_issue and has_blocking_issue)
         )
         results.append(
             {
                 "id": case.id,
                 "passed": passed,
-                "expectedCategories": sorted(category.value for category in expected),
+                "expectedCategoryGroups": [
+                    sorted(category.value for category in group)
+                    for group in expected_groups
+                ],
                 "detectedCategories": sorted(category.value for category in detected),
                 "issueCount": len(result.output.issues),
                 "hasEditableRevision": has_editable_revision,
+                "forbiddenRevisionPhraseFound": not forbidden_revision_match,
                 "latencyMs": result.latency_ms,
                 "totalTokens": result.usage.total_tokens,
                 "model": result.model,

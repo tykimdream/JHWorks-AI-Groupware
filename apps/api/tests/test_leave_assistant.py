@@ -7,11 +7,42 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.leave_assistant import LeaveAssistantCandidate, LeaveAssistantIntent
+from app.ai.openai_leave_assistant import (
+    LeaveAssistantRequestedDays,
+    LeaveAssistantStructuredOutput,
+    _to_candidate,
+)
 from app.evals.leave_assistant import load_cases
 from app.models.approval import Approval
 from app.models.attendance import LeaveAccount
 from app.services.policy_retrieval import index_active_policy_sections
 from tests.conftest import FakeLeaveAssistantProvider, FakePolicyEmbeddingProvider
+
+
+def test_openai_structured_output_uses_supported_leave_day_values() -> None:
+    output = LeaveAssistantStructuredOutput(
+        intent=LeaveAssistantIntent.RECOMMEND_DATES,
+        search_start=date(2026, 9, 1),
+        search_end=date(2026, 9, 7),
+        requested_days=LeaveAssistantRequestedDays.HALF,
+    )
+
+    candidate = _to_candidate(output)
+
+    assert candidate.requested_days == Decimal("0.5")
+    schema = LeaveAssistantStructuredOutput.model_json_schema()
+    requested_days_reference = schema["properties"]["requested_days"]["anyOf"][0][
+        "$ref"
+    ]
+    definition_name = requested_days_reference.rsplit("/", maxsplit=1)[-1]
+    assert schema["$defs"][definition_name]["enum"] == [
+        "0.5",
+        "1.0",
+        "2.0",
+        "3.0",
+        "4.0",
+        "5.0",
+    ]
 
 
 def _approval_count(session_factory: sessionmaker[Session]) -> int:
@@ -65,7 +96,7 @@ def test_consult_resolves_actual_dates_and_uses_deterministic_availability(
     assert result["availability"]["candidates"][0]["reasons"][0]["code"] == "COMPANY_EVENT"
     assert "2026년 9월 3일" in result["assistantMessage"]
     assert result["policyContext"]["status"] == "READY"
-    assert result["promptVersion"] == "leave-assistant-v1-grounded-dates"
+    assert result["promptVersion"] == "leave-assistant-v2-safe-write-instructions"
     assert result["usage"]["totalTokens"] == 90
     assert _approval_count(session_factory) == before
 

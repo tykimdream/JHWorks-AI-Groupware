@@ -1,3 +1,5 @@
+import hmac
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
@@ -25,7 +27,14 @@ from app.models.enums import (
     AttendanceImpact,
 )
 from app.schemas.approval import ApprovalCreate, ApprovalDecision, ApprovalUpdate
-from app.services.leave_calendar import calculate_leave_days
+from app.services.leave_calendar import calculate_leave_days, leave_calendar_fingerprint
+
+
+@dataclass(frozen=True)
+class ConfirmedLeaveSubmitSnapshot:
+    manager_id: str
+    account_version: int
+    calendar_fingerprint: str
 
 
 def _approval_query() -> Select[tuple[Approval]]:
@@ -275,21 +284,60 @@ def submit_approval(
     actor: Employee,
     approval_id: str,
     expected_version: int,
+    leave_confirmation: ConfirmedLeaveSubmitSnapshot | None = None,
 ) -> Approval:
     approval = _get_approval_for_update(db, approval_id)
     _require_author(approval, actor)
     _require_version(approval, expected_version)
     if approval.status != ApprovalStatus.DRAFT:
         raise ConflictError("INVALID_STATUS", "Only draft approvals can be submitted")
+    if (
+        approval.type == ApprovalType.LEAVE
+        and (approval.source_confirmation_id or "").startswith("leave_confirm_")
+        and leave_confirmation is None
+    ):
+        raise ConflictError(
+            "LEAVE_SUBMIT_CONFIRMATION_REQUIRED",
+            "AI-prepared leave Drafts require the separate submission confirmation flow.",
+        )
     approval.details = _normalized_details(db, actor, approval.type, approval.details)
     _validate_for_submit(db, approval)
 
     manager = db.get(Employee, actor.manager_id) if actor.manager_id else None
     if manager is None or not manager.is_active or manager.id == actor.id:
         raise ConflictError("MANAGER_UNAVAILABLE", "An active manager is required for submission")
+    if leave_confirmation is not None and manager.id != leave_confirmation.manager_id:
+        raise ConflictError(
+            "LEAVE_SUBMIT_STALE",
+            "The approver changed after submission preview.",
+        )
 
     if approval.type == ApprovalType.LEAVE:
-        _reserve_leave(db, approval)
+        if leave_confirmation is not None:
+            start_date, end_date, _ = _leave_request_values(approval)
+            current_fingerprint = leave_calendar_fingerprint(
+                db,
+                actor,
+                start_date,
+                end_date,
+            )
+            if not hmac.compare_digest(
+                current_fingerprint,
+                leave_confirmation.calendar_fingerprint,
+            ):
+                raise ConflictError(
+                    "LEAVE_SUBMIT_STALE",
+                    "The work calendar changed after submission preview.",
+                )
+        _reserve_leave(
+            db,
+            approval,
+            expected_account_version=(
+                leave_confirmation.account_version
+                if leave_confirmation is not None
+                else None
+            ),
+        )
 
     current_round = db.scalar(
         select(func.max(ApprovalLine.round)).where(ApprovalLine.approval_id == approval.id)
@@ -372,9 +420,18 @@ def _locked_leave_account(db: Session, employee_id: str, year: int) -> LeaveAcco
     return account
 
 
-def _reserve_leave(db: Session, approval: Approval) -> None:
+def _reserve_leave(
+    db: Session,
+    approval: Approval,
+    expected_account_version: int | None = None,
+) -> None:
     start_date, end_date, requested_days = _leave_request_values(approval)
     account = _locked_leave_account(db, approval.author_id, start_date.year)
+    if expected_account_version is not None and account.version != expected_account_version:
+        raise ConflictError(
+            "LEAVE_SUBMIT_STALE",
+            "The leave account changed after submission preview.",
+        )
     if account.available_days < requested_days:
         raise DomainValidationError(
             "INSUFFICIENT_LEAVE_BALANCE",

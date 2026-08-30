@@ -15,7 +15,10 @@
     "eval:ai-review": "cd apps/api && uv run python -m app.evals.approval_review",
     "eval:approval-draft": "cd apps/api && uv run python -m app.evals.approval_draft",
     "eval:work-assistant": "cd apps/api && uv run python -m app.evals.work_assistant",
+    "eval:leave-assistant": "cd apps/api && uv run python -m app.evals.leave_assistant",
     "eval:policy-rag": "cd apps/api && uv run python -m app.evals.policy_retrieval",
+    "eval:all": "cd apps/api && uv run python -m app.evals.suite --output ../../artifacts/evals/latest.json",
+    "smoke:deployment": "cd apps/api && uv run python -m app.ops.deployment_smoke",
     "type-check:api": "cd apps/api && uv run mypy app tests",
     "type-check:web": "pnpm --filter @jhworks/web type-check",
     "validate": "pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web"

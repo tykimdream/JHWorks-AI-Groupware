@@ -1,3 +1,5 @@
+import hashlib
+import json
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -112,3 +114,31 @@ def calculate_leave_days(
     if leave_unit != "FULL_DAY" or business_days == 0:
         return None
     return Decimal(business_days).quantize(Decimal("0.1"))
+
+
+def leave_calendar_fingerprint(
+    db: Session,
+    employee: Employee,
+    start_date: date,
+    end_date: date,
+) -> str:
+    events = get_shared_events(db, employee, start_date, end_date) + get_team_leave_events(
+        db, employee, start_date, end_date
+    )
+    canonical = [
+        {
+            "id": event.id,
+            "category": event.category.value,
+            "title": event.title,
+            "startDate": event.start_date.isoformat(),
+            "endDate": event.end_date.isoformat(),
+            "scope": event.scope.value,
+            "departmentId": event.department_id,
+            "employeeId": event.employee_id,
+            "status": event.status.value,
+            "impact": event.impact.value,
+        }
+        for event in sorted(events, key=lambda item: item.id)
+    ]
+    encoded = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()

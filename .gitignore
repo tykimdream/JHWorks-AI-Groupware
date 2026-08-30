@@ -18,6 +18,8 @@ node_modules/
 out/
 coverage/
 *.tsbuildinfo
+artifacts/evals/*.json
+artifacts/smoke/*.json
 
 # Editors and OS
 .DS_Store

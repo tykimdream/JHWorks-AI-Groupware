@@ -14,5 +14,4 @@ RUN uv sync --frozen --no-dev --project apps/api
 WORKDIR /workspace/apps/api
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && python -m app.scripts.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
-
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

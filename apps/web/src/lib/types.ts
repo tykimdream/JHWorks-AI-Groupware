@@ -333,3 +333,136 @@ export interface LeaveAvailability {
   days: LeaveAvailabilityDay[];
   reasons: LeaveAvailabilityReason[];
 }
+
+export type LeaveAssistantIntent = 'CHECK_DATES' | 'RECOMMEND_DATES' | 'UNSUPPORTED';
+export type LeaveAssistantStatus = 'NEEDS_INPUT' | 'READY' | 'UNSUPPORTED';
+
+export interface LeaveAssistantQuestion {
+  field: string;
+  prompt: string;
+}
+
+export interface LeaveAssistantQuery {
+  intent: LeaveAssistantIntent;
+  searchStart: string | null;
+  searchEnd: string | null;
+  requestedDays: string | null;
+}
+
+export interface LeaveAssistantResponse {
+  status: LeaveAssistantStatus;
+  assistantMessage: string;
+  query: LeaveAssistantQuery;
+  missingFields: string[];
+  questions: LeaveAssistantQuestion[];
+  availability: LeaveAvailability | null;
+  policyContext: PolicySearchResponse;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  usage: AIReviewUsage;
+  latencyMs: number;
+  generatedAt: string;
+}
+
+export interface LeaveDraftApprover {
+  id: string;
+  name: string;
+  position: string;
+}
+
+export interface LeaveDraftExactPreview {
+  approval: ApprovalDraftInput;
+  candidate: LeaveAvailabilityCandidate;
+  requestedDays: string;
+  leaveUnit: LeaveUnit;
+  availableDays: string;
+  accountVersion: number;
+  manager: LeaveDraftApprover;
+  policyContext: PolicySearchResponse;
+  warnings: LeaveAvailabilityReason[];
+  calendarFingerprint: string;
+  policyFingerprint: string;
+}
+
+export interface LeaveDraftPrepareResponse {
+  preview: LeaveDraftExactPreview;
+  confirmationToken: string;
+}
+
+export type LeaveAgentStatus =
+  | 'CONSULTING'
+  | 'NEEDS_INPUT'
+  | 'CONSULTATION_FAILED'
+  | 'CANDIDATES_READY'
+  | 'AWAITING_DRAFT_CONFIRMATION'
+  | 'DRAFT_CREATED'
+  | 'AWAITING_SUBMIT_CONFIRMATION'
+  | 'SUBMITTING'
+  | 'SUBMITTED'
+  | 'CANCELED'
+  | 'EXPIRED'
+  | 'STALE'
+  | 'FAILED';
+
+export interface LeaveAgentTrace {
+  at: string;
+  fromStatus: LeaveAgentStatus | null;
+  toStatus: LeaveAgentStatus;
+  event: string;
+  resultCode: string;
+}
+
+export interface LeaveAgentRun {
+  id: string;
+  status: LeaveAgentStatus;
+  approvalId: string | null;
+  retryCount: number;
+  lastErrorCode: string | null;
+  version: number;
+  trace: LeaveAgentTrace[];
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface LeaveAgentConsultation {
+  run: LeaveAgentRun;
+  consultation: LeaveAssistantResponse | null;
+}
+
+export interface LeaveAgentDraftPreparation {
+  run: LeaveAgentRun;
+  preparation: LeaveDraftPrepareResponse;
+}
+
+export interface LeaveAgentDraftConfirmation {
+  run: LeaveAgentRun;
+  approval: Approval;
+}
+
+export interface LeaveSubmitPreview {
+  approvalId: string;
+  approvalVersion: number;
+  requestedDays: string;
+  availableDays: string;
+  pendingDays: string;
+  accountVersion: number;
+  managerId: string;
+  managerName: string;
+  managerPosition: string;
+  warnings: LeaveAvailabilityReason[];
+  calendarFingerprint: string;
+}
+
+export interface LeaveSubmitPreparation {
+  run: LeaveAgentRun;
+  preview: LeaveSubmitPreview;
+  confirmationToken: string;
+  expiresAt: string;
+}
+
+export interface LeaveSubmitResumeResult {
+  run: LeaveAgentRun;
+  approval: Approval;
+}

@@ -11,6 +11,12 @@ COPY apps/web ./apps/web
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm --filter @jhworks/web build
+# Next.js' standalone tracer keeps pnpm's @swc/helpers symlink but can omit
+# helper modules that are loaded dynamically at runtime. Restore the complete
+# package inside the traced tree so the image does not contain a dangling,
+# partially populated dependency.
+RUN cp -R /workspace/node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/. \
+    /workspace/apps/web/.next/standalone/node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/
 
 FROM node:24-alpine AS runner
 

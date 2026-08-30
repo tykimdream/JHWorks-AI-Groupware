@@ -6,7 +6,7 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 
 ## Current Status
 
-**Phase 11 — Operational Readiness의 Checkpoint 16까지 완료했다.** 자연어 상담부터 확인 기반 제출까지의 기능 위에 통합 AI 평가 게이트, 요청 상관관계, readiness, production 설정 검증과 CI container build를 추가했다.
+**Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio까지 완료했다.** 확인 기반 AI workflow 위에 통합 평가, 운영 가드레일, single-run migration, deployment smoke, release/rollback과 portfolio 증거를 완성했다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -67,7 +67,10 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - process liveness와 DB readiness 분리, 내부 상세를 숨기는 예상 밖 오류 응답
 - JSON 구조화 로그와 production JWT/cookie/PostgreSQL/HTTPS 설정 fail-fast
 - prompt-like 명령을 AI 수정 예시에서 결정적으로 제거하는 출력 가드레일
-- lint·type-check·test·web production build·API/web container build GitHub CI
+- lint·type-check·test·web production build·API/web container smoke GitHub CI
+- API 기동과 분리된 migration/seed release 단계 및 readiness-gated container smoke
+- immutable image·DB backup·application 우선 rollback을 정의한 운영 runbook
+- 아키텍처, Human-in-the-loop와 위험 통제를 연결한 portfolio evidence
 
 휴가 Agent는 첫 번째 확인에서 DRAFT만 저장하고, 두 번째 제출 preview와 명시적 확인 전에는 제출하지 않는다. 취소·만료·stale이면 DRAFT와 연차 계정을 변경하지 않는다.
 
@@ -149,6 +152,13 @@ Requirements: Docker Engine과 Docker Compose v2 plugin
 cp .env.example .env
 # .env의 JHWORKS_OPENAI_API_KEY에 본인의 API key를 입력한다.
 docker compose up --build
+```
+
+Compose는 migration과 synthetic seed를 완료한 뒤 API와 web을 기동한다. 배포 계약을 확인하려면 별도 terminal에서
+읽기 전용 smoke를 실행한다.
+
+```bash
+pnpm smoke:deployment
 ```
 
 정책 RAG를 처음 사용할 때는 다른 terminal에서 active policy section을 한 번 색인한다.
@@ -267,7 +277,7 @@ pnpm eval:all
 - **Confirmed narrow write**: 휴가 Draft 저장은 범용 DB Tool이 아니라 actor에 고정된 prepare/confirm capability이며, preview 이후 변경은 stale로 거절한다.
 - **Durable application state machine**: 상담→Draft 확인→제출 확인이 고정된 workflow이고 승인·연차와 같은 DB 원자성이 중요하므로 SQLAlchemy 상태 머신을 사용한다. LangGraph 도입 검토와 재평가 조건은 [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md), [Phase 11 Operational Readiness](docs/product/phase-11-operational-readiness.md), [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md), [Phase 11 Operational Readiness](docs/product/phase-11-operational-readiness.md), [Release Runbook](docs/operations/release-runbook.md), [Portfolio Evidence](docs/portfolio/architecture-and-controls.md), [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
 ## Roadmap
 
@@ -281,7 +291,7 @@ pnpm eval:all
 8. Phase 8 — Grounded Leave AI Assistant ✅
 9. Phase 9 — Confirmed Leave Draft Tool ✅
 10. Phase 10 — Durable Confirmed Leave Submit Agent ✅
-11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio 🚧 (Checkpoint 16 ✅)
+11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio ✅
 
 ## Contributing
 

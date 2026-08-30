@@ -1,6 +1,6 @@
 # Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
 
-상태: **진행 중 — Checkpoint 16 완료 (2026-08-27)**
+상태: **완료 — Checkpoint 17 완료 (2026-08-30)**
 
 ## 1. Checkpoint 16 목표
 
@@ -66,11 +66,30 @@ CI에 주입하지 않는다.
 실제 배포 플랫폼과 public URL은 이 체크포인트에 포함하지 않는다. 플랫폼 선택 후에는 managed PostgreSQL/pgvector,
 TLS, secret manager, migration 단일 실행, backup/restore, CORS origin, cookie domain을 플랫폼 설정으로 검증한다.
 
-검증 결과는 backend 102 tests, frontend lint/type-check/production build, API/web container build를 통과했다.
+최종 검증 결과는 backend 108 tests, frontend lint/type-check/production build, API/web container build를 통과했다.
 실제 `gpt-5.4-mini-2026-03-17`과 `text-embedding-3-small` 통합 평가는 5/5 capability, 29/29 case와 모든
 필수 safety case를 통과했으며 report의 총 사용량은 25,028 tokens였다.
 
-## 6. 다음 체크포인트
+## 6. Checkpoint 17 — Release, Rollback, Smoke, Portfolio Evidence
 
-Checkpoint 17은 배포 대상에 맞춘 release/rollback runbook, 실제 smoke test와 portfolio용 architecture·위험 통제
-증거를 완성한다. 모델 변경이 있으면 통합 평가 baseline도 함께 갱신한다.
+API image 기동에서 migration과 synthetic seed를 제거했다. 로컬 Compose는 이를 `migrate → seed → API → web`의
+명시적 dependency로 실행하고, production은 release job에서 `alembic upgrade head`를 정확히 한 번 수행한다.
+따라서 여러 API replica가 동시에 schema를 변경하거나 production에 demo seed를 넣지 않는다.
+
+`pnpm smoke:deployment`는 배포 URL을 대상으로 다음 읽기 전용 계약을 검증하고
+`artifacts/smoke/latest.json`을 남긴다.
+
+- API liveness와 DB readiness
+- 요청한 `X-Request-ID`의 응답 correlation
+- 비인증 근태 요청의 stable `401 AUTHENTICATION_REQUIRED`
+- web root의 production 응답
+
+CI container job은 API/web image를 build하고 Compose release topology를 기동한 뒤 같은 smoke를 실행한다. 상세
+release/rollback 판단은 [운영 runbook](../operations/release-runbook.md), 면접·리뷰용 전체 구조와 통제 근거는
+[portfolio evidence](../portfolio/architecture-and-controls.md)에 정리했다.
+
+로컬 OCI rehearsal에서도 PostgreSQL 기동, 전체 Alembic migration, synthetic seed, production 설정 API와 standalone
+web image를 순서대로 실행해 deployment smoke 4/4를 통과했다.
+
+public cloud와 domain 배포는 비용·계정·운영 권한이 필요한 별도 선택이다. Phase 11의 완료 조건은 provider-neutral
+OCI release 계약, single-run migration, 실제 container rehearsal, rollback과 검증 가능한 portfolio evidence다.

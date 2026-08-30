@@ -47,7 +47,7 @@ jobs:
       - name: Validate application
         run: pnpm validate
 
-  container-build:
+  container-smoke:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -55,11 +55,35 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Build API image
-        run: docker build --file apps/api/Dockerfile --tag jhworks-api:ci .
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
-      - name: Build web image
-        run: docker build --file apps/web/Dockerfile --tag jhworks-web:ci .
+      - name: Start release topology
+        run: docker compose up --build --detach
+
+      - name: Run deployment smoke checks
+        run: |
+          mkdir -p artifacts/smoke
+          python apps/api/app/ops/deployment_smoke.py \
+            --output artifacts/smoke/latest.json
+
+      - name: Capture container logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: deployment-smoke-report
+          path: artifacts/smoke/latest.json
+          if-no-files-found: warn
+
+      - name: Stop release topology
+        if: always()
+        run: docker compose down --volumes
 
   dependency-review:
     if: github.event_name == 'pull_request'

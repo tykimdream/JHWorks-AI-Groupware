@@ -10,20 +10,39 @@ export const useCurrentEmployee = () => {
   const router = useRouter();
   const [employee, setEmployee] = useState<CurrentEmployee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    apiFetch<CurrentEmployee>('/employees/me')
-      .then(setEmployee)
-      .catch((error: unknown) => {
-        if (error instanceof ApiError && error.status === 401) {
-          router.replace('/login');
-          return;
-        }
-        setEmployee(null);
-      })
-      .finally(() => setIsLoading(false));
+    let controller: AbortController | null = null;
+    let active = true;
+    const refresh = () => {
+      controller?.abort();
+      controller = new AbortController();
+      const signal = controller.signal;
+      setIsRefreshing(true);
+      apiFetch<CurrentEmployee>('/employees/me', { signal })
+        .then((current) => { if (active && !signal.aborted) setEmployee(current); })
+        .catch((error: unknown) => {
+          if (!active || signal.aborted) return;
+          setEmployee(null);
+          if (error instanceof ApiError && error.status === 401) router.replace('/login');
+        })
+        .finally(() => {
+          if (active && !signal.aborted) {
+            setIsLoading(false);
+            setIsRefreshing(false);
+          }
+        });
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.removeEventListener('focus', refresh);
+    };
   }, [router]);
 
-  return { employee, isLoading };
+  return { employee, isLoading, isRefreshing };
 };
 

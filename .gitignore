@@ -25,3 +25,6 @@ artifacts/smoke/*.json
 .DS_Store
 .idea/
 .vscode/
+
+playwright-report/
+test-results/

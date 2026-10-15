@@ -59,7 +59,7 @@ flowchart TD
 | 배포와 schema 변경 결합 | migration single-run job, readiness, smoke, digest rollback | release runbook + container smoke |
 | 모델 품질 드리프트 | capability threshold + mandatory safety cases | `artifacts/evals/latest.json` |
 
-## Verified Evidence
+## Historical Evidence (2026-08-30)
 
 ```bash
 pnpm validate
@@ -74,6 +74,12 @@ pnpm smoke:deployment
 
 평가·smoke report는 local artifact이며 prompt 원문과 secret을 포함하지 않는다. 실제 API 비용이 드는 평가는 일반
 PR CI와 분리하고, deterministic tests와 container smoke는 CI에서 실행한다.
+
+## 이번 개선 검증
+
+기존 108개 테스트와 유료 모델 평가 기록은 당시 결과다. 2026-10-15 변경은 별도
+[검증 기록](verification-2026-10-15.md)과 [작업 비교 절차](task-study.md)에 근거한다.
+이 변경에서 실제 모델 API와 container rehearsal은 재실행하지 않았다. 사람의 시간 절감 수치는 측정 대기다.
 
 ## Deliberate Trade-offs
 

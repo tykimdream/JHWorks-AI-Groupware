@@ -1,0 +1,1 @@
+participant,trial,pair,order,condition,scenario,revision,reference_date_seoul,range_start,range_end,db_snapshot,policy_version,viewport,provider,model,prompt_version,start_time,end_time,elapsed_seconds,navigations,manual_fields,interactions,incorrect_fields,draft_success,fallback,call_attempts,call_successes,provider_latency_ms,input_tokens,output_tokens,error_code,notes

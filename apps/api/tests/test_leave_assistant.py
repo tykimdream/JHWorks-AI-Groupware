@@ -15,6 +15,7 @@ from app.ai.openai_leave_assistant import (
 from app.evals.leave_assistant import load_cases
 from app.models.approval import Approval
 from app.models.attendance import LeaveAccount
+from app.services import leave_assistant
 from app.services.policy_retrieval import index_active_policy_sections
 from tests.conftest import FakeLeaveAssistantProvider, FakePolicyEmbeddingProvider
 
@@ -80,7 +81,7 @@ def test_consult_resolves_actual_dates_and_uses_deterministic_availability(
     before = _approval_count(session_factory)
     login(client, "seojin.yoon@jhworks.test")
 
-    response = _consult(client, "다음 주 목요일과 금요일 연차 가능한지 알려줘")
+    response = _consult(client, "2026년 9월 3일과 4일 연차 가능한지 알려줘")
 
     assert response.status_code == 200, response.text
     result = response.json()
@@ -252,3 +253,62 @@ def test_leave_assistant_eval_dataset_covers_required_risks() -> None:
         "project-override-injection",
         "policy-citation-injection",
     } <= ids
+
+
+def test_relative_week_interpretation_is_checked_against_seoul_calendar() -> None:
+    from datetime import timedelta
+
+    from app.schemas.leave_assistant import LeaveAssistantRequest
+
+    payload = LeaveAssistantRequest(request="다음 주에 이틀 휴가와 결재 초안을 만들어줘")
+    for today in (date(2026, 10, 15), date(2026, 10, 18), date(2026, 12, 31)):
+        monday = today + timedelta(days=7 - today.weekday())
+        valid = LeaveAssistantCandidate(
+            intent=LeaveAssistantIntent.RECOMMEND_DATES,
+            search_start=monday,
+            search_end=monday + timedelta(days=6),
+            requested_days=Decimal("2.0"),
+        )
+        assert not leave_assistant._relative_date_mismatch(payload, valid, today)
+        wrong = valid.model_copy(update={"search_start": today, "search_end": today})
+        assert leave_assistant._relative_date_mismatch(payload, wrong, today)
+        duration_only = payload.model_copy(update={"answers": ["이틀이요"]})
+        assert leave_assistant._relative_date_mismatch(duration_only, wrong, today)
+        corrected = payload.model_copy(update={"answers": ["2026년 11월 2일부터 6일로 바꿔줘"]})
+        assert not leave_assistant._relative_date_mismatch(corrected, wrong, today)
+
+
+def test_wrong_relative_dates_require_clarification_without_candidates(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    session_factory: sessionmaker[Session],
+    fake_leave_assistant_provider: FakeLeaveAssistantProvider,
+) -> None:
+    fake_leave_assistant_provider.candidate = LeaveAssistantCandidate(
+        intent=LeaveAssistantIntent.RECOMMEND_DATES,
+        search_start=date(2000, 1, 3), search_end=date(2000, 1, 7),
+        requested_days=Decimal("2.0"),
+    )
+    login(client, "seojin.yoon@jhworks.test")
+    before = _approval_count(session_factory)
+    response = _consult(client, "다음 주에 이틀 휴가 초안 만들어줘")
+    assert response.status_code == 200
+    assert response.json()["status"] == "NEEDS_INPUT"
+    assert "relativeDate" in response.json()["missingFields"]
+    assert response.json()["availability"] is None
+    assert _approval_count(session_factory) == before
+
+
+def test_unsupported_request_never_becomes_a_leave_candidate(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    fake_leave_assistant_provider: FakeLeaveAssistantProvider,
+) -> None:
+    fake_leave_assistant_provider.candidate = LeaveAssistantCandidate(
+        intent=LeaveAssistantIntent.UNSUPPORTED,
+    )
+    login(client, "seojin.yoon@jhworks.test")
+    response = _consult(client, "급여 계좌를 변경해줘")
+    assert response.status_code == 200
+    assert response.json()["status"] == "UNSUPPORTED"
+    assert response.json()["availability"] is None

@@ -1,5 +1,6 @@
 import logging
-from datetime import UTC, date, datetime
+import re
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -43,6 +44,10 @@ QUESTION_PROMPTS = {
     "requestedDays": "반차부터 5일까지, 며칠의 연차를 사용하고 싶으신가요?",
     "dateOrder": "탐색 종료일이 시작일보다 빠릅니다. 기간을 다시 알려주세요.",
     "dateRange": "한 번에 최대 93일, 같은 연도 안에서 탐색 기간을 다시 정해주세요.",
+    "relativeDate": (
+        "요청한 상대 날짜와 해석된 기간이 다릅니다. "
+        "원하는 시작일과 종료일을 실제 날짜로 다시 알려주세요."
+    ),
     "duration": "희망 일수는 0.5일 또는 1~5일의 정수로 알려주세요.",
 }
 
@@ -81,6 +86,26 @@ def _missing_fields(candidate: LeaveAssistantCandidate) -> list[str]:
     ):
         missing.append("duration")
     return missing
+
+
+def _relative_date_mismatch(
+    payload: LeaveAssistantRequest, candidate: LeaveAssistantCandidate, current_date: date,
+) -> bool:
+    # Validate a narrow, explicit phrase. Other natural-language expressions still
+    # require the user to inspect the displayed absolute dates before confirming.
+    # A follow-up correction supersedes the original request.
+    for message in reversed([payload.request, *payload.answers]):
+        if re.search(r"다음\s*주|\bnext\s+week\b", message, re.IGNORECASE):
+            break
+        if re.search(r"\d{4}-\d{2}-\d{2}|\d{4}년|\d{1,2}월", message):
+            return False
+    else:
+        return False
+    if candidate.search_start is None or candidate.search_end is None:
+        return False
+    monday = current_date + timedelta(days=7 - current_date.weekday())
+    sunday = monday + timedelta(days=6)
+    return not (monday <= candidate.search_start <= candidate.search_end <= sunday)
 
 
 def _query(candidate: LeaveAssistantCandidate) -> LeaveAssistantQuery:
@@ -202,6 +227,8 @@ def consult_leave_availability(
         )
 
     missing_fields = _missing_fields(candidate)
+    if _relative_date_mismatch(payload, candidate, current_date):
+        missing_fields.append("relativeDate")
     if missing_fields:
         questions = _questions(missing_fields)
         return LeaveAssistantResponse(

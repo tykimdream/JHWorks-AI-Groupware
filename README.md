@@ -4,6 +4,22 @@ AI-powered groupware and approval platform for the completely fictional company 
 
 JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않고, 일반적인 Enterprise workflow 문제를 바탕으로 처음부터 설계한 독립 프로젝트다. 모든 인물, 조직, 정책, 계정과 업무 데이터는 synthetic data다.
 
+## 핵심 사용자 시나리오
+
+> 다음 주에 이틀 휴가를 가고 싶은데, 우리 팀 업무 일정과 겹치지 않는 날짜를 찾고 휴가 결재 초안도 만들어 줘.
+
+`자연어 요청 → 기간과 일수 구조화 → 서버의 연차/일정 계산 → 날짜 선택 → 초안 미리보기 → 명시적 저장 → DRAFT 상세`
+
+AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경을 검증한다. 초안 저장과 제출은 서로 다른 확인이며,
+사용자의 확인 없이 결재 문서를 만들거나 제출하지 않는다. AI 장애 시 같은 화면의 수동 후보 탐색에서 기존 양식으로 이동한다.
+기업 업무 화면을 개발한 경험을 바탕으로 API와 DB의 도메인 규칙, AI의 권한 경계를 직접 탐구한 개인 프로젝트다.
+
+[실제 UI 스크린샷](docs/portfolio/screenshots/) | [아키텍처와 통제 근거](docs/portfolio/architecture-and-controls.md) | [작업 비교 실험 절차](docs/portfolio/task-study.md) | [이번 개선 기록](docs/portfolio/verification-2026-10-15.md)
+
+![실제 UI의 저장 전 휴가 초안](docs/portfolio/screenshots/leave-preview-desktop.png)
+
+스크린샷은 가상 데이터, 가짜 LLM/임베딩과 실제 API를 연결한 브라우저 테스트에서 촬영했다. 실제 모델 출력이나 운영 도입 증거가 아니다.
+
 ## Current Status
 
 **Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio까지 완료했다.** 확인 기반 AI workflow 위에 통합 평가, 운영 가드레일, single-run migration, deployment smoke, release/rollback과 portfolio 증거를 완성했다.
@@ -171,7 +187,7 @@ docker compose exec api python -m app.scripts.index_policies
 - API docs: `http://localhost:8000/docs`
 - API health: `http://localhost:8000/api/v1/health`
 
-API container가 migration과 idempotent seed를 실행한 뒤 시작한다.
+별도 release 단계가 migration과 idempotent seed를 완료한 뒤 API container가 시작한다.
 
 API key가 없어도 일반 결재 기능은 모두 사용할 수 있다. AI 기능은 각 기능별 안전한 `503`으로 실패하며 업무 데이터는 변경되지 않는다.
 
@@ -216,11 +232,30 @@ pnpm dev:web
 
 ## Validation
 
+2026-10-15 개선 검증은 [검증 기록](docs/portfolio/verification-2026-10-15.md)에 남긴다.
+사람의 업무 시간과 개선율은 측정 대기이며 자동화 실행 시간으로 대체하지 않는다.
+
+| 검증 | 2026-10-15 결과 |
+| --- | --- |
+| API | lint, strict mypy, 111 tests 통과 |
+| Web | lint, TypeScript, production build 통과 |
+| Playwright | desktop/mobile 각 4개, 총 8개 통과 |
+
+일반 validation과 browser fixture는 외부 AI API를 호출하지 않는다.
+
+
 ```bash
 pnpm validate
 ```
 
 이 명령은 backend lint/type-check/test와 frontend lint/type-check/production build를 실행한다.
+
+비용 없는 실제 API 브라우저 테스트는 별도 실행한다. 기존 개발 DB 대신 임시 SQLite DB를 사용하며 AI adapter만 가짜다.
+
+```bash
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
 
 실제 모델을 사용하는 명시적 AI 평가 명령은 기본 검증과 분리되어 있다. 실행 시 API 비용이 발생한다.
 
@@ -296,3 +331,12 @@ pnpm eval:all
 ## Contributing
 
 [기여 가이드](CONTRIBUTING.md), [코드 컨벤션](docs/code-conventions.md), [PR 템플릿](.github/pull_request_template.md)을 따른다.
+
+## 현재 한계
+
+- demo 계정과 synthetic 데이터 기반이며 실제 조직 운영과 직원 생산성 향상은 검증하지 않았다.
+- 상대 날짜의 서버 의미 검증은 ‘다음 주/next week’에 한정한다. 다른 표현은 명시된 실제 날짜를 사용자가 확인해야 한다.
+- 한 번의 후보 탐색은 같은 연도, 최대 93일이다. 다음 연도 휴가 계정이 없으면 후보를 만들지 않는다.
+- 2026년 9월의 충돌 일정은 고정 데모 fixture다. 실제 사용자 검색 기본값은 Asia/Seoul의 현재 날짜를 사용한다.
+- 실제 모델 평가는 별도 유료 명령이며 이번 개선에서는 실행하지 않았다. 기존 평가 기록과 이번 회귀 검증을 구분한다.
+- PostgreSQL 동시성 및 공개 환경 운영 검증은 SQLite 회귀 테스트와 구분해야 한다.

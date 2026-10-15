@@ -21,7 +21,11 @@
     "smoke:deployment": "cd apps/api && uv run python -m app.ops.deployment_smoke",
     "type-check:api": "cd apps/api && uv run mypy app tests",
     "type-check:web": "pnpm --filter @jhworks/web type-check",
-    "validate": "pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web"
+    "validate": "pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web",
+    "test:e2e": "playwright test"
   },
-  "packageManager": "pnpm@10.30.3"
+  "packageManager": "pnpm@10.30.3",
+  "devDependencies": {
+    "@playwright/test": "1.58.2"
+  }
 }

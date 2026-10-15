@@ -466,3 +466,16 @@ export interface LeaveSubmitResumeResult {
   run: LeaveAgentRun;
   approval: Approval;
 }
+
+
+export interface AttendanceOverview {
+  leaveBalances: LeaveBalance[];
+  calendarEvents: {
+    id: string; title: string; startDate: string; endDate: string;
+    impact: AttendanceImpact; status: string;
+  }[];
+  teamLeaves: {
+    id: string; employee: { id: string; name: string }; startDate: string;
+    endDate: string; status: string;
+  }[];
+}

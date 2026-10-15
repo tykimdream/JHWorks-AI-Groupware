@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
 import { apiFetch } from '@/lib/api';
@@ -13,15 +13,29 @@ interface AppShellProps {
 
 export const AppShell = ({ children }: AppShellProps) => {
   const router = useRouter();
-  const { employee, isLoading } = useCurrentEmployee();
+  const { employee, isLoading, isRefreshing } = useCurrentEmployee();
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
   const handleLogout = async () => {
-    await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
-    router.replace('/login');
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setLogoutError(false);
+    try {
+      await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
+      router.replace('/login');
+    } catch {
+      setLogoutError(true);
+      setIsLoggingOut(false);
+    }
   };
 
-  if (isLoading || !employee) {
+  if (isLoading) {
     return <main className="centered-state">업무 공간을 불러오는 중입니다.</main>;
+  }
+
+  if (!employee) {
+    return <main className="centered-state" role="alert">계정 정보를 확인하지 못했습니다. <Link href="/login">다시 로그인</Link></main>;
   }
 
   return (
@@ -54,7 +68,11 @@ export const AppShell = ({ children }: AppShellProps) => {
           </button>
         </div>
       </aside>
-      <main className="workspace">{children}</main>
+      <main className="workspace">
+        {logoutError && <p role="alert" className="error-banner">로그아웃하지 못했습니다. 다시 시도해주세요.</p>}
+        {(isRefreshing || isLoggingOut) && <p role="status">계정 상태를 확인하고 있습니다.</p>}
+        <div key={`${employee.id}-${employee.role}-${employee.departmentId}-${employee.manager?.id ?? "none"}`} hidden={isRefreshing || isLoggingOut}>{children}</div>
+      </main>
     </div>
   );
 };

@@ -1834,3 +1834,6 @@ dd {
     text-align: left;
   }
 }
+
+:focus-visible { outline: 3px solid #315ba8; outline-offset: 3px; }
+.subtle a { text-decoration: underline; text-underline-offset: 3px; }

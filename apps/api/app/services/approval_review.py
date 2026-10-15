@@ -15,6 +15,7 @@ from app.ai.approval_review import (
     ReviewDocument,
     ReviewField,
     ReviewSeverity,
+    scrub_untrusted_instructions,
 )
 from app.ai.policy_embedding import PolicyEmbeddingProvider
 from app.core.config import get_settings
@@ -504,7 +505,10 @@ def review_approval(
         policy_search.latency_ms,
         policy_search.usage.input_tokens,
     )
-    revised_content = provider_result.output.revised_content.strip()
+    revised_content = scrub_untrusted_instructions(
+        document.content,
+        provider_result.output.revised_content.strip(),
+    )
     return AIReviewResponse(
         approval_id=approval_id,
         approval_version=expected_version,

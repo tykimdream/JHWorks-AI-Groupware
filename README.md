@@ -4,9 +4,25 @@ AI-powered groupware and approval platform for the completely fictional company 
 
 JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않고, 일반적인 Enterprise workflow 문제를 바탕으로 처음부터 설계한 독립 프로젝트다. 모든 인물, 조직, 정책, 계정과 업무 데이터는 synthetic data다.
 
+## 핵심 사용자 시나리오
+
+> 다음 주에 이틀 휴가를 가고 싶은데, 우리 팀 업무 일정과 겹치지 않는 날짜를 찾고 휴가 결재 초안도 만들어 줘.
+
+`자연어 요청 → 기간과 일수 구조화 → 서버의 연차/일정 계산 → 날짜 선택 → 초안 미리보기 → 명시적 저장 → DRAFT 상세`
+
+AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경을 검증한다. 초안 저장과 제출은 서로 다른 확인이며,
+사용자의 확인 없이 결재 문서를 만들거나 제출하지 않는다. AI 장애 시 같은 화면의 수동 후보 탐색에서 기존 양식으로 이동한다.
+기업 업무 화면을 개발한 경험을 바탕으로 API와 DB의 도메인 규칙, AI의 권한 경계를 직접 탐구한 개인 프로젝트다.
+
+[실제 UI 스크린샷](docs/portfolio/screenshots/) | [아키텍처와 통제 근거](docs/portfolio/architecture-and-controls.md) | [작업 비교 실험 절차](docs/portfolio/task-study.md) | [이번 개선 기록](docs/portfolio/verification-2026-10-15.md)
+
+![실제 UI의 저장 전 휴가 초안](docs/portfolio/screenshots/leave-preview-desktop.png)
+
+스크린샷은 가상 데이터, 가짜 LLM/임베딩과 실제 API를 연결한 브라우저 테스트에서 촬영했다. 실제 모델 출력이나 운영 도입 증거가 아니다.
+
 ## Current Status
 
-**Phase 7 — Deterministic Leave Availability까지 완료했다.** 근태·휴가를 정식 도메인으로 만들고, 휴가 전자결재 상태 전이와 잔여 일수·업무 일정을 이용한 결정적 가능일 탐색까지 연결했다.
+**Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio까지 완료했다.** 확인 기반 AI workflow 위에 통합 평가, 운영 가드레일, single-run migration, deployment smoke, release/rollback과 portfolio 증거를 완성했다.
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
@@ -47,8 +63,32 @@ JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않
 - 잔여 연차·주말·휴무일·회사 행사·프로젝트·팀 휴가를 결합한 `/attendance/leave-availability`
 - 가능·주의·제외 날짜 근거와 충돌 없는 후보 우선 정렬
 - 추천 후보에서 휴가 전자결재 날짜·유형을 자동 입력하는 사용자 흐름
+- `Asia/Seoul` 기준 자연어 날짜·탐색 범위·희망 일수 Structured Output
+- 여러 round 후속 질문과 실제 날짜가 명시된 읽기 전용 휴가 상담
+- 활성 휴가 정책 RAG와 결정적 availability 결과를 분리한 grounded 설명
+- 휴일·프로젝트·잔여 부족·prompt injection에서도 서버 reason code를 유지하는 경계
+- 휴가 상담 provider/model/prompt version/usage/latency 관측성
+- 실제 날짜·차감·단위·가용 연차·결재자·정책·주의 사유를 포함한 휴가 exact preview
+- preview·사용자·candidate·account version·calendar/policy fingerprint signed confirmation
+- 명시적 확인 시 연차·일정·결재자·정책을 재검증하는 actor-scoped Draft Tool
+- 동일 confirmation 재시도에도 하나의 LEAVE DRAFT만 만드는 idempotency
+- 상담·후속 질문·Draft 확인·제출 확인·실패 재시도를 보존하는 durable leave workflow
+- Approval version·차감·가용/대기 연차·최종 결재자·주의 사유를 포함한 제출 exact preview
+- Draft 저장과 분리된 두 번째 signed confirmation 뒤 기존 submit service 호출
+- 제출 직전 status/version/manager/account/calendar 재검증과 stale 무변경 종료
+- confirmation replay·동시 제출에서도 결재선과 연차 예약을 한 번만 만드는 idempotency
+- 비밀정보와 원문 대화를 제외한 상태 transition·Tool result code trace
+- 5개 실제 모델 평가를 capability별 품질 기준과 하나의 JSON report로 묶는 `eval:all`
+- web→API→Agent/RAG/Tool 로그를 잇는 검증된 `X-Request-ID`
+- process liveness와 DB readiness 분리, 내부 상세를 숨기는 예상 밖 오류 응답
+- JSON 구조화 로그와 production JWT/cookie/PostgreSQL/HTTPS 설정 fail-fast
+- prompt-like 명령을 AI 수정 예시에서 결정적으로 제거하는 출력 가드레일
+- lint·type-check·test·web production build·API/web container smoke GitHub CI
+- API 기동과 분리된 migration/seed release 단계 및 readiness-gated container smoke
+- immutable image·DB backup·application 우선 rollback을 정의한 운영 runbook
+- 아키텍처, Human-in-the-loop와 위험 통제를 연결한 portfolio evidence
 
-쓰기 Tool과 범용 Agent workflow는 아직 구현하지 않았다. AI는 업무 데이터를 조회하고 Draft 미리보기를 만들 수 있지만, 사용자의 명시적 확인 없이 데이터를 저장하지 않고 문서를 자동 제출하지 않는다.
+휴가 Agent는 첫 번째 확인에서 DRAFT만 저장하고, 두 번째 제출 preview와 명시적 확인 전에는 제출하지 않는다. 취소·만료·stale이면 DRAFT와 연차 계정을 변경하지 않는다.
 
 ## Why This Problem
 
@@ -74,12 +114,15 @@ FastAPI modular monolith
     ├── Attendance calendar + yearly leave account
     ├── Transactional leave approval workflow
     ├── Deterministic leave availability engine
+    ├── Grounded leave request structuring + policy RAG explanation
+    ├── Actor-scoped confirmed leave Draft capability
+    ├── Durable leave workflow + confirmed submit capability
     └── SQLAlchemy + Alembic
               ↓
       PostgreSQL + pgvector
 ```
 
-AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. AI Draft도 같은 Structured Output 경계를 사용하지만, 필수 field·날짜·비용 일관성은 서버가 다시 검사한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산한다. 고정된 workflow에는 아직 Agent framework를 사용하지 않는다.
+AI Review는 관련 정책 section을 embedding search로 찾은 뒤 OpenAI Responses API와 Pydantic Structured Output으로 결과를 제한한다. AI Draft도 같은 Structured Output 경계를 사용하지만, 필수 field·날짜·비용 일관성은 서버가 다시 검사한다. 숫자 한도처럼 결정적인 정책 rule은 일반 코드가 계산한다. 휴가 workflow는 별도 framework가 아니라 application DB의 명시적 상태 머신으로 중단·재개한다.
 
 Repository structure:
 
@@ -127,6 +170,13 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Compose는 migration과 synthetic seed를 완료한 뒤 API와 web을 기동한다. 배포 계약을 확인하려면 별도 terminal에서
+읽기 전용 smoke를 실행한다.
+
+```bash
+pnpm smoke:deployment
+```
+
 정책 RAG를 처음 사용할 때는 다른 terminal에서 active policy section을 한 번 색인한다.
 
 ```bash
@@ -137,9 +187,9 @@ docker compose exec api python -m app.scripts.index_policies
 - API docs: `http://localhost:8000/docs`
 - API health: `http://localhost:8000/api/v1/health`
 
-API container가 migration과 idempotent seed를 실행한 뒤 시작한다.
+별도 release 단계가 migration과 idempotent seed를 완료한 뒤 API container가 시작한다.
 
-API key가 없어도 일반 결재 기능은 모두 사용할 수 있다. AI 검토만 안전하게 `503 AI_REVIEW_UNAVAILABLE`로 실패하며 Draft는 변경되지 않는다.
+API key가 없어도 일반 결재 기능은 모두 사용할 수 있다. AI 기능은 각 기능별 안전한 `503`으로 실패하며 업무 데이터는 변경되지 않는다.
 
 ## Local Development
 
@@ -159,6 +209,8 @@ JHWORKS_OPENAI_API_KEY=your-api-key
 JHWORKS_OPENAI_MODEL=gpt-5.4-mini
 JHWORKS_POLICY_EMBEDDING_MODEL=text-embedding-3-small
 JHWORKS_APPROVAL_DRAFT_CONFIRMATION_TTL_MINUTES=15
+JHWORKS_LEAVE_DRAFT_CONFIRMATION_TTL_MINUTES=15
+JHWORKS_LEAVE_SUBMIT_CONFIRMATION_TTL_MINUTES=10
 ```
 
 `.env`는 Git에 포함하지 않는다. API key는 browser에 전달되지 않고 FastAPI에서만 사용한다.
@@ -180,11 +232,30 @@ pnpm dev:web
 
 ## Validation
 
+2026-10-15 개선 검증은 [검증 기록](docs/portfolio/verification-2026-10-15.md)에 남긴다.
+사람의 업무 시간과 개선율은 측정 대기이며 자동화 실행 시간으로 대체하지 않는다.
+
+| 검증 | 2026-10-15 결과 |
+| --- | --- |
+| API | lint, strict mypy, 111 tests 통과 |
+| Web | lint, TypeScript, production build 통과 |
+| Playwright | desktop/mobile 각 4개, 총 8개 통과 |
+
+일반 validation과 browser fixture는 외부 AI API를 호출하지 않는다.
+
+
 ```bash
 pnpm validate
 ```
 
 이 명령은 backend lint/type-check/test와 frontend lint/type-check/production build를 실행한다.
+
+비용 없는 실제 API 브라우저 테스트는 별도 실행한다. 기존 개발 DB 대신 임시 SQLite DB를 사용하며 AI adapter만 가짜다.
+
+```bash
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
 
 실제 모델을 사용하는 명시적 AI 평가 명령은 기본 검증과 분리되어 있다. 실행 시 API 비용이 발생한다.
 
@@ -193,7 +264,11 @@ pnpm eval:ai-review
 pnpm eval:policy-rag
 pnpm eval:approval-draft
 pnpm eval:work-assistant
+pnpm eval:leave-assistant
+pnpm eval:all
 ```
+
+`eval:all`은 capability별 최소 통과율을 검사하고 통합 결과를 `artifacts/evals/latest.json`에 저장한다. 외부 모델 비용과 비결정성 때문에 일반 CI에는 포함하지 않으며 모델·prompt·retrieval 변경 시 명시적으로 실행한다.
 
 ## Security Boundary
 
@@ -202,12 +277,20 @@ pnpm eval:work-assistant
 - 정책 issue는 검색 결과에 존재하는 citation key만 허용하고 원문 인용은 DB에서 구성한다.
 - backend service가 작성자와 지정 결재자를 검증한다.
 - UI에서 action을 숨겨도 backend 검증은 생략하지 않는다.
-- 제출·휴가 신청 같은 추가 실행 Tool의 idempotency와 confirmation 계약은 Agent phase에서 확장한다.
+- 휴가 Draft Tool은 candidate와 account/calendar/policy/manager snapshot을 signed confirmation에 결합하고 확인 시 재검증한다.
+- Draft confirmation 재시도는 unique confirmation ID로 기존 문서를 반환하며 제출은 실행하지 않는다.
+- AI 휴가 Draft의 일반 submit endpoint 직접 호출은 거절하고 durable Agent의 두 번째 확인을 요구한다.
+- 제출 token은 actor·run·approval/계정 version·manager·calendar·preview hash에 결합하며 실행 직전에 다시 검증한다.
+- 제출 replay는 이미 PENDING인 동일 Approval을 반환하고 결재선과 pending 연차를 중복 생성하지 않는다.
+- 외부 `X-Request-ID`는 제한된 문자와 길이만 허용하고, 모든 API·Agent 로그에 같은 correlation ID를 붙인다.
+- production 환경은 기본 JWT secret, insecure cookie, SQLite와 non-HTTPS frontend origin으로 시작하지 않는다.
+- workflow trace에는 상태·event·result code만 보존하고 token, 원문 대화와 불필요한 개인정보를 남기지 않는다.
 - AI Draft는 exact preview hash, 현재 사용자와 만료 시간에 결합된 confirmation token을 검증한다.
 - 같은 confirmation token을 재사용해도 unique confirmation ID로 기존 Draft를 반환한다.
 - 업무 조회 Assistant에는 읽기 전용 allowlist Tool만 제공하고 arbitrary employee ID를 입력받지 않는다.
 - LLM이 선택한 Tool 이름과 인자는 서버 registry와 Pydantic schema를 다시 통과해야 한다.
 - 현재 demo auth는 local 실행용이다. Production에는 secret manager, secure cookie, CSRF 대응, account lifecycle과 SSO 검토가 필요하다.
+- 휴가 상담 모델 schema에는 상태·차감·충돌·후보·citation·쓰기 명령이 없고, 서버 계산 결과만 사용자에게 설명한다.
 
 ## Technical Decisions
 
@@ -225,9 +308,11 @@ pnpm eval:work-assistant
 - **Attendance before recommendation**: AI가 날짜를 추측하지 않도록 연도별 휴가 계정과 전사·부서·팀 일정을 먼저 application domain으로 만든다.
 - **Server-owned leave accounting**: 클라이언트가 보낸 차감 일수를 신뢰하지 않고 업무 캘린더로 다시 계산하며 결재와 휴가 계정을 함께 commit한다.
 - **Deterministic availability**: 휴가 후보와 충돌 여부는 LLM이 아니라 actor 범위의 휴가 계정과 일정으로 계산하고 근거 코드를 함께 반환한다.
-- **No LangGraph yet**: 검색→검토가 고정된 단일 workflow이므로 Agent state machine을 도입하지 않는다.
+- **Grounded leave conversation**: LLM은 상대 날짜와 의도만 구조화하고 여러 번의 모호성 질문, 정책 allowlist와 결정적 계산은 서버가 담당한다.
+- **Confirmed narrow write**: 휴가 Draft 저장은 범용 DB Tool이 아니라 actor에 고정된 prepare/confirm capability이며, preview 이후 변경은 stale로 거절한다.
+- **Durable application state machine**: 상담→Draft 확인→제출 확인이 고정된 workflow이고 승인·연차와 같은 DB 원자성이 중요하므로 SQLAlchemy 상태 머신을 사용한다. LangGraph 도입 검토와 재평가 조건은 [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
-상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md)에 기록한다.
+상세 결정은 [Phase 0 제품·도메인 정의](docs/product/phase-0-product-domain-definition.md), [Phase 1 설계](docs/product/phase-1-minimal-groupware.md), [Phase 2 AI Review](docs/product/phase-2-ai-approval-review.md), [Phase 3 Policy RAG](docs/product/phase-3-policy-rag.md), [Phase 4 AI Approval Draft](docs/product/phase-4-ai-approval-draft.md), [Phase 5 Enterprise Tool Calling](docs/product/phase-5-enterprise-tool-calling.md), [Phase 6 Attendance and Leave](docs/product/phase-6-attendance-and-leave.md), [Phase 7 Leave AI Assistant](docs/product/phase-7-leave-ai-assistant.md), [Phase 11 Operational Readiness](docs/product/phase-11-operational-readiness.md), [Release Runbook](docs/operations/release-runbook.md), [Portfolio Evidence](docs/portfolio/architecture-and-controls.md), [ADR-0001](docs/adr/0001-durable-leave-agent-state-machine.md)에 기록한다.
 
 ## Roadmap
 
@@ -238,9 +323,20 @@ pnpm eval:work-assistant
 5. Phase 5 — Read-only Enterprise Tool Calling ✅
 6. Phase 6 — Attendance and Leave Workflow ✅
 7. Phase 7 — Deterministic Leave Availability ✅
-8. Phase 8 — Leave AI Assistant and Confirmed Write Tools
-9. Phase 9~11 — Evaluation, Guardrail, Observability, Deployment, Portfolio
+8. Phase 8 — Grounded Leave AI Assistant ✅
+9. Phase 9 — Confirmed Leave Draft Tool ✅
+10. Phase 10 — Durable Confirmed Leave Submit Agent ✅
+11. Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio ✅
 
 ## Contributing
 
 [기여 가이드](CONTRIBUTING.md), [코드 컨벤션](docs/code-conventions.md), [PR 템플릿](.github/pull_request_template.md)을 따른다.
+
+## 현재 한계
+
+- demo 계정과 synthetic 데이터 기반이며 실제 조직 운영과 직원 생산성 향상은 검증하지 않았다.
+- 상대 날짜의 서버 의미 검증은 ‘다음 주/next week’에 한정한다. 다른 표현은 명시된 실제 날짜를 사용자가 확인해야 한다.
+- 한 번의 후보 탐색은 같은 연도, 최대 93일이다. 다음 연도 휴가 계정이 없으면 후보를 만들지 않는다.
+- 2026년 9월의 충돌 일정은 고정 데모 fixture다. 실제 사용자 검색 기본값은 Asia/Seoul의 현재 날짜를 사용한다.
+- 실제 모델 평가는 별도 유료 명령이며 이번 개선에서는 실행하지 않았다. 기존 평가 기록과 이번 회귀 검증을 구분한다.
+- PostgreSQL 동시성 및 공개 환경 운영 검증은 SQLite 회귀 테스트와 구분해야 한다.

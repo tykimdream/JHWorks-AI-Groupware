@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from '@/components/app-shell';
 import { AIReviewPanel } from '@/components/ai-review-panel';
+import { LeaveSubmitAgentPanel } from '@/components/leave-submit-agent-panel';
 import { StatusBadge } from '@/components/status-badge';
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
@@ -43,6 +44,7 @@ const leaveUnitLabels = {
 export default function ApprovalDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
+  const leaveRunId = useSearchParams().get('leaveRunId');
   const { employee } = useCurrentEmployee();
   const [approval, setApproval] = useState<Approval | null>(null);
   const [comment, setComment] = useState('');
@@ -231,25 +233,42 @@ export default function ApprovalDetailPage() {
               canReview
               onApprovalUpdated={setApproval}
             />
-            <div className="action-panel">
-              <div>
-                <strong>제출 준비가 되었나요?</strong>
-                <p>서버가 현재 조직 정보에서 직속 관리자를 다시 계산합니다.</p>
+            {leave && leaveRunId ? (
+              <LeaveSubmitAgentPanel
+                approval={approval}
+                onApprovalUpdated={setApproval}
+                runId={leaveRunId}
+              />
+            ) : (
+              <div className="action-panel">
+                <div>
+                  <strong>제출 준비가 되었나요?</strong>
+                  <p>서버가 현재 조직 정보에서 직속 관리자를 다시 계산합니다.</p>
+                </div>
+                <div className="button-row">
+                  <Link className="secondary-button" href={`/approvals/${approval.id}/edit`}>
+                    수정
+                  </Link>
+                  <button
+                    className="primary-button"
+                    disabled={isActing}
+                    onClick={() => runCommand('submit')}
+                    type="button"
+                  >
+                    제출
+                  </button>
+                </div>
               </div>
-              <div className="button-row">
-                <Link className="secondary-button" href={`/approvals/${approval.id}/edit`}>
-                  수정
-                </Link>
-                <button
-                  className="primary-button"
-                  disabled={isActing}
-                  onClick={() => runCommand('submit')}
-                  type="button"
-                >
-                  제출
-                </button>
-              </div>
-            </div>
+            )}
+          </section>
+        )}
+        {isAuthor && leave && leaveRunId && approval.status !== 'DRAFT' && (
+          <section className="draft-review-flow">
+            <LeaveSubmitAgentPanel
+              approval={approval}
+              onApprovalUpdated={setApproval}
+              runId={leaveRunId}
+            />
           </section>
         )}
       </div>

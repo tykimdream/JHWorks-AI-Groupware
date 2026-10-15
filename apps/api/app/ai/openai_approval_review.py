@@ -11,6 +11,7 @@ from app.ai.approval_review import (
     ProviderUsage,
     ReviewDocument,
     SemanticReviewOutput,
+    scrub_untrusted_instructions,
 )
 
 
@@ -47,6 +48,12 @@ class OpenAIApprovalReviewProvider:
         output = response.output_parsed
         if output is None:
             raise ApprovalReviewProviderError("The AI review provider returned no usable result")
+        safe_revised_content = scrub_untrusted_instructions(
+            document.content,
+            output.revised_content,
+        )
+        if safe_revised_content != output.revised_content:
+            output = output.model_copy(update={"revised_content": safe_revised_content})
 
         usage = response.usage
         return ProviderReviewResult(

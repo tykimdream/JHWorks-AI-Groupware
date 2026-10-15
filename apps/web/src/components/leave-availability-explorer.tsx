@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
+import { seoulSearchRange } from '@/lib/format';
 import type {
+  AttendanceOverview,
   LeaveAvailability,
   LeaveAvailabilityCandidate,
   LeaveAvailabilityDay,
@@ -43,15 +45,28 @@ const draftHref = (candidate: LeaveAvailabilityCandidate) => ({
 });
 
 export const LeaveAvailabilityExplorer = () => {
-  const [startDate, setStartDate] = useState('2026-09-01');
-  const [endDate, setEndDate] = useState('2026-09-30');
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const pending = new AbortController();
+    controller.current = pending;
+    return () => pending.abort();
+  }, []);
+  const [range] = useState(() => seoulSearchRange());
+  const [startDate, setStartDate] = useState(range.startDate);
+  const [endDate, setEndDate] = useState(range.endDate);
+  const searching = useRef(false);
   const [requestedDays, setRequestedDays] = useState('2.0');
   const [result, setResult] = useState<LeaveAvailability | null>(null);
+  const [overview, setOverview] = useState<AttendanceOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (searching.current) return;
+    searching.current = true;
+    setResult(null);
+    setOverview(null);
     setError(null);
     setIsLoading(true);
     const query = new URLSearchParams({
@@ -61,21 +76,28 @@ export const LeaveAvailabilityExplorer = () => {
       limit: '6',
     });
     try {
-      const response = await apiFetch<LeaveAvailability>(
-        `/attendance/leave-availability?${query.toString()}`,
-      );
+      const [response, source] = await Promise.all([
+        apiFetch<LeaveAvailability>(`/attendance/leave-availability?${query.toString()}`, {
+          signal: controller.current?.signal,
+        }),
+        apiFetch<AttendanceOverview>(`/attendance/overview?${new URLSearchParams({ startDate, endDate })}`, {
+          signal: controller.current?.signal,
+        }),
+      ]);
       setResult(response);
+      setOverview(source);
     } catch (caught: unknown) {
       setResult(null);
       setError(getUserErrorMessage(caught, '휴가 가능일을 계산하지 못했습니다.'));
     } finally {
+      searching.current = false;
       setIsLoading(false);
     }
   };
 
   return (
     <div className="availability-workspace">
-      <form className="availability-search" onSubmit={handleSearch}>
+      <form aria-busy={isLoading} className="availability-search" id="manual-leave-search" onSubmit={handleSearch}>
         <div className="section-heading">
           <div>
             <p className="eyebrow">DETERMINISTIC SEARCH</p>
@@ -87,7 +109,8 @@ export const LeaveAvailabilityExplorer = () => {
           <label>
             <span>탐색 시작일</span>
             <input
-              onChange={(event) => setStartDate(event.target.value)}
+              disabled={isLoading}
+              onChange={(event) => { setStartDate(event.target.value); setResult(null); setOverview(null); }}
               required
               type="date"
               value={startDate}
@@ -96,7 +119,9 @@ export const LeaveAvailabilityExplorer = () => {
           <label>
             <span>탐색 종료일</span>
             <input
-              onChange={(event) => setEndDate(event.target.value)}
+              disabled={isLoading}
+              min={startDate}
+              onChange={(event) => { setEndDate(event.target.value); setResult(null); setOverview(null); }}
               required
               type="date"
               value={endDate}
@@ -105,7 +130,8 @@ export const LeaveAvailabilityExplorer = () => {
           <label>
             <span>사용할 연차</span>
             <select
-              onChange={(event) => setRequestedDays(event.target.value)}
+              disabled={isLoading}
+              onChange={(event) => { setRequestedDays(event.target.value); setResult(null); setOverview(null); }}
               value={requestedDays}
             >
               <option value="0.5">반차 0.5일</option>
@@ -122,19 +148,52 @@ export const LeaveAvailabilityExplorer = () => {
         </div>
       </form>
 
-      {error && <p className="error-banner">{error}</p>}
-      {!result && !error && (
+      {error && <p role="alert" className="error-banner">{error}</p>}
+      {isLoading && <p role="status">현재 연차와 일정을 확인하고 있습니다.</p>}
+      {!result && !error && !isLoading && (
         <div className="empty-card availability-empty">
           <strong>조건을 선택해 휴가 후보를 찾아보세요.</strong>
           <span>계산 결과는 AI 추측이 아니라 현재 휴가 계정과 등록된 업무 일정에 기반합니다.</span>
         </div>
+      )}
+      {overview && (
+        <details className="empty-card" open>
+          <summary>잔여 연차와 팀 일정 원본 확인</summary>
+          {overview.leaveBalances.map((balance) => (
+            <p key={balance.year}>{balance.year}년 가용 {balance.availableDays}일 / 사용 {balance.usedDays}일 / 결재 대기 {balance.pendingDays}일</p>
+          ))}
+          {overview.leaveBalances.length === 0 && <p>해당 연도의 휴가 계정이 없습니다.</p>}
+          <h3>회사 및 부서 일정</h3>
+          {overview.calendarEvents.length === 0 ? <p>이 범위에 등록된 회사 및 부서 일정이 없습니다.</p> : (
+            <ul>{overview.calendarEvents.map((event) => (
+              <li key={event.id}>{event.startDate} ~ {event.endDate}: {event.title} ({event.status === 'TENTATIVE' ? '잠정 일정' : event.impact === 'BLOCKED' ? '필수 일정' : event.impact === 'CAUTION' ? '주의 일정' : '참고 일정'})</li>
+            ))}</ul>
+          )}
+          <h3>같은 팀 휴가</h3>
+          {overview.teamLeaves.length === 0 ? <p>이 범위에 등록된 팀 휴가가 없습니다.</p> : (
+            <ul>{overview.teamLeaves.map((leave) => (
+              <li key={leave.id}>{leave.startDate} ~ {leave.endDate}: {leave.employee.name}</li>
+            ))}</ul>
+          )}
+          <p className="subtle">현재 사용자에게 허용된 정보만 표시하며 동료의 휴가 사유는 제공하지 않습니다. 저장 및 제출 시 서버가 다시 검증합니다.</p>
+        </details>
       )}
       {result && <AvailabilityResult result={result} />}
     </div>
   );
 };
 
-const AvailabilityResult = ({ result }: { result: LeaveAvailability }) => (
+export const AvailabilityResult = ({
+  result,
+  onCandidateSelect,
+  candidateActionLabel,
+  candidateActionDisabled = false,
+}: {
+  result: LeaveAvailability;
+  onCandidateSelect?: (candidate: LeaveAvailabilityCandidate) => void;
+  candidateActionLabel?: string;
+  candidateActionDisabled?: boolean;
+}) => (
   <>
     <section className="availability-summary">
       <div>
@@ -174,7 +233,13 @@ const AvailabilityResult = ({ result }: { result: LeaveAvailability }) => (
         </div>
         <div className="candidate-grid">
           {result.candidates.map((candidate) => (
-            <CandidateCard candidate={candidate} key={`${candidate.startDate}-${candidate.endDate}`} />
+            <CandidateCard
+              actionLabel={candidateActionLabel}
+              actionDisabled={candidateActionDisabled}
+              candidate={candidate}
+              key={`${candidate.startDate}-${candidate.endDate}`}
+              onSelect={onCandidateSelect}
+            />
           ))}
         </div>
       </section>
@@ -199,7 +264,17 @@ const AvailabilityResult = ({ result }: { result: LeaveAvailability }) => (
   </>
 );
 
-const CandidateCard = ({ candidate }: { candidate: LeaveAvailabilityCandidate }) => (
+const CandidateCard = ({
+  candidate,
+  onSelect,
+  actionLabel,
+  actionDisabled,
+}: {
+  candidate: LeaveAvailabilityCandidate;
+  onSelect?: (candidate: LeaveAvailabilityCandidate) => void;
+  actionLabel?: string;
+  actionDisabled?: boolean;
+}) => (
   <article className={`candidate-card candidate-${candidate.status.toLowerCase()}`}>
     <div className="candidate-card-heading">
       <span>{candidateLabels[candidate.status]}</span>
@@ -216,9 +291,20 @@ const CandidateCard = ({ candidate }: { candidate: LeaveAvailabilityCandidate })
         <li key={`${reason.code}-${reason.eventIds.join('-')}`}>{reason.message}</li>
       ))}
     </ul>
-    <Link className="secondary-button full-width" href={draftHref(candidate)}>
-      이 날짜로 휴가 Draft 작성
-    </Link>
+    {onSelect ? (
+      <button
+        className="secondary-button full-width"
+        disabled={actionDisabled}
+        onClick={() => onSelect(candidate)}
+        type="button"
+      >
+        {actionLabel ?? '이 날짜로 exact preview 만들기'}
+      </button>
+    ) : (
+      <Link className="secondary-button full-width" href={draftHref(candidate)}>
+        이 날짜로 휴가 Draft 작성
+      </Link>
+    )}
   </article>
 );
 
@@ -227,7 +313,7 @@ const AvailabilityDayCell = ({ day }: { day: LeaveAvailabilityDay }) => {
   const state = !day.isSelectable ? 'blocked' : hasCaution ? 'caution' : 'clear';
   const description = day.reasons.map((reason) => reason.message).join(' · ') || '충돌 없음';
   return (
-    <div className={`availability-day ${state}`} title={description}>
+    <div className={`availability-day ${state}`} tabIndex={0} aria-label={`${day.date}: ${description}`} title={description}>
       <span>{weekday(day.date)}</span>
       <strong>{Number(day.date.slice(-2))}</strong>
       <small>{state === 'blocked' ? '제외' : state === 'caution' ? '주의' : '가능'}</small>

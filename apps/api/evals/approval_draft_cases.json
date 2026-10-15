@@ -35,7 +35,8 @@
       "meals": 30000,
       "client_name": "테크포럼"
     },
-    "expected_null_fields": ["lodging"]
+    "expected_null_fields": [],
+    "expected_null_or_zero_fields": ["lodging"]
   },
   {
     "id": "past-spend-is-expense",

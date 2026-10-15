@@ -1,3 +1,12 @@
+x-api-build: &api-build
+  image: jhworks-api:local
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+
+x-api-database-environment: &api-database-environment
+  JHWORKS_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jhworks}:${POSTGRES_PASSWORD:-jhworks-local}@db:5432/${POSTGRES_DB:-jhworks}
+
 services:
   db:
     image: pgvector/pgvector:0.8.6-pg17
@@ -15,28 +24,49 @@ services:
     volumes:
       - jhworks-postgres:/var/lib/postgresql/data
 
+  migrate:
+    <<: *api-build
+    command: ["alembic", "upgrade", "head"]
+    environment: *api-database-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  seed:
+    <<: *api-build
+    command: ["python", "-m", "app.scripts.seed"]
+    environment: *api-database-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    <<: *api-build
     environment:
-      JHWORKS_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jhworks}:${POSTGRES_PASSWORD:-jhworks-local}@db:5432/${POSTGRES_DB:-jhworks}
+      <<: *api-database-environment
       JHWORKS_JWT_SECRET: ${JHWORKS_JWT_SECRET:-local-compose-secret-change-me}
+      JHWORKS_ENVIRONMENT: ${JHWORKS_ENVIRONMENT:-development}
+      JHWORKS_LOG_FORMAT: ${JHWORKS_LOG_FORMAT:-json}
+      JHWORKS_LOG_LEVEL: ${JHWORKS_LOG_LEVEL:-INFO}
       JHWORKS_FRONTEND_ORIGIN: http://localhost:3000
       JHWORKS_COOKIE_SECURE: "false"
       JHWORKS_OPENAI_API_KEY: ${JHWORKS_OPENAI_API_KEY:-}
       JHWORKS_OPENAI_MODEL: ${JHWORKS_OPENAI_MODEL:-gpt-5.4-mini}
       JHWORKS_AI_REVIEW_TIMEOUT_SECONDS: ${JHWORKS_AI_REVIEW_TIMEOUT_SECONDS:-20}
       JHWORKS_APPROVAL_DRAFT_CONFIRMATION_TTL_MINUTES: ${JHWORKS_APPROVAL_DRAFT_CONFIRMATION_TTL_MINUTES:-15}
+      JHWORKS_LEAVE_DRAFT_CONFIRMATION_TTL_MINUTES: ${JHWORKS_LEAVE_DRAFT_CONFIRMATION_TTL_MINUTES:-15}
+      JHWORKS_LEAVE_SUBMIT_CONFIRMATION_TTL_MINUTES: ${JHWORKS_LEAVE_SUBMIT_CONFIRMATION_TTL_MINUTES:-10}
       JHWORKS_POLICY_EMBEDDING_MODEL: ${JHWORKS_POLICY_EMBEDDING_MODEL:-text-embedding-3-small}
       JHWORKS_POLICY_EMBEDDING_DIMENSIONS: ${JHWORKS_POLICY_EMBEDDING_DIMENSIONS:-1536}
       JHWORKS_POLICY_RETRIEVAL_TOP_K: ${JHWORKS_POLICY_RETRIEVAL_TOP_K:-4}
       JHWORKS_POLICY_RETRIEVAL_MIN_SCORE: ${JHWORKS_POLICY_RETRIEVAL_MIN_SCORE:-0.15}
     depends_on:
-      db:
-        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready')"]
       interval: 5s
       timeout: 3s
       retries: 10

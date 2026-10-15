@@ -10,7 +10,7 @@ const demoAccounts = [
   {
     label: '작성자 · 윤서진',
     email: 'seojin.yoon@jhworks.test',
-    description: '출장 Draft 작성과 제출',
+    description: '휴가 상담과 결재 작성',
   },
   {
     label: '결재자 · 최도윤',
@@ -59,7 +59,7 @@ export default function LoginPage() {
         </p>
         <div className="phase-marker">
           <span>현재 단계</span>
-          <strong>Phase 5 · Read-only Enterprise Tool Calling</strong>
+          <strong>휴가 상담 → 날짜 선택 → 확인 후 초안 저장</strong>
         </div>
       </section>
       <section className="login-panel">

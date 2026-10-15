@@ -1,6 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
 interface ErrorBody {
+  requestId?: string;
   error?: {
     code?: string;
     message?: string;
@@ -14,6 +15,7 @@ export class ApiError extends Error {
     public readonly code: string,
     message: string,
     public readonly details: Record<string, string> | null = null,
+    public readonly requestId: string | null = null,
   ) {
     super(message);
   }
@@ -32,6 +34,18 @@ const errorMessages: Record<string, string> = {
   PREVIEW_CHANGED: '확인한 미리보기와 저장할 내용이 다릅니다. 미리보기를 다시 만들어주세요.',
   VERSION_CONFLICT: '다른 변경이 먼저 저장되었습니다. 새로고침 후 다시 시도해주세요.',
   WORK_ASSISTANT_UNAVAILABLE: 'AI 업무 조회를 사용할 수 없습니다. 잠시 후 다시 시도해주세요.',
+  LEAVE_ASSISTANT_UNAVAILABLE: 'AI 휴가 상담을 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
+  LEAVE_CANDIDATE_STALE: '선택한 휴가 후보가 더 이상 유효하지 않습니다. 다시 상담해주세요.',
+  LEAVE_DRAFT_STALE: '연차·일정·결재자 또는 정책이 변경되었습니다. 미리보기를 다시 만들어주세요.',
+  LEAVE_POLICY_UNAVAILABLE: '활성 휴가 정책 근거를 확인할 수 없어 Draft를 준비하지 않았습니다.',
+  LEAVE_PREVIEW_CHANGED: '확인한 휴가 미리보기가 변경되었습니다. 다시 준비해주세요.',
+  INVALID_LEAVE_CONFIRMATION: '휴가 Draft 확인 시간이 만료되었거나 확인 정보가 올바르지 않습니다.',
+  INVALID_LEAVE_SUBMIT_CONFIRMATION: '휴가 제출 확인이 만료되었거나 올바르지 않습니다.',
+  INVALID_LEAVE_AGENT_STATE: '현재 휴가 workflow 단계에서는 이 작업을 수행할 수 없습니다.',
+  LEAVE_SUBMIT_CONFIRMATION_REQUIRED: 'AI로 만든 휴가 Draft는 별도의 제출 미리보기와 확인이 필요합니다.',
+  LEAVE_SUBMIT_PREVIEW_CHANGED: '확인한 제출 미리보기가 변경되었습니다. 다시 준비해주세요.',
+  LEAVE_SUBMIT_STALE: '제출 직전 상태가 변경되어 Draft를 제출하지 않았습니다.',
+  LEAVE_SUBMIT_RETRYABLE: '제출 Tool이 일시적으로 실패했습니다. 같은 workflow에서 다시 시도해주세요.',
 };
 
 export const getUserErrorMessage = (error: unknown, fallback: string): string => {
@@ -43,6 +57,8 @@ export const getUserErrorMessage = (error: unknown, fallback: string): string =>
 
 export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
   const headers = new Headers(init.headers);
+  const requestId = headers.get('X-Request-ID') ?? globalThis.crypto.randomUUID();
+  headers.set('X-Request-ID', requestId);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -65,6 +81,7 @@ export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise
       body.error?.code ?? 'REQUEST_FAILED',
       body.error?.message ?? '요청을 처리하지 못했습니다.',
       body.error?.details ?? null,
+      body.requestId ?? response.headers.get('X-Request-ID') ?? requestId,
     );
   }
 

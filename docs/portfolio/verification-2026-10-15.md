@@ -55,3 +55,13 @@ provider 장애 시나리오만 browser route로 503을 주입한다.
 기존 로컬 eval artifact는 역사적 기록이며 이번 결과와 구분한다.
 사람의 효과 측정은 `task-study.md`와 빈 CSV에 따라 진행 대기 중이다.
 공개 운영에는 release runbook 외에도 SSO, CSRF, 계정 관리와 운영 audit 검토가 필요하다.
+
+## PR 반영 및 배포 전 패치
+
+기존 release 통합 PR #16에 이번 변경을 반영한다. main보다 앞선 자연어 상담, confirmed Draft,
+durable submit 및 운영 준비 커밋을 포함하며 기존 이력을 보존한 merge commit으로 통합한다.
+배포 전 점검에서 Next.js/eslint-config-next를 16.3.8, PyJWT를 2.15.1로 패치하고
+source-map-js는 기존 ^1.2.1과 호환되는 1.2.2로 override했다.
+`pnpm audit --prod`의 알려진 취약점은 0건이며 개발 도구 전체 감사 결과와는 구분한다.
+패치 후 API 111 tests, 전체 validate와 desktop/mobile browser 8개를 다시 통과했다.
+공개 호스팅 대상은 별도 확인이 필요하다. 로컬 배포 검증은 기존 DB와 분리된 PostgreSQL 볼륨으로 수행한다.

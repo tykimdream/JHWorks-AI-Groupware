@@ -93,6 +93,11 @@ snapshot restore가 필요한 경우 복구 시점 이후의 write 손실 범위
 
 ## 5. 운영 증거와 보안
 
+- Cookie API의 모든 쓰기 요청은 `JHWORKS_FRONTEND_ORIGIN`과 같은 Origin이 필요하다.
+  Origin이 없으면 Referer의 origin을 검증하며, production/prod에서 둘 다 없거나 불일치하면
+  서비스 실행 전 `403 CSRF_ORIGIN_REJECTED`로 거부한다. CLI 쓰기도 신뢰 Origin을 명시한다.
+  proxy는 브라우저의 Origin/Referer를 보존해야 한다. staging에서 실제 로그인·저장·제출과
+  외부 Origin/무헤더 거부를 확인한다. 읽기 전용 deployment smoke는 이 보안 검증을 대신하지 않는다.
 - 외부 ticket에는 request ID, release digest, stable error code와 발생 시각만 기록한다.
 - cookie, confirmation token, prompt 원문, DB URL, provider 오류 message는 첨부하지 않는다.
 - JSON exception log는 exception type과 frame만 사용한다.

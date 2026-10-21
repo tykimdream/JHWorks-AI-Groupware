@@ -1,5 +1,8 @@
 # JHWorks Release and Rollback Runbook
 
+Cloud Run + Supabase의 실제 설정/현재 미검증 경계는 [전용 배포 가이드](cloud-run-supabase.md)를 따른다.
+기존 provider-neutral 원칙을 유지하며, 초기 staging workflow는 기본 비활성·수동 승인형이다.
+
 ## 1. 적용 범위
 
 이 문서는 immutable OCI image, managed PostgreSQL/pgvector, TLS endpoint를 사용하는 배포를 기준으로 한다.

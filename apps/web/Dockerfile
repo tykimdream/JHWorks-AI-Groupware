@@ -9,7 +9,9 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/web ./apps/web
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+ARG API_PROXY_TARGET=
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV API_PROXY_TARGET=$API_PROXY_TARGET
 RUN pnpm --filter @jhworks/web build
 # Next.js' standalone tracer keeps pnpm's @swc/helpers symlink but can omit
 # helper modules that are loaded dynamically at runtime. Restore the complete
@@ -25,9 +27,10 @@ ENV NODE_ENV=production \
     PORT=3000
 
 WORKDIR /app
-COPY --from=builder /workspace/apps/web/.next/standalone ./
-COPY --from=builder /workspace/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder /workspace/apps/web/public ./apps/web/public
+COPY --from=builder --chown=node:node /workspace/apps/web/.next/standalone ./
+COPY --from=builder --chown=node:node /workspace/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=node:node /workspace/apps/web/public ./apps/web/public
 
 EXPOSE 3000
+USER node
 CMD ["node", "apps/web/server.js"]

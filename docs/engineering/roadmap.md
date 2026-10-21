@@ -14,6 +14,46 @@
 - [ ] 실제 PostgreSQL 검증 및 승인받은 인프라 staging 배포
 - [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
 
+## 우선순위 조정 — 먼저 배포하고 지속 개선
+
+2026-10-21 사용자 피드백으로 다음 마일스톤을 **외부에서 접속 가능한 제한 공개 staging과 CD**로 앞당긴다.
+디자인/대용량 성능/전체 운영 고도화가 완료될 때까지 첫 배포를 미루지 않는다.
+QA-01은 작은 독립 수정으로 처리하되 전체 배포 준비를 뒤로 미루는 선행 단계로 삼지 않는다.
+
+1. 첫 배포 PR: Cloud Run web ingress + FastAPI sidecar, 동일 출처 `/api/v1` proxy,
+   Supabase Free의 비공개 업무 schema와 분리된 DB role,
+   secure cookie/origin/secret 주입, 합성 데이터의 명시적 초기화 절차를 준비한다.
+   staging은 별도 접근 제한으로 보호하고 유료 AI key는 주입하지 않는다.
+   현재 공개 demo 계정만으로 인터넷의 누구나 쓰기 가능한 서비스는 열지 않는다.
+2. CD PR: 기존 CI 통과 후 SHA/digest 이미지 생성 → staging migration 단일 실행 → rollout →
+   readiness/smoke → 실패 시 직전 application digest 복귀를 구성한다.
+   기존 DB는 배포마다 seed/reset하지 않는다. migration 호환성·backup/restore 확인을 배포 조건으로 둔다.
+   GitHub Environment의 production 승인 단계는 유지한다.
+3. 인프라·domain·secret 접근을 확보한 뒤 제한 공개 staging의 실제 로그인/저장/TLS/CSRF를 검증한다.
+   이후 작은 PR을 main에 병합하면 검증된 버전이 staging에 반영되도록 운영한다.
+4. 익명 방문자도 사용할 공개 demo는 인증/데이터 격리·호출 제한·비용 제한·취약점 분류를 완료한 뒤 연다.
+   UI/성능 개선은 배포된 staging에서 전후를 측정하며 계속한다.
+
+사용자와 비교 후 **Cloud Run + Supabase Free** 방향을 선택했다. 단일 VPS는 대안 기록으로 남긴다.
+초기 cloud 예산은 월 1만원 목표이며 hard cap이 아니다. AI 월 $5는 별도 제안이며 실제 provider 예산과
+서버 제한을 구현하기 전에는 연결하지 않는다. 부하 실험은 로컬 PostgreSQL + fake AI로 한정한다.
+로그인된 앱 안 브라우저에서 기존 결제 연결 프로젝트를 읽기 확인했으며 그룹웨어 전용 project는 없었다.
+전용 GCP 프로젝트 `jhworks-staging-tykimdream`과 사용자 생성 Supabase Free 서울 프로젝트는 준비됐다.
+GCP 서비스·IAM/secret 설정 및 실제 release는 아직 수행하지 않았다.
+비밀 값은 저장소/채팅에 기록하지 않는다. 실제 외부 배포일은 자원 접근과 release 검증 이후 확정한다.
+
+이번 구현의 범위와 검증은 [Cloud Run 첫 단위](cloud-run-supabase-plan.md),
+외부 설정 순서는 [배포 가이드](../operations/cloud-run-supabase.md)를 따른다.
+현재 CD는 exact main CI를 요구하는 수동 승인형 workflow이며 기본 비활성이다.
+main 자동 배포는 백업 자동화와 실제 staging 검증 뒤 별도 단위로 추가한다.
+로컬 구현은 TLS/실패 진단 수정 후 API 183개, 브라우저 10개, lint/type/build를 통과했다.
+[배포 준비 검증 기록](cloud-run-supabase-verification.md)에 외부 미검증 범위와 재개 순서를 남겼다.
+Supabase 전용 프로젝트 생성은 사용자가 완료했다. 서울·Healthy·Data API 비활성을 확인했고 사용자 승인으로
+vector/schema/role bootstrap 및 읽기 권한 검증(all_checks_ok=true)을 완료했다. 앱 pooler 연결·migration은 남아 있다.
+GCP 전용 예산 알림·서울 immutable Docker 저장소·권한 없는 전용 계정 3개·빈 secret 보관함 3개를 생성했다.
+사용자의 credential helper 실행과 Secret version 1 등록은 완료했고, 승인된 runtime/migrate Secret 읽기
+권한 4개도 버전 조건과 함께 연결했다. 다음은 PR/이미지 CI 검증, WIF 승인·설정과 private staging release다.
+
 ## Phase별 작은 작업과 완료 조건
 
 | 순서/작업 | 범위·선택 기준 | 완료 조건과 증거 | 선행 조건 |
@@ -64,7 +104,7 @@ Neon pgvector 지원이 있더라도 현재 HNSW extension version/권한과 mig
 [Hetzner 2026-06 가격](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/),
 [Hetzner backup 과금](https://docs.hetzner.com/cloud/billing/faq/).
 
-**제안(미확정):** 지속 접속 가능한 최저비용 데모와 운영 실습을 함께 목표로 하면 단일 VPS를 우선 검토한다.
+**과거 비교 제안(현재 미선택):** 지속 접속 가능한 저비용 데모와 운영 실습을 함께 목표로 하면 단일 VPS를 검토했다.
 운영 시간을 줄이고 싶으면 관리형 API+PG가 대안이다. 월 비용을 전혀 쓰지 않는 기간에는 무료 후보를
 cold start 있는 비상업 데모로 제한하고, 안정적 상시 운영이라고 표현하지 않는다.
 
@@ -91,5 +131,6 @@ Locust와 비교한다. 도구 선택만으로 성능이 개선되지는 않는�
 
 다음 세션은 assessment 결과와 이 체크리스트, `git status`부터 읽는다. 이번 PR은 CSRF 한 단위와
 진단/계획/검증 artifact를 포함한다. 우선 QA-01을 별도 변경으로 처리하고 SEC-01/03으로 진행한다.
+Cloud Run 첫 배포 브랜치의 검증을 확인하고 전용 외부 project/secret을 준비한다.
 Docker 엔진이 준비되면 기존 container-smoke와 PostgreSQL 동시성부터 재현한다.
 완료된 단위마다 구현 파일·실행 명령·실패/통과·외부 미검증·다음 작업을 갱신한다.

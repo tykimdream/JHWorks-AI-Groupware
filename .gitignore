@@ -2,6 +2,9 @@
 .env
 .env.local
 !.env.example
+gha-creds-*.json
+deploy/cloud-run/settings.local.json
+artifacts/cloud-run/
 
 # Python
 __pycache__/

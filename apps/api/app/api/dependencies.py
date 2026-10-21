@@ -48,7 +48,7 @@ def get_approval_review_provider() -> ApprovalReviewProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not secret:
+    if not settings.ai_enabled or not secret:
         return UnavailableApprovalReviewProvider()
     return OpenAIApprovalReviewProvider(
         api_key=secret,
@@ -64,7 +64,7 @@ def get_approval_draft_provider() -> ApprovalDraftProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not secret:
+    if not settings.ai_enabled or not secret:
         return UnavailableApprovalDraftProvider()
     return OpenAIApprovalDraftProvider(
         api_key=secret,
@@ -80,7 +80,7 @@ def get_leave_assistant_provider() -> LeaveAssistantProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not secret:
+    if not settings.ai_enabled or not secret:
         return UnavailableLeaveAssistantProvider()
     return OpenAILeaveAssistantProvider(
         api_key=secret,
@@ -98,7 +98,7 @@ def get_work_assistant_provider() -> WorkAssistantProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not secret:
+    if not settings.ai_enabled or not secret:
         return UnavailableWorkAssistantProvider()
     return OpenAIWorkAssistantProvider(
         api_key=secret,
@@ -116,7 +116,7 @@ def get_policy_embedding_provider() -> PolicyEmbeddingProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not secret:
+    if not settings.ai_enabled or not secret:
         return UnavailablePolicyEmbeddingProvider()
     return OpenAIPolicyEmbeddingProvider(
         api_key=secret,

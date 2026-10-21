@@ -1,0 +1,115 @@
+name: Cloud Run staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_reference:
+        description: Verified backup reference (fresh-synthetic-db only for initial bootstrap)
+        required: true
+        type: string
+      bootstrap:
+        description: First deployment to a new private staging service and empty DB
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+concurrency:
+  group: cloud-run-staging
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main' && vars.CLOUD_RUN_CD_ENABLED == 'true'
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_SETTINGS: ${{ vars.CLOUD_RUN_SETTINGS_JSON }}
+      IMAGE_REPOSITORY: ${{ vars.CLOUD_RUN_IMAGE_REPOSITORY }}
+      BACKUP_REFERENCE: ${{ inputs.backup_reference }}
+      BOOTSTRAP: ${{ inputs.bootstrap }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require successful CI on this exact main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=push&status=success" \
+            --jq '.workflow_runs | any(.head_branch == "main")' | grep -qx true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install uv==0.11.24
+      - run: uv sync --frozen --project apps/api
+      - name: Validate non-secret settings before cloud authentication
+        run: |
+          mkdir -p artifacts/cloud-run
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          Path('artifacts/cloud-run/settings.json').write_text(os.environ['RELEASE_SETTINGS'], encoding='utf-8')
+          PY
+          cd apps/api
+          uv run python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+          from app.ops.cloud_run import ReleaseSettings
+          settings = ReleaseSettings.model_validate_json(Path('../../artifacts/cloud-run/settings.json').read_text(encoding='utf-8'))
+          prefix = f'{settings.region}-docker.pkg.dev/{settings.project_id}/'
+          repository = os.environ['IMAGE_REPOSITORY']
+          if not repository.startswith(prefix) or not re.fullmatch(r'[a-z][a-z0-9_-]*', repository[len(prefix):]):
+              raise SystemExit('Image repository must be in the configured release project and region')
+          PY
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Configure Artifact Registry authentication
+        run: |
+          gcloud auth configure-docker "${IMAGE_REPOSITORY%%/*}" --quiet
+      - uses: docker/setup-buildx-action@v3
+      - id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_REPOSITORY }}/api:${{ github.sha }}
+      - id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_REPOSITORY }}/web:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api/v1
+            API_PROXY_TARGET=http://127.0.0.1:8000
+      - name: Migrate, release private revision, smoke, and recover traffic on failure
+        env:
+          API_DIGEST: ${{ steps.api.outputs.digest }}
+          WEB_DIGEST: ${{ steps.web.outputs.digest }}
+        run: |
+          flags=()
+          if [[ "$BOOTSTRAP" == "true" ]]; then flags+=(--bootstrap); fi
+          cd apps/api
+          uv run python -m app.ops.cloud_run_release \
+            --settings ../../artifacts/cloud-run/settings.json \
+            --api-image "$IMAGE_REPOSITORY/api@$API_DIGEST" \
+            --web-image "$IMAGE_REPOSITORY/web@$WEB_DIGEST" \
+            --commit "$GITHUB_SHA" --backup-reference "$BACKUP_REFERENCE" \
+            --output ../../artifacts/cloud-run/release.json "${flags[@]}"
+      - name: Preserve sanitized release record
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cloud-run-release-${{ github.sha }}
+          path: artifacts/cloud-run/release.json
+          if-no-files-found: warn

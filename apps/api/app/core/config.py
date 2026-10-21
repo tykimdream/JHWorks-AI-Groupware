@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     log_format: Literal["json", "text"] = "json"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     database_url: str = "sqlite:///./jhworks.db"
+    database_pool_mode: Literal["queue", "null"] = "queue"
+    database_pool_size: int = Field(default=2, ge=1, le=20)
+    database_max_overflow: int = Field(default=0, ge=0, le=20)
+    database_pool_timeout_seconds: float = Field(default=5, ge=1, le=30)
+    database_disable_prepared_statements: bool = False
     jwt_secret: str = "local-development-only-change-me"
     jwt_algorithm: str = "HS256"
     session_cookie_name: str = "jhworks_session"
@@ -26,6 +31,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cookie_samesite: str = Field(default="lax", pattern="^(lax|strict|none)$")
     openai_api_key: SecretStr | None = None
+    ai_enabled: bool = True
     openai_model: str = "gpt-5.4-mini"
     ai_review_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
     approval_draft_confirmation_ttl_minutes: int = Field(default=15, ge=1, le=60)

@@ -1,0 +1,31 @@
+title: JHWorks staging deployer
+description: Create/update private services and migration jobs, inspect rollout, and invoke smoke checks
+stage: GA
+includedPermissions:
+  - resourcemanager.projects.get
+  - serviceusage.services.use
+  - run.configurations.get
+  - run.configurations.list
+  - run.executions.get
+  - run.executions.list
+  - run.jobs.create
+  - run.jobs.get
+  - run.jobs.getIamPolicy
+  - run.jobs.list
+  - run.jobs.run
+  - run.jobs.update
+  - run.locations.list
+  - run.operations.get
+  - run.operations.list
+  - run.revisions.get
+  - run.revisions.list
+  - run.routes.get
+  - run.routes.invoke
+  - run.routes.list
+  - run.services.create
+  - run.services.get
+  - run.services.getIamPolicy
+  - run.services.list
+  - run.services.update
+  - run.tasks.get
+  - run.tasks.list

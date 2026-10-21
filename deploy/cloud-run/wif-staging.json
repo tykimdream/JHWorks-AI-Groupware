@@ -1,0 +1,13 @@
+{
+  "issuer_uri": "https://token.actions.githubusercontent.com",
+  "pool_id": "jhworks-github",
+  "provider_id": "github-main-staging",
+  "attribute_mapping": {
+    "google.subject": "assertion.sub",
+    "attribute.repository_id": "assertion.repository_id",
+    "attribute.repository_owner_id": "assertion.repository_owner_id",
+    "attribute.ref": "assertion.ref",
+    "attribute.workflow_ref": "assertion.workflow_ref"
+  },
+  "attribute_condition": "assertion.repository_id=='1341433132' && assertion.repository_owner_id=='53204415' && assertion.ref=='refs/heads/main' && assertion.sub=='repo:tykimdream@53204415/JHWorks-AI-Groupware@1341433132:environment:staging' && assertion.workflow_ref=='tykimdream/JHWorks-AI-Groupware/.github/workflows/cloud-run-staging.yml@refs/heads/main'"
+}

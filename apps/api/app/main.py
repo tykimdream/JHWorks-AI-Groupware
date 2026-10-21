@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
 from app.core.config import get_settings
+from app.core.csrf import has_trusted_write_origin
 from app.core.errors import AppError
 from app.core.logging import configure_logging, reset_request_id, set_request_id
 
@@ -40,7 +41,28 @@ async def request_context(request: Request, call_next):  # type: ignore[no-untyp
     context_token = set_request_id(request_id)
     started_at = perf_counter()
     try:
-        response = await call_next(request)
+        if not has_trusted_write_origin(request, settings):
+            logger.info(
+                "request_rejected",
+                extra={
+                    "event": "request_rejected",
+                    "error_code": "CSRF_ORIGIN_REJECTED",
+                    "status_code": 403,
+                },
+            )
+            response = JSONResponse(
+                status_code=403,
+                content={
+                    "error": {
+                        "code": "CSRF_ORIGIN_REJECTED",
+                        "message": "The request must originate from the trusted frontend.",
+                        "details": None,
+                    },
+                    "requestId": request_id,
+                },
+            )
+        else:
+            response = await call_next(request)
         duration_ms = round((perf_counter() - started_at) * 1000, 2)
         response.headers["X-Request-ID"] = request_id
         logger.info(

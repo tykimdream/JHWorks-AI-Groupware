@@ -22,6 +22,10 @@ AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경
 
 ## Current Status
 
+2026-10-21 로컬 재진단과 공개 배포 차단 요인은 [엔지니어링 진단](docs/engineering/assessment.md),
+새 고도화 Phase 0~5의 완료 조건과 진행 상태는 [로드맵](docs/engineering/roadmap.md)에 기록한다.
+아래 기존 Phase 11 완료는 외부 클라우드 운영 완료를 의미하지 않는다.
+
 **Phase 11 — Evaluation, Guardrail, Observability, Deployment, Portfolio까지 완료했다.** 확인 기반 AI workflow 위에 통합 평가, 운영 가드레일, single-run migration, deployment smoke, release/rollback과 portfolio 증거를 완성했다.
 
 - demo 계정 로그인과 HttpOnly session cookie

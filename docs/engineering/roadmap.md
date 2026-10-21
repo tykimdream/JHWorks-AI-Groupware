@@ -12,6 +12,8 @@
 - [ ] Windows JSON 읽기 인코딩을 명시적으로 수정(QA-01, 현재 UTF-8 실행 우회)
 - [ ] 공개 데모 인증 격리·API/AI 호출량 제한
 - [ ] 실제 PostgreSQL 검증 및 승인받은 인프라 staging 배포
+- [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
+- [ ] CI URL 별칭 수정 반영·정상 release 재검증·backup/restore 및 실제 업무 검증
 - [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
 
 ## 우선순위 조정 — 먼저 배포하고 지속 개선
@@ -39,8 +41,8 @@ QA-01은 작은 독립 수정으로 처리하되 전체 배포 준비를 뒤로 
 서버 제한을 구현하기 전에는 연결하지 않는다. 부하 실험은 로컬 PostgreSQL + fake AI로 한정한다.
 로그인된 앱 안 브라우저에서 기존 결제 연결 프로젝트를 읽기 확인했으며 그룹웨어 전용 project는 없었다.
 전용 GCP 프로젝트 `jhworks-staging-tykimdream`과 사용자 생성 Supabase Free 서울 프로젝트는 준비됐다.
-GCP registry·실행 계정·Secret version 1·한정된 IAM/WIF 설정을 완료했고 첫 private release를 실행 중이다.
-비밀 값은 저장소/채팅에 기록하지 않는다. 실제 외부 배포일은 자원 접근과 release 검증 이후 확정한다.
+GCP registry·실행 계정·Secret version 1·한정된 IAM/WIF 설정과 2026-10-21 첫 private 배포를 수행했다.
+비밀 값은 저장소/채팅에 기록하지 않는다. 익명 포트폴리오 방문자용 공개일은 아직 정하지 않았다.
 
 이번 구현의 범위와 검증은 [Cloud Run 첫 단위](cloud-run-supabase-plan.md),
 외부 설정 순서는 [배포 가이드](../operations/cloud-run-supabase.md)를 따른다.
@@ -49,14 +51,19 @@ main 자동 배포는 백업 자동화와 실제 staging 검증 뒤 별도 단�
 로컬 구현은 TLS/실패 진단 수정 후 API 183개, 브라우저 10개, lint/type/build를 통과했다.
 [배포 준비 검증 기록](cloud-run-supabase-verification.md)에 외부 미검증 범위와 재개 순서를 남겼다.
 Supabase 전용 프로젝트 생성은 사용자가 완료했다. 서울·Healthy·Data API 비활성을 확인했고 사용자 승인으로
-vector/schema/role bootstrap 및 읽기 권한 검증(all_checks_ok=true)을 완료했다. 앱 pooler 연결·migration은 남아 있다.
+vector/schema/role bootstrap 및 읽기 권한 검증(all_checks_ok=true)을 완료했다.
+이후 실제 앱 pooler 연결과 migration head `b63d91e52fa0`, 업무 테이블의 기본 권한을 확인했다.
 GCP 전용 예산 알림·서울 immutable Docker 저장소·권한 없는 전용 계정 3개·빈 secret 보관함 3개를 생성했다.
 사용자의 credential helper 실행과 Secret version 1 등록은 완료했고, 승인된 runtime/migrate Secret 읽기
 권한 4개도 버전 조건과 함께 연결했다. PR #18 병합과 main CI를 통과했고 WIF/배포 권한을 적용했다.
 첫 release attempt 1의 immutable subject 불일치를 교정했으며 attempt 2에서 실제 GitHub→GCP 인증이 성공했다.
 이미지 build/push도 통과했으나 첫 service 부재의 CLI 오류 문구 차이로 release가 중단됐다.
 목록 JSON으로 존재 여부를 판단하도록 수정했고 API 190개/lint/strict mypy를 통과했다.
-다음은 수정 커밋 PR/CI/병합 후 새 SHA의 migration/rollout/smoke 검증이다. 최신 증거와 재개 지점은
+PR #19 병합 후 `dfff250`의 실제 migration/service Ready와 별도 수동 smoke 4개를 통과했다.
+CI release는 정상 URL 별칭을 거부해 실패했다. 해당 비교와 서비스 전체 max=2를 수정해
+API 197개/lint/strict mypy를 통과했다. 새 수정의 PR/CI 및 backup/restore 후 일반 release 검증이 남아 있다.
+사용자가 요청한 승인 생략과 main 자동 배포 방법은 배포 가이드에 설명했으며 실제 설정은 바꾸지 않았다.
+최신 증거와 재개 지점은
 [첫 staging 배포 기록](staging-rehearsal.md)에 둔다. 공개 전환과 AI 연결은 별도 gate다.
 
 ## Phase별 작은 작업과 완료 조건

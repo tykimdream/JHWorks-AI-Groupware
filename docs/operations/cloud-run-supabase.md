@@ -1,8 +1,10 @@
 # Cloud Run + Supabase staging release
 
 상태: PR #18 병합 및 main CI 성공 후 첫 private release를 실행했다.
-GitHub WIF 인증과 image build/push는 성공했으나 bootstrap의 service 부재 판별에서 중단됐다.
-구조화된 service 목록을 사용하는 로컬 수정/테스트를 완료했다. migration/rollout/smoke 결과는
+PR #19 병합 후 실제 migration/service Ready 및 별도 수동 smoke 4개를 검증했다.
+CI release는 GCP가 반환한 URL 별칭을 거부해 실패했다. 동일 서비스의 URL 목록을 검사하는
+로컬 수정/테스트를 완료했다. 정상 CI release와 WIF audience smoke/업무 로그인/저장은 후속이다.
+service/revision max=2, min=0을 재조회했고 AI/공개 접근은 꺼져 있다. 최신 결과는
 [첫 배포 기록](../engineering/staging-rehearsal.md)을 기준으로 확인한다.
 
 2026-10-21 사용자가 전용 GCP 프로젝트 `jhworks-staging-tykimdream`에서 서울 Cloud Run private staging
@@ -177,6 +179,27 @@ Migration job의 실패는 API rollout 전에 중단한다. 기존 service는 �
 candidate를 생성하고 readiness 뒤 traffic을 전환한다. private IAM 서비스에 identity token으로 smoke한다.
 첫 실제 provisioning에서 invoker IAM을 활성 상태로 유지하고 상위 project에 public invoker grant가 없는지 확인한다.
 공개 IAM policy/비활성 invoker 체크가 있는 기존 서비스에는 이 staging runner가 배포하지 않는다.
+
+### 승인 없는 staging 배포로 전환하는 방법 — 아직 적용하지 않음
+
+사용자가 매번 누르는 `Approve and deploy`는 저장소 Settings → Environments → staging의
+Deployment protection rules → Required reviewers 설정에서 온다. 해당 reviewer 요구를 해제하고
+Save protection rules를 누르면 Environment 수동 승인이 없어지며, main 전용 배포 branch 정책과
+`environment: staging`, WIF 조건은 유지할 수 있다. Environment 자체를 삭제할 필요는 없다.
+이 설정은 실제 배포 접근 경계를 줄이는 변경이므로 사용자가 적용을 명시적으로 요청한 시점에 수행한다.
+
+이 변경만으로 main push 자동 배포가 생기지는 않는다. 현재 workflow는 `workflow_dispatch`만 받으므로
+Run workflow를 누르면 추가 승인 없이 실행되는 수준이다. main 병합 후 자동 배포까지 원하면 별도 PR에서
+성공한 main push CI의 완료 이벤트를 연결해야 한다. `workflow_run`을 사용한다면 PR/fork의 CI 완료는
+배포하지 않고, event=push/main/성공/동일 저장소를 확인한 `head_sha`만 checkout·build·배포한다.
+기본 `github.sha`와 완료된 CI의 SHA가 다를 수 있으므로 두 값을 혼용하지 않는다.
+
+자동 배포의 DB backup reference도 실제 backup/restore 확인 결과에서 얻어야 한다. 빈 DB용 bootstrap을
+매번 켜거나 가짜 참조를 넣지 않는다. 첫 staging 검증과 backup 자동화가 끝난 뒤 연결하고,
+production Environment의 수동 승인은 별도로 유지하는 방향이다.
+
+근거: [GitHub Environment 관리](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),
+[배포 보호 규칙](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
 
 ## 6. 실패·복구·증거
 

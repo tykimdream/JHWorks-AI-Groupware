@@ -193,7 +193,21 @@ def release(
                 )
             )
             if current["status"]["url"].rstrip("/") != settings.frontend_origin:
-                raise ValueError("deployed service URL differs from the configured frontend origin")
+                # Cloud Run can report the hash URL in status.url while advertising
+                # the configured deterministic URL as another URL of this same service.
+                advertised_urls = json.loads(
+                    current.get("metadata", {})
+                    .get("annotations", {})
+                    .get("run.googleapis.com/urls", "[]")
+                )
+                if (
+                    not isinstance(advertised_urls, list)
+                    or not all(isinstance(url, str) for url in advertised_urls)
+                    or settings.frontend_origin not in advertised_urls
+                ):
+                    raise ValueError(
+                        "configured frontend origin is not a URL of the deployed service"
+                    )
             token = runner(
                 [
                     "gcloud",

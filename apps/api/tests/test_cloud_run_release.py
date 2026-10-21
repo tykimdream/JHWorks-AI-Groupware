@@ -105,9 +105,15 @@ class FakeCloud:
 
     def run(self, command: list[str]) -> str:
         self.commands.append(command)
+        if command[1:4] == ["run", "services", "list"]:
+            return json.dumps(
+                [] if self.missing else [{"metadata": {"name": "jhworks-staging"}}]
+            )
         if command[1:4] == ["run", "services", "describe"]:
             if self.missing:
-                raise subprocess.CalledProcessError(1, command, stderr="NOT_FOUND")
+                raise subprocess.CalledProcessError(
+                    1, command, stderr="Cannot find service [jhworks-staging]"
+                )
             return json.dumps(
                 {
                     "status": {
@@ -217,7 +223,7 @@ def test_public_service_is_not_deployed_by_private_staging_runner() -> None:
 def test_bootstrap_requires_explicit_flag() -> None:
     cloud = FakeCloud()
     cloud.missing = True
-    with pytest.raises(subprocess.CalledProcessError):
+    with pytest.raises(ValueError, match="explicit bootstrap"):
         release(
             ReleaseSettings.model_validate(settings_data()),
             API_IMAGE,
@@ -237,6 +243,76 @@ def test_bootstrap_requires_explicit_flag() -> None:
         smoke=lambda _url, _token: {"status": "passed"},
     )
     assert report["previousTraffic"] == []
+
+
+@pytest.mark.parametrize("failure_step", ["list", "describe"])
+def test_bootstrap_does_not_treat_discovery_failure_as_service_absence(failure_step: str) -> None:
+    cloud = FakeCloud()
+
+    def runner(command: list[str]) -> str:
+        if command[1:4] == ["run", "services", failure_step]:
+            raise subprocess.CalledProcessError(1, command, stderr="PERMISSION_DENIED")
+        return cloud.run(command)
+
+    with pytest.raises(subprocess.CalledProcessError):
+        release(
+            ReleaseSettings.model_validate(settings_data()),
+            API_IMAGE,
+            WEB_IMAGE,
+            COMMIT,
+            "fresh-synthetic-db",
+            runner=runner,
+            bootstrap=True,
+        )
+    assert not any(item[1:3] == ["run", "jobs"] for item in cloud.commands)
+
+
+@pytest.mark.parametrize("discovered", [{}, [None], [{}], [{"metadata": {"name": None}}]])
+def test_bootstrap_rejects_malformed_discovery(discovered: Any) -> None:
+    cloud = FakeCloud()
+
+    def runner(command: list[str]) -> str:
+        if command[1:4] == ["run", "services", "list"]:
+            return json.dumps(discovered)
+        return cloud.run(command)
+
+    with pytest.raises(ValueError, match="discovery response"):
+        release(
+            ReleaseSettings.model_validate(settings_data()),
+            API_IMAGE,
+            WEB_IMAGE,
+            COMMIT,
+            "fresh-synthetic-db",
+            runner=runner,
+            bootstrap=True,
+        )
+    assert cloud.commands == []
+
+
+def test_bootstrap_discovers_absence_with_unrelated_service_present() -> None:
+    cloud = FakeCloud()
+    cloud.missing = True
+
+    def runner(command: list[str]) -> str:
+        if command[1:4] == ["run", "services", "list"]:
+            return json.dumps([{"metadata": {"name": "unrelated-service"}}])
+        return cloud.run(command)
+
+    report = release(
+        ReleaseSettings.model_validate(settings_data()),
+        API_IMAGE,
+        WEB_IMAGE,
+        COMMIT,
+        "fresh-synthetic-db",
+        runner=runner,
+        bootstrap=True,
+        smoke=lambda _url, _token: {"status": "passed"},
+    )
+    assert report["status"] == "passed"
+    assert report["previousTraffic"] == []
+    discovery = [item for item in cloud.commands if item[1:4] == ["run", "services", "describe"]]
+    # Only after candidate creation; no failing describe before migration.
+    assert len(discovery) == 1
 
 
 def test_postgres_pool_is_bounded_or_delegated_to_supabase_without_connecting() -> None:

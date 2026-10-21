@@ -3,6 +3,9 @@
 2026-10-21, Windows, Python 3.12, Node 24, pnpm 10. 기준 main `ff035c0`, 작업 브랜치
 `feat/cloud-run-supabase-release`. 아래 결과는 로컬 작업 트리 기준이며 클라우드 배포 증거가 아니다.
 
+PR #18 병합 이후의 실제 IAM/WIF·이미지 배포 시도와 bootstrap 수정 검증은
+[첫 staging 배포 기록](staging-rehearsal.md)에 따로 기록한다. 아래 표는 PR #18 당시의 결과다.
+
 ## 실제 구현
 
 - Next.js의 선택적 same-origin API proxy. Cookie·Origin·request ID를 유지하고 기존 업무 API를 재사용한다.

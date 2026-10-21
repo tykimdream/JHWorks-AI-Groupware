@@ -39,12 +39,12 @@ QA-01은 작은 독립 수정으로 처리하되 전체 배포 준비를 뒤로 
 서버 제한을 구현하기 전에는 연결하지 않는다. 부하 실험은 로컬 PostgreSQL + fake AI로 한정한다.
 로그인된 앱 안 브라우저에서 기존 결제 연결 프로젝트를 읽기 확인했으며 그룹웨어 전용 project는 없었다.
 전용 GCP 프로젝트 `jhworks-staging-tykimdream`과 사용자 생성 Supabase Free 서울 프로젝트는 준비됐다.
-GCP 서비스·IAM/secret 설정 및 실제 release는 아직 수행하지 않았다.
+GCP registry·실행 계정·Secret version 1·한정된 IAM/WIF 설정을 완료했고 첫 private release를 실행 중이다.
 비밀 값은 저장소/채팅에 기록하지 않는다. 실제 외부 배포일은 자원 접근과 release 검증 이후 확정한다.
 
 이번 구현의 범위와 검증은 [Cloud Run 첫 단위](cloud-run-supabase-plan.md),
 외부 설정 순서는 [배포 가이드](../operations/cloud-run-supabase.md)를 따른다.
-현재 CD는 exact main CI를 요구하는 수동 승인형 workflow이며 기본 비활성이다.
+현재 CD는 exact main CI를 요구하는 수동 승인형 workflow다. 사용자 승인 후 전용 저장소에서 활성화했다.
 main 자동 배포는 백업 자동화와 실제 staging 검증 뒤 별도 단위로 추가한다.
 로컬 구현은 TLS/실패 진단 수정 후 API 183개, 브라우저 10개, lint/type/build를 통과했다.
 [배포 준비 검증 기록](cloud-run-supabase-verification.md)에 외부 미검증 범위와 재개 순서를 남겼다.
@@ -52,7 +52,12 @@ Supabase 전용 프로젝트 생성은 사용자가 완료했다. 서울·Health
 vector/schema/role bootstrap 및 읽기 권한 검증(all_checks_ok=true)을 완료했다. 앱 pooler 연결·migration은 남아 있다.
 GCP 전용 예산 알림·서울 immutable Docker 저장소·권한 없는 전용 계정 3개·빈 secret 보관함 3개를 생성했다.
 사용자의 credential helper 실행과 Secret version 1 등록은 완료했고, 승인된 runtime/migrate Secret 읽기
-권한 4개도 버전 조건과 함께 연결했다. 다음은 PR/이미지 CI 검증, WIF 승인·설정과 private staging release다.
+권한 4개도 버전 조건과 함께 연결했다. PR #18 병합과 main CI를 통과했고 WIF/배포 권한을 적용했다.
+첫 release attempt 1의 immutable subject 불일치를 교정했으며 attempt 2에서 실제 GitHub→GCP 인증이 성공했다.
+이미지 build/push도 통과했으나 첫 service 부재의 CLI 오류 문구 차이로 release가 중단됐다.
+목록 JSON으로 존재 여부를 판단하도록 수정했고 API 190개/lint/strict mypy를 통과했다.
+다음은 수정 커밋 PR/CI/병합 후 새 SHA의 migration/rollout/smoke 검증이다. 최신 증거와 재개 지점은
+[첫 staging 배포 기록](staging-rehearsal.md)에 둔다. 공개 전환과 AI 연결은 별도 gate다.
 
 ## Phase별 작은 작업과 완료 조건
 

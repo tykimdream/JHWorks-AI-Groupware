@@ -70,7 +70,20 @@ def release(
     migration = migration_manifest(settings, api_image)
     common = ["--project", settings.project_id, "--region", settings.region, "--quiet"]
     previous: dict[str, Any] | None = None
-    try:
+    # gcloud describe renders a 404 as "Cannot find service", not a stable API code.
+    # Successful structured discovery distinguishes absence from IAM/network failures.
+    services = json.loads(
+        runner(["gcloud", "run", "services", "list", *common, "--format=json"])
+    )
+    if not isinstance(services, list) or any(
+        not isinstance(item, dict)
+        or not isinstance(item.get("metadata"), dict)
+        or not isinstance(item["metadata"].get("name"), str)
+        for item in services
+    ):
+        raise ValueError("invalid Cloud Run service discovery response")
+    exists = any(item["metadata"]["name"] == settings.service for item in services)
+    if exists:
         previous = json.loads(
             runner(
                 [
@@ -84,9 +97,8 @@ def release(
                 ]
             )
         )
-    except subprocess.CalledProcessError as exc:
-        if not bootstrap or "NOT_FOUND" not in (exc.stderr or ""):
-            raise
+    elif not bootstrap:
+        raise ValueError("service does not exist; an explicit bootstrap is required")
     if previous is not None:
         policy = json.loads(
             runner(

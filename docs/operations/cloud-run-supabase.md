@@ -1,7 +1,9 @@
 # Cloud Run + Supabase staging release
 
-상태: 로컬 구현·검증 후 전용 GCP/Supabase 프로젝트 생성 완료. 실제 release는 아직 실행하지 않았다.
-Cloud Run API의 실제 manifest 수락, GCP IAM/WIF, Supabase 앱 pooler 연결/migration은 외부 검증 대기다.
+상태: PR #18 병합 및 main CI 성공 후 첫 private release를 실행했다.
+GitHub WIF 인증과 image build/push는 성공했으나 bootstrap의 service 부재 판별에서 중단됐다.
+구조화된 service 목록을 사용하는 로컬 수정/테스트를 완료했다. migration/rollout/smoke 결과는
+[첫 배포 기록](../engineering/staging-rehearsal.md)을 기준으로 확인한다.
 
 2026-10-21 사용자가 전용 GCP 프로젝트 `jhworks-staging-tykimdream`에서 서울 Cloud Run private staging
 1개(min=0/max=2, web/API 각 1 CPU·512MiB), migration Job, Artifact Registry 1개, Secret Manager 3개,
@@ -12,7 +14,7 @@ GCP 프로젝트 전용 `jhworks-staging-monthly-10000krw` 예산을 실제 저�
 알림 및 결제 관리자/프로젝트 소유자 이메일 수신 설정을 확인했다. 알림 전용이며 enforced spend cap은 설정하지 않았다.
 무료 할당은 결제 계정의 다른 프로젝트와 공유된다. 사용자가 Cloud Shell 권한을 승인했고 활성 계정 연결을 확인했다.
 Cloud Run/Artifact Registry/Secret Manager/IAM/IAM Credentials/STS API 활성화와 서울의 Docker 저장소
-`jhworks` 생성에 성공했다. 저장소는 immutable tags 설정이며 아직 이미지를 올리지 않았다.
+`jhworks` 생성에 성공했다. 저장소는 immutable tags 설정이며 첫 release에서 web/API SHA tag와 digest를 올렸다.
 Supabase는 Healthy 상태, Data API 비활성, SQL Editor의 읽기 전용 조회로 PostgreSQL 17.11과
 pgvector 0.8.2 설치 가능 상태를 확인했다.
 이후 사용자 승인으로 bootstrap SQL을 실행했고 vector 0.8.2 활성화와 schema/role 경계의
@@ -72,7 +74,7 @@ API_PROXY_TARGET=http://127.0.0.1:8000
 
 - 그룹웨어 전용 GCP project와 결제 연결. 기존 다른 제품 project는 재사용하지 않는다.
 - Cloud Run/Artifact Registry region은 Supabase의 제공 지역·지연을 함께 확인해 결정한다.
-  예제의 `asia-northeast3`는 후보이며 Supabase 생성/사용자 동의 전 확정이 아니다.
+  이번 전용 환경은 사용자 승인 후 Cloud Run `asia-northeast3`, Supabase `ap-northeast-2`로 확정했다.
 - Supabase Free project 1개. 유료 plan·IPv4 add-on·자동 업그레이드에 동의하지 않는다.
 - Cloud Run min=0, max=2, concurrency=8부터 시작. 이미지 보관/로그 보존·전송량도 관측한다.
 - GCP 월 1만원 목표 알림과 실제 사용량 확인 절차. OpenAI key는 이번 release에 연결하지 않는다.
@@ -142,7 +144,9 @@ uv run python -m app.ops.cloud_run --settings ../../deploy/cloud-run/settings.lo
 첫 단위는 승인형 CD다. 모든 main push의 자동 배포는 backup 자동화와 실제 staging rehearsal 후 별도 추가한다.
 자동 배포가 이미 운영된다고 표현하지 않는다.
 
-GitHub `staging` Environment에 reviewer/main branch 정책을 설정하고 다음 variable을 구성한다.
+GitHub `staging` Environment에 reviewer/main branch 정책을 설정한다. 다음 값은 **repository variable**로
+구성한다. `CLOUD_RUN_CD_ENABLED`는 Environment 진입 전 job의 `if`에서 읽으므로 Environment 전용
+variable로만 설정하면 job이 실행되지 않을 수 있다. 비밀 값은 이 variable에 넣지 않는다.
 
 | Variable | 내용 |
 | --- | --- |
@@ -151,6 +155,18 @@ GitHub `staging` Environment에 reviewer/main branch 정책을 설정하고 다�
 | `CLOUD_RUN_IMAGE_REPOSITORY` | `REGION-docker.pkg.dev/PROJECT/REPOSITORY` |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | 승인한 WIF provider resource name |
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | deploy service account email |
+
+사용자 승인 후 위 설정을 적용했고 CD flag를 true로 전환했다. `staging` reviewer는 저장소 소유자이며
+main branch만 배포할 수 있다. 1인 프로젝트이므로 self review를 허용한다. 재실행에도 승인이 다시 필요하다.
+WIF 초기 설정은 `deploy/cloud-run/bootstrap-github-wif.sh`와 같은 디렉터리의 role/condition 파일을
+검토해 사용한다. 전용 프로젝트 ID/number를 고정하며, 이미 생성된 자원이 있거나 부분 실패하면
+전체 스크립트를 다시 실행하지 말고 해당 자원을 조회한 뒤 필요한 단계만 복구한다.
+
+이 저장소는 immutable OIDC subject를 사용한다. 실제 GitHub repository OIDC customization API에서
+prefix를 조회해 `repo:tykimdream@53204415/JHWorks-AI-Groupware@1341433132:environment:staging`을
+확인했다. 이전 이름 기반 subject는 실제 첫 release에서 거부됐다. 이를 교정한 attempt 2는 인증에 성공했다.
+새 저장소/이름 변경/이전 시에는 [GitHub OIDC 문서](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)와
+실제 metadata를 비교한다. 조건을 없애거나 Owner/Editor 권한을 추가해 해결하지 않는다.
 
 실행 전 staging DB의 복구 가능한 backup을 로컬 도구로 만들고 복원 검증한 참조를 준비한다.
 Supabase Free의 managed backup을 가정하지 않는다. bootstrap은 새 빈 synthetic DB임을 확인한 경우만 사용한다.

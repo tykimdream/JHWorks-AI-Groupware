@@ -45,7 +45,8 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install uv==0.11.24
       - run: uv sync --frozen --project apps/api
-      - name: Validate non-secret settings before cloud authentication
+      - id: settings
+        name: Validate non-secret settings before cloud authentication
         run: |
           mkdir -p artifacts/cloud-run
           python - <<'PY'
@@ -64,6 +65,8 @@ jobs:
           repository = os.environ['IMAGE_REPOSITORY']
           if not repository.startswith(prefix) or not re.fullmatch(r'[a-z][a-z0-9_-]*', repository[len(prefix):]):
               raise SystemExit('Image repository must be in the configured release project and region')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'frontend_origin={settings.frontend_origin}\n')
           PY
       - id: auth
         uses: google-github-actions/auth@v3
@@ -92,10 +95,20 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=/api/v1
             API_PROXY_TARGET=http://127.0.0.1:8000
+      # Mint after image builds: ID tokens are short lived, unlike a deploy key.
+      - id: release_auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ steps.settings.outputs.frontend_origin }}
+          id_token_include_email: true
       - name: Migrate, release private revision, smoke, and recover traffic on failure
         env:
           API_DIGEST: ${{ steps.api.outputs.digest }}
           WEB_DIGEST: ${{ steps.web.outputs.digest }}
+          JHWORKS_RELEASE_IDENTITY_TOKEN: ${{ steps.release_auth.outputs.id_token }}
         run: |
           flags=()
           if [[ "$BOOTSTRAP" == "true" ]]; then flags+=(--bootstrap); fi

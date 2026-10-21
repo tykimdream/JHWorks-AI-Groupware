@@ -36,6 +36,7 @@ def settings_data() -> dict[str, Any]:
 def test_service_keeps_api_internal_and_ai_disabled() -> None:
     settings = ReleaseSettings.model_validate(settings_data())
     manifest = service_manifest(settings, API_IMAGE, WEB_IMAGE, f"{settings.service}-{COMMIT[:12]}")
+    assert manifest["metadata"]["annotations"]["run.googleapis.com/maxScale"] == "2"
     template = manifest["spec"]["template"]
     assert template["metadata"]["annotations"]["autoscaling.knative.dev/minScale"] == "0"
     assert template["metadata"]["annotations"]["autoscaling.knative.dev/maxScale"] == "2"
@@ -101,6 +102,8 @@ class FakeCloud:
         self.migration_fails = False
         self.public = False
         self.missing = False
+        self.url = settings_data()["frontend_origin"]
+        self.advertised_urls: str | None = None
         self.service_manifest: dict[str, Any] | None = None
 
     def run(self, command: list[str]) -> str:
@@ -116,8 +119,15 @@ class FakeCloud:
                 )
             return json.dumps(
                 {
+                    "metadata": {
+                        "annotations": (
+                            {"run.googleapis.com/urls": self.advertised_urls}
+                            if self.advertised_urls is not None
+                            else {}
+                        )
+                    },
                     "status": {
-                        "url": settings_data()["frontend_origin"],
+                        "url": self.url,
                         "traffic": [
                             {"revisionName": "previous-a", "percent": 60},
                             {"revisionName": "previous-b", "percent": 40},
@@ -182,6 +192,61 @@ def test_migration_failure_never_changes_application_traffic() -> None:
         item[1:4] in (["run", "services", "replace"], ["run", "services", "update-traffic"])
         for item in cloud.commands
     )
+
+
+def test_smoke_uses_configured_origin_when_cloud_run_reports_hash_url() -> None:
+    cloud = FakeCloud()
+    cloud.url = "https://jhworks-staging-hash-du.a.run.app"
+    cloud.advertised_urls = json.dumps([settings_data()["frontend_origin"], cloud.url])
+    observed: list[str] = []
+
+    def smoke(url: str, _token: str) -> dict[str, Any]:
+        observed.append(url)
+        return {"status": "passed"}
+
+    report = release(
+        ReleaseSettings.model_validate(settings_data()),
+        API_IMAGE,
+        WEB_IMAGE,
+        COMMIT,
+        "verified-backup-1",
+        runner=cloud.run,
+        smoke=smoke,
+    )
+    assert report["status"] == "passed"
+    assert observed == [settings_data()["frontend_origin"]]
+    token_command = next(c for c in cloud.commands if c[1:3] == ["auth", "print-identity-token"])
+    assert token_command[-1] == settings_data()["frontend_origin"]
+
+
+@pytest.mark.parametrize(
+    "advertised",
+    [
+        None,
+        "not-json",
+        '"https://foreign.run.app"',
+        "[null]",
+        "[]",
+        json.dumps([settings_data()["frontend_origin"] + ".foreign.test"]),
+    ],
+)
+def test_origin_mismatch_fails_closed_and_recovers_traffic(advertised: str | None) -> None:
+    cloud = FakeCloud()
+    cloud.url = "https://jhworks-staging-hash-du.a.run.app"
+    cloud.advertised_urls = advertised
+    with pytest.raises(ReleaseFailure) as failure:
+        release(
+            ReleaseSettings.model_validate(settings_data()),
+            API_IMAGE,
+            WEB_IMAGE,
+            COMMIT,
+            "verified-backup-1",
+            runner=cloud.run,
+            smoke=lambda _url, _token: {"status": "passed"},
+        )
+    assert failure.value.record["stage"] == "application"
+    assert failure.value.record["rollbackTraffic"] == "restored"
+    assert "smoke" not in failure.value.record
 
 
 def test_smoke_failure_restores_previous_split_without_db_downgrade() -> None:

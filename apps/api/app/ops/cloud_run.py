@@ -110,6 +110,7 @@ def service_manifest(
         "metadata": {
             "name": settings.service,
             "labels": {"cloud.googleapis.com/location": settings.region},
+            "annotations": {"run.googleapis.com/maxScale": str(settings.max_instances)},
         },
         "spec": {
             "template": {

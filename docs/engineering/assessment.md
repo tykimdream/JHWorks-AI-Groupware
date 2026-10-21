@@ -1,5 +1,10 @@
 # 엔터프라이즈 고도화 진단 — 2026-10-21
 
+이 문서의 본문은 최초 진단 시점의 snapshot이다. 후속 구현의 최신 상태는
+[staging 실제 실행 기록](staging-rehearsal.md)과 [로드맵](roadmap.md)을 따른다.
+2026-10-21 후속 private Cloud Run 기동·Supabase migration·수동 smoke 4개는 검증됐으나,
+공개 데모와 CI release 전체 성공·업무 로그인/저장·backup/restore는 아직 검증되지 않았다.
+
 ## 기준과 결론
 
 로컬 시작점은 `main`, HEAD `9814045`(PR #16 merge), working tree clean이었다.

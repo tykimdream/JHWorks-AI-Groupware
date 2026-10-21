@@ -22,7 +22,7 @@ class PolicyRetrievalEvalCase(ApiSchema):
 
 
 def load_cases() -> list[PolicyRetrievalEvalCase]:
-    raw = json.loads(DATASET_PATH.read_text())
+    raw = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
     return [PolicyRetrievalEvalCase.model_validate(item) for item in raw]
 
 

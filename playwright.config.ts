@@ -24,7 +24,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter @jhworks/web exec next dev --port 3100',
       url: 'http://localhost:3100/login',
-      env: { NEXT_PUBLIC_API_URL: 'http://localhost:8100/api/v1' },
+      env: { NEXT_PUBLIC_API_URL: '/api/v1', API_PROXY_TARGET: 'http://127.0.0.1:8100' },
       reuseExistingServer: false,
     },
   ],

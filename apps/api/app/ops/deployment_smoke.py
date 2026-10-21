@@ -36,9 +36,13 @@ Transport = Callable[[str, str, float], HttpResult]
 
 
 def _http_get(url: str, request_id: str, timeout_seconds: float) -> HttpResult:
+    headers = {"Accept": "application/json", "X-Request-ID": request_id}
+    identity_token = os.getenv("JHWORKS_SMOKE_IDENTITY_TOKEN")
+    if identity_token:
+        headers["X-Serverless-Authorization"] = f"Bearer {identity_token}"
     request = Request(
         url,
-        headers={"Accept": "application/json", "X-Request-ID": request_id},
+        headers=headers,
         method="GET",
     )
     started_at = time.perf_counter()
@@ -299,7 +303,7 @@ def main() -> int:
         }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     serialized = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
-    args.output.write_text(serialized)
+    args.output.write_text(serialized, encoding="utf-8")
     print(serialized, end="")
     if report["status"] == "unavailable":
         return 2

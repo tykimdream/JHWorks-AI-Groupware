@@ -8,5 +8,11 @@
 **/.next
 **/node_modules
 *.db
+**/*.db
 .env
+**/.env
+**/.env.*
+!**/.env.example
+gha-creds-*.json
+deploy/cloud-run/settings.local.json
 

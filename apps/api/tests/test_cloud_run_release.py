@@ -12,7 +12,7 @@ from app.api import dependencies
 from app.core.config import Settings, get_settings
 from app.core.database import create_database_engine
 from app.ops.cloud_run import ReleaseSettings, migration_manifest, service_manifest
-from app.ops.cloud_run_release import ReleaseFailure, release
+from app.ops.cloud_run_release import ReleaseFailure, main, release
 
 API_IMAGE = "asia-northeast3-docker.pkg.dev/jhworks-demo/images/api@sha256:" + "a" * 64
 WEB_IMAGE = "asia-northeast3-docker.pkg.dev/jhworks-demo/images/web@sha256:" + "b" * 64
@@ -188,10 +188,86 @@ def test_migration_failure_never_changes_application_traffic() -> None:
             runner=cloud.run,
         )
     assert failure.value.record["stage"] == "migration"
+    assert failure.value.record["errorOperation"] == "migration_execute"
     assert not any(
         item[1:4] in (["run", "services", "replace"], ["run", "services", "update-traffic"])
         for item in cloud.commands
     )
+
+
+def test_auth_action_token_is_used_for_smoke_and_recovery_without_cli_minting() -> None:
+    cloud = FakeCloud()
+    observed: list[str] = []
+
+    def smoke(_url: str, token: str) -> dict[str, Any]:
+        observed.append(token)
+        return {"status": "failed" if len(observed) == 1 else "passed"}
+
+    with pytest.raises(ReleaseFailure) as failure:
+        release(
+            ReleaseSettings.model_validate(settings_data()),
+            API_IMAGE, WEB_IMAGE, COMMIT, "verified-backup-1",
+            identity_token="synthetic-action-token",
+            runner=cloud.run, smoke=smoke,
+        )
+    assert observed == ["synthetic-action-token", "synthetic-action-token"]
+    assert not any(c[1:3] == ["auth", "print-identity-token"] for c in cloud.commands)
+    record = failure.value.record
+    assert record["errorOperation"] == "application_smoke"
+    assert record["rollbackTraffic"] == "restored"
+    assert record["rollbackSmoke"]["status"] == "passed"
+    assert "synthetic-action-token" not in json.dumps(record)
+
+
+def test_empty_explicit_token_fails_before_any_cloud_mutation() -> None:
+    cloud = FakeCloud()
+    with pytest.raises(ValueError, match="must not be empty"):
+        release(
+            ReleaseSettings.model_validate(settings_data()),
+            API_IMAGE, WEB_IMAGE, COMMIT, "verified-backup-1",
+            identity_token=" ", runner=cloud.run,
+        )
+    assert cloud.commands == []
+
+
+def test_cli_token_failure_records_safe_operation_for_both_paths() -> None:
+    cloud = FakeCloud()
+
+    def runner(command: list[str]) -> str:
+        if command[1:3] == ["auth", "print-identity-token"]:
+            raise subprocess.CalledProcessError(1, command, stderr="synthetic-private-detail")
+        return cloud.run(command)
+
+    with pytest.raises(ReleaseFailure) as failure:
+        release(
+            ReleaseSettings.model_validate(settings_data()),
+            API_IMAGE, WEB_IMAGE, COMMIT, "verified-backup-1", runner=runner,
+        )
+    record = failure.value.record
+    assert record["errorOperation"] == record["rollbackErrorOperation"] == "identity_token"
+    assert record["rollbackTraffic"] == "restored"
+    assert "synthetic-private-detail" not in json.dumps(record)
+
+
+def test_github_cli_requires_action_token_before_running_cloud_commands(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings_path = tmp_path / "settings.json"
+    output = tmp_path / "release.json"
+    settings_path.write_text(json.dumps(settings_data()), encoding="utf-8")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.delenv("JHWORKS_RELEASE_IDENTITY_TOKEN", raising=False)
+    monkeypatch.setattr(sys, "argv", [
+        "release", "--settings", str(settings_path), "--api-image", API_IMAGE,
+        "--web-image", WEB_IMAGE, "--commit", COMMIT,
+        "--backup-reference", "verified-backup-1", "--output", str(output),
+    ])
+    with pytest.raises(SystemExit) as failure:
+        main()
+    assert failure.value.code == 1
+    assert json.loads(output.read_text(encoding="utf-8")) == {
+        "status": "failed", "errorType": "ValueError", "commit": COMMIT,
+    }
 
 
 def test_smoke_uses_configured_origin_when_cloud_run_reports_hash_url() -> None:

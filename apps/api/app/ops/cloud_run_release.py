@@ -56,6 +56,7 @@ def release(
     backup_reference: str,
     *,
     bootstrap: bool = False,
+    identity_token: str | None = None,
     runner: CommandRunner = run_command,
     smoke: SmokeRunner = authenticated_smoke,
 ) -> dict[str, Any]:
@@ -65,6 +66,8 @@ def release(
         raise ValueError(
             "a verified backup reference or explicit fresh-DB bootstrap reference is required"
         )
+    if identity_token is not None and not identity_token.strip():
+        raise ValueError("an explicitly supplied identity token must not be empty")
     revision = f"{settings.service}-{commit[:12]}"
     service = service_manifest(settings, api_image, web_image, revision)
     migration = migration_manifest(settings, api_image)
@@ -149,8 +152,10 @@ def release(
             path.write_text(json.dumps(manifest), encoding="utf-8")
             paths[name] = path
         # A failed migration never reaches services replace or traffic mutation.
+        operation = "migration_replace"
         try:
             runner(["gcloud", "run", "jobs", "replace", str(paths["migration"]), *common])
+            operation = "migration_execute"
             runner(
                 [
                     "gcloud",
@@ -163,10 +168,15 @@ def release(
                 ]
             )
         except subprocess.CalledProcessError as exc:
-            record.update(status="failed", stage="migration", errorType=type(exc).__name__)
+            record.update(
+                status="failed", stage="migration", errorType=type(exc).__name__,
+                errorOperation=operation,
+            )
             raise ReleaseFailure(record) from None
         try:
+            operation = "service_replace"
             runner(["gcloud", "run", "services", "replace", str(paths["service"]), *common])
+            operation = "traffic_promote"
             runner(
                 [
                     "gcloud",
@@ -179,6 +189,7 @@ def release(
                     f"{revision}=100",
                 ]
             )
+            operation = "service_describe"
             current = json.loads(
                 runner(
                     [
@@ -192,6 +203,7 @@ def release(
                     ]
                 )
             )
+            operation = "origin_validate"
             if current["status"]["url"].rstrip("/") != settings.frontend_origin:
                 # Cloud Run can report the hash URL in status.url while advertising
                 # the configured deterministic URL as another URL of this same service.
@@ -208,7 +220,8 @@ def release(
                     raise ValueError(
                         "configured frontend origin is not a URL of the deployed service"
                     )
-            token = runner(
+            operation = "identity_token"
+            token = identity_token or runner(
                 [
                     "gcloud",
                     "auth",
@@ -217,6 +230,7 @@ def release(
                     settings.frontend_origin,
                 ]
             ).strip()
+            operation = "application_smoke"
             report = smoke(settings.frontend_origin, token)
             record["smoke"] = report
             if report["status"] != "passed":
@@ -229,11 +243,15 @@ def release(
             OSError,
             URLError,
         ) as exc:
-            record.update(status="failed", stage="application", errorType=type(exc).__name__)
+            record.update(
+                status="failed", stage="application", errorType=type(exc).__name__,
+                errorOperation=operation,
+            )
             if previous_traffic:
                 split = ",".join(
                     f"{item['revisionName']}={item['percent']}" for item in previous_traffic
                 )
+                recovery_operation = "traffic_restore"
                 try:
                     runner(
                         [
@@ -248,7 +266,8 @@ def release(
                         ]
                     )
                     record["rollbackTraffic"] = "restored"
-                    rollback_token = runner(
+                    recovery_operation = "identity_token"
+                    rollback_token = identity_token or runner(
                         [
                             "gcloud",
                             "auth",
@@ -257,6 +276,7 @@ def release(
                             settings.frontend_origin,
                         ]
                     ).strip()
+                    recovery_operation = "rollback_smoke"
                     record["rollbackSmoke"] = smoke(settings.frontend_origin, rollback_token)
                 except (
                     subprocess.CalledProcessError,
@@ -265,6 +285,7 @@ def release(
                     ValueError,
                 ) as recovery:
                     record["rollbackErrorType"] = type(recovery).__name__
+                    record["rollbackErrorOperation"] = recovery_operation
             else:
                 record["rollbackTraffic"] = "no_previous_revision"
             # First deploy remains private; never delete resources or downgrade DB.
@@ -285,6 +306,9 @@ def main() -> None:
     args = parser.parse_args()
     settings = ReleaseSettings.model_validate_json(args.settings.read_text(encoding="utf-8"))
     try:
+        identity_token = os.environ.get("JHWORKS_RELEASE_IDENTITY_TOKEN")
+        if os.environ.get("GITHUB_ACTIONS") == "true" and not identity_token:
+            raise ValueError("GitHub releases require an ID token from the auth action")
         report = release(
             settings,
             args.api_image,
@@ -292,6 +316,7 @@ def main() -> None:
             args.commit,
             args.backup_reference,
             bootstrap=args.bootstrap,
+            identity_token=identity_token,
         )
     except ReleaseFailure as exc:
         report = exc.record

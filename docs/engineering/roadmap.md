@@ -13,7 +13,10 @@
 - [ ] 공개 데모 인증 격리·API/AI 호출량 제한
 - [ ] 실제 PostgreSQL 검증 및 승인받은 인프라 staging 배포
 - [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
-- [ ] CI URL 별칭 수정 반영·정상 release 재검증·backup/restore 및 실제 업무 검증
+- [x] CI URL 별칭 수정 PR #20 병합·소규모 staging dump/격리 restore 비교
+- [x] staging Environment main 전용·추가 배포 승인 없음으로 복원(사용자 승인)
+- [ ] 정상 release 재검증: ID token 경로 수정 PR → main CI → 일반 private release
+- [ ] 실제 로그인·합성 업무 저장/권한·공개 demo 격리 검증
 - [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
 
 ## 우선순위 조정 — 먼저 배포하고 지속 개선
@@ -46,7 +49,7 @@ GCP registry·실행 계정·Secret version 1·한정된 IAM/WIF 설정과 2026-
 
 이번 구현의 범위와 검증은 [Cloud Run 첫 단위](cloud-run-supabase-plan.md),
 외부 설정 순서는 [배포 가이드](../operations/cloud-run-supabase.md)를 따른다.
-현재 CD는 exact main CI를 요구하는 수동 승인형 workflow다. 사용자 승인 후 전용 저장소에서 활성화했다.
+현재 CD는 exact main CI를 요구하는 수동 실행형 workflow다. staging 추가 reviewer 승인은 사용자 승인으로 제거했다.
 main 자동 배포는 백업 자동화와 실제 staging 검증 뒤 별도 단위로 추가한다.
 로컬 구현은 TLS/실패 진단 수정 후 API 183개, 브라우저 10개, lint/type/build를 통과했다.
 [배포 준비 검증 기록](cloud-run-supabase-verification.md)에 외부 미검증 범위와 재개 순서를 남겼다.
@@ -61,8 +64,12 @@ GCP 전용 예산 알림·서울 immutable Docker 저장소·권한 없는 전�
 목록 JSON으로 존재 여부를 판단하도록 수정했고 API 190개/lint/strict mypy를 통과했다.
 PR #19 병합 후 `dfff250`의 실제 migration/service Ready와 별도 수동 smoke 4개를 통과했다.
 CI release는 정상 URL 별칭을 거부해 실패했다. 해당 비교와 서비스 전체 max=2를 수정해
-API 197개/lint/strict mypy를 통과했다. 새 수정의 PR/CI 및 backup/restore 후 일반 release 검증이 남아 있다.
-사용자가 요청한 승인 생략과 main 자동 배포 방법은 배포 가이드에 설명했으며 실제 설정은 바꾸지 않았다.
+API 197개/lint/strict mypy를 통과한 PR #20은 병합됐다. 이후 실제 작은 dump/격리 복원 비교에 성공했다.
+일반 release 39615588202는 application 단계에서 실패했고 기존 revision 100% traffic 복귀와 별도
+사용자 token HTTP 4/4를 확인했다. deploy SA WIF smoke 성공으로 표현하지 않는다.
+현재 ID token 전달/안전한 작업명 진단을 로컬 구현했고 새 PR/main release 검증이 남아 있다.
+다음 세션은 [백업·일반 release 기록](staging-backup-release.md)의 정확한 상태와 검증 한계를 먼저 읽는다.
+main 자동 배포는 아직 구현하지 않았다. workflow_dispatch 이후 추가 배포 승인이 없는 상태다.
 최신 증거와 재개 지점은
 [첫 staging 배포 기록](staging-rehearsal.md)에 둔다. 공개 전환과 AI 연결은 별도 gate다.
 

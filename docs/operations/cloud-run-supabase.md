@@ -146,7 +146,7 @@ uv run python -m app.ops.cloud_run --settings ../../deploy/cloud-run/settings.lo
 첫 단위는 승인형 CD다. 모든 main push의 자동 배포는 backup 자동화와 실제 staging rehearsal 후 별도 추가한다.
 자동 배포가 이미 운영된다고 표현하지 않는다.
 
-GitHub `staging` Environment에 reviewer/main branch 정책을 설정한다. 다음 값은 **repository variable**로
+GitHub `staging` Environment는 현재 main 전용이며 required reviewer는 없다. 다음 값은 **repository variable**로
 구성한다. `CLOUD_RUN_CD_ENABLED`는 Environment 진입 전 job의 `if`에서 읽으므로 Environment 전용
 variable로만 설정하면 job이 실행되지 않을 수 있다. 비밀 값은 이 variable에 넣지 않는다.
 
@@ -158,8 +158,9 @@ variable로만 설정하면 job이 실행되지 않을 수 있다. 비밀 값은
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | 승인한 WIF provider resource name |
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | deploy service account email |
 
-사용자 승인 후 위 설정을 적용했고 CD flag를 true로 전환했다. `staging` reviewer는 저장소 소유자이며
-main branch만 배포할 수 있다. 1인 프로젝트이므로 self review를 허용한다. 재실행에도 승인이 다시 필요하다.
+사용자 승인 후 위 설정을 적용했고 CD flag를 true로 전환했다. 최초에는 `staging` reviewer를 저장소
+소유자로 설정했으나, 이후 Environment가 삭제된 것을 발견해 사용자 확인 후 **main 전용·reviewer 없음**으로
+복원했다. 현재 Run workflow 이후 추가 배포 승인은 요구하지 않는다. main push 자동 배포는 아직 없다.
 WIF 초기 설정은 `deploy/cloud-run/bootstrap-github-wif.sh`와 같은 디렉터리의 role/condition 파일을
 검토해 사용한다. 전용 프로젝트 ID/number를 고정하며, 이미 생성된 자원이 있거나 부분 실패하면
 전체 스크립트를 다시 실행하지 말고 해당 자원을 조회한 뒤 필요한 단계만 복구한다.
@@ -177,16 +178,23 @@ Supabase Free의 managed backup을 가정하지 않는다. bootstrap은 새 빈 
 워크플로는 exact main SHA의 push CI 성공을 확인하고 이미지를 build/push한 뒤 immutable digest로 배포한다.
 Migration job의 실패는 API rollout 전에 중단한다. 기존 service는 이전 traffic split을 보존한 채
 candidate를 생성하고 readiness 뒤 traffic을 전환한다. private IAM 서비스에 identity token으로 smoke한다.
+이미지 build 뒤 기존 Google auth Action에서 `id_token`을 발급해 release step 환경으로만 전달한다.
+Action credential file과 일반 `gcloud auth print-identity-token --audiences`의 호환성을 가정하지 않는다.
+GitHub 실행에서 token이 없으면 migration 전에 중단한다. 로컬 CLI의 gcloud fallback은 유지한다.
+ID token은 최대 10분이며 자동 갱신되지 않는다. 장시간 rollout/복구 후 token 만료로 smoke가 실패하면
+정상 배포/복구 완료로 간주하지 않고 인증된 운영자가 traffic와 HTTP를 따로 확인한다.
+실제 GitHub token 발급 성공은 다음 main release에서 검증해야 한다.
 첫 실제 provisioning에서 invoker IAM을 활성 상태로 유지하고 상위 project에 public invoker grant가 없는지 확인한다.
 공개 IAM policy/비활성 invoker 체크가 있는 기존 서비스에는 이 staging runner가 배포하지 않는다.
 
-### 승인 없는 staging 배포로 전환하는 방법 — 아직 적용하지 않음
+### 승인 없는 staging 배포와 자동 배포의 차이
 
 사용자가 매번 누르는 `Approve and deploy`는 저장소 Settings → Environments → staging의
 Deployment protection rules → Required reviewers 설정에서 온다. 해당 reviewer 요구를 해제하고
 Save protection rules를 누르면 Environment 수동 승인이 없어지며, main 전용 배포 branch 정책과
 `environment: staging`, WIF 조건은 유지할 수 있다. Environment 자체를 삭제할 필요는 없다.
-이 설정은 실제 배포 접근 경계를 줄이는 변경이므로 사용자가 적용을 명시적으로 요청한 시점에 수행한다.
+사용자가 이 방향을 명시적으로 승인해 현재 staging에는 적용했다. production 승인 설정은 추가하거나
+변경하지 않았다. Environment 삭제 대신 main 제한을 유지한 구성을 사용한다.
 
 이 변경만으로 main push 자동 배포가 생기지는 않는다. 현재 workflow는 `workflow_dispatch`만 받으므로
 Run workflow를 누르면 추가 승인 없이 실행되는 수준이다. main 병합 후 자동 배포까지 원하면 별도 PR에서
@@ -202,6 +210,26 @@ production Environment의 수동 승인은 별도로 유지하는 방향이다.
 [배포 보호 규칙](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
 
 ## 6. 실패·복구·증거
+
+### 소규모 staging 수동 백업·복원
+
+`apps/api/app/ops/staging_backup.py`는 승인된 전용 Supabase의 migration session pooler와 CA,
+GCP 프로젝트 번호를 확인하고 `groupware`만 dump한다. Docker와 기존 psycopg/gcloud가 필요하다.
+Cloud Shell에서 source와 동일한 파일을 실행했고 별도 유료 DB/VM을 생성하지 않았다.
+
+```bash
+python apps/api/app/ops/staging_backup.py \
+  --image pgvector/pgvector@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966 \
+  --ca-file "$HOME/jhworks-supabase-ca.crt" \
+  --output-root "$HOME/jhworks-staging-backups"
+```
+
+도구의 JSON에서 status=passed, temporaryContainerRemoved=true와 실제 archive/checksum을 확인한
+경우에만 backupReference를 사용한다. 복원 DB는 network=none/Unix socket peer 인증이며 원본 DB를
+복원 대상으로 받지 않는다. dump 0600/subdirectory 0700을 실제 Linux에서 확인했다.
+현재 rehearsal은 업무 데이터 0행의 작은 DB 기준이며 장기 보존·예약 백업·대용량 RTO 검증을 대체하지 않는다.
+전체 DB의 auth/storage/관리 역할 복구도 포함하지 않는다.
+[실행 기록](../engineering/staging-backup-release.md)에 실제 범위/해시/실패와 성공을 남긴다.
 
 - 실패하면 이전 revision별 traffic 비율로 복귀하고 rollback smoke 결과를 기록한다.
 - rollback smoke가 실패하면 복구 완료라고 주장하지 않고 release를 실패로 유지한다.

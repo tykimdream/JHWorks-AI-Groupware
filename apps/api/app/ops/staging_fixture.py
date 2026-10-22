@@ -23,7 +23,7 @@ from app.models import Credential, Department, Employee, LeaveAccount
 from app.models.enums import EmployeeRole
 from app.ops.staging_backup import PROJECT, connection_parameters, run
 
-HEAD = "b63d91e52fa0"
+HEAD = "c84f2a19d6e0"
 SERVICE = "jhworks-staging"
 REGION = "asia-northeast3"
 IDS = ("stg_author_001", "stg_approver_001", "stg_unrelated_001")

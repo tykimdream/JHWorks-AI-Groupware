@@ -5,6 +5,7 @@
 gha-creds-*.json
 deploy/cloud-run/settings.local.json
 artifacts/cloud-run/
+artifacts/feedback/
 
 # Python
 __pycache__/

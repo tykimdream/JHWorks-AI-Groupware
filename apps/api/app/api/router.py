@@ -6,6 +6,7 @@ from app.api.routes import (
     attendance,
     auth,
     demo,
+    demo_feedback,
     employees,
     health,
     leave_agent,
@@ -29,3 +30,4 @@ api_router.include_router(policies.router)
 api_router.include_router(work_assistant.router)
 
 api_router.include_router(demo.router)
+api_router.include_router(demo_feedback.router)

@@ -1837,3 +1837,13 @@ dd {
 
 :focus-visible { outline: 3px solid #315ba8; outline-offset: 3px; }
 .subtle a { text-decoration: underline; text-underline-offset: 3px; }
+:root {
+  --feedback-max-width: 760px;
+}
+
+.feedback-page { width: min(var(--feedback-max-width), calc(100% - 32px)); margin: 48px auto; }
+.feedback-page > nav { margin-bottom: 24px; }
+.feedback-form { display: grid; gap: 12px; }
+.feedback-consent { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
+.feedback-consent input { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 3px; }
+.feedback-page code { overflow-wrap: anywhere; }

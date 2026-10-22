@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api';
 import type { CurrentEmployee } from '@/lib/types';
 
+export const IDENTITY_CHANGED_EVENT = 'jhworks:identity-changed';
+
 export const useCurrentEmployee = () => {
   const router = useRouter();
   const [employee, setEmployee] = useState<CurrentEmployee | null>(null);
@@ -36,10 +38,12 @@ export const useCurrentEmployee = () => {
     };
     refresh();
     window.addEventListener('focus', refresh);
+    window.addEventListener(IDENTITY_CHANGED_EVENT, refresh);
     return () => {
       active = false;
       controller?.abort();
       window.removeEventListener('focus', refresh);
+      window.removeEventListener(IDENTITY_CHANGED_EVENT, refresh);
     };
   }, [router]);
 

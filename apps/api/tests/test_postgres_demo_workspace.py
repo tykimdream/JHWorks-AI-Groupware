@@ -249,3 +249,80 @@ def test_postgres_cleanup_preserves_private_rows_and_respects_foreign_keys(
     with session_factory() as db:
         assert db.get(Employee, employee_id) is None
         assert db.scalar(select(func.count()).select_from(Employee)) == before
+
+
+def test_feedback_global_capacity_is_atomic(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sqlalchemy import func
+
+    from app.core.config import Settings
+    from app.core.errors import AppError
+    from app.models.demo_feedback import DemoFeedback
+    from app.schemas.demo_feedback import DemoFeedbackCreate
+    from app.services import demo_feedback
+    from app.services.demo_visitor import start_visit_safely
+
+    monkeypatch.setattr(demo_feedback, "MAX_FEEDBACK", 3)
+    ids = []
+    for _ in range(8):
+        with session_factory() as db:
+            ids.append(start_visit_safely(db, Settings(_env_file=None), None).id)
+    barrier = Barrier(8)
+    payload = DemoFeedbackCreate(
+        category="bug",
+        screen="general",
+        message="Synthetic concurrent feedback for a test",
+        consent=True,
+    )
+
+    def attempt(employee_id: str) -> bool:
+        barrier.wait(timeout=20)
+        with session_factory() as db:
+            actor = db.get(Employee, employee_id)
+            assert actor is not None
+            try:
+                demo_feedback.submit_feedback(db, actor, payload)
+                return True
+            except AppError as exc:
+                assert exc.code == "DEMO_FEEDBACK_CAPACITY"
+                return False
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        assert sum(executor.map(attempt, ids)) == 3
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(DemoFeedback)) == 3
+
+
+def test_feedback_concurrent_retries_return_one_receipt(
+    session_factory: sessionmaker[Session],
+) -> None:
+    from sqlalchemy import func
+
+    from app.core.config import Settings
+    from app.models.demo_feedback import DemoFeedback
+    from app.schemas.demo_feedback import DemoFeedbackCreate
+    from app.services.demo_feedback import submit_feedback
+    from app.services.demo_visitor import start_visit_safely
+
+    with session_factory() as db:
+        employee_id = start_visit_safely(db, Settings(_env_file=None), None).id
+    barrier = Barrier(8)
+    payload = DemoFeedbackCreate(
+        category="idea",
+        screen="general",
+        message="Synthetic retry feedback for a test",
+        consent=True,
+    )
+
+    def attempt(_: int) -> str:
+        barrier.wait(timeout=20)
+        with session_factory() as db:
+            actor = db.get(Employee, employee_id)
+            assert actor is not None
+            return submit_feedback(db, actor, payload).id
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        assert len(set(executor.map(attempt, range(8)))) == 1
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(DemoFeedback)) == 1

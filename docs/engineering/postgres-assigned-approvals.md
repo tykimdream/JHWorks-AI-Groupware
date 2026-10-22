@@ -64,3 +64,12 @@ SQLite 단위 테스트 성공은 운영 DB dialect의 JSON/DISTINCT 계약을 �
 Ruff와 strict mypy 117 source files 통과. 실제 PostgreSQL 수정 후 결과는
 [PR #29 CI](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/29/checks)에서 확인하며
 postgres 포함 5개 검사 성공 전에는 병합하지 않는다. 테스트 재현과 live staging 성공은 구분한다.
+
+## 수정 후 실제 PostgreSQL 결과
+
+source 9139f5feee9b257388c1c9e8bba3b87b9689cfef의
+[postgres job](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39717537019/job/119623152149)에서
+동일 PostgreSQL 17.11·동일 7개 사례가 **7 passed / 2.39초**로 통과했다.
+수정 전 4 failed/3 passed와 대비되는 기능 정확성 결과이며, 실행 시간 차이를 API 성능 개선율로
+해석하지 않는다. 이 증거 기록만 추가한 최신 head도 CI 5개를 다시 통과해야 병합한다.
+실제 private staging release/업무 검증은 여전히 별도 미완료다.

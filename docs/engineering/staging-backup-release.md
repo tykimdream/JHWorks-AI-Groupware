@@ -4,6 +4,30 @@
 [main CI 39612687196](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39612687196) 성공.
 아래 준비/실제 실행/미검증을 구분한다. 공개/production 배포 작업이 아니다.
 
+## 후속 결과 — 첫 일반 release 성공
+
+PR #21은 직접 코드 리뷰·reviewed 라벨·CI 4개 성공 후 main `2dfb0d0aa6bd8e3dd33c5830ae56c8117d2c6194`로
+병합됐다. [해당 main CI 39619015668](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39619015668) 성공을 확인했다.
+병합된 최신 도구로 새 dump/격리 복원을 실행해 table당 bounded COUNT를 포함한 실제 경로도 검증했다.
+
+- backup ID: `20261021T144435Z-c266bd9d`, 39,501 bytes.
+- SHA256: `2f889e1f93433ec5f53e2880862160fc5af89a064cca97a76d059410b228af8a`.
+- dump 11.32초, restore/비교 10.32초. head `b63d91e52fa0`, 11 tables, 업무 10 tables 모두 0행.
+- columns/default/constraints/indexes/ownership/ACL/default ACL/rows/sequences/head 일치.
+- temporaryContainerRemoved=true. 원본 DB 복원/삭제·새 유료 자원 생성 없음.
+
+이 실제 backup reference로 bootstrap=false의
+[일반 release 39619750992](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39619750992)를 한 번 실행해 성공했다.
+revision `jhworks-staging-2dfb0d0aa6bd`, 기존 traffic은 `dfff250e6209=100`으로 기록됐다.
+GitHub deploy SA의 Action ID token으로 2026-10-21 23:48:49 KST에 liveness 200·readiness 200·
+앱 미로그인 경계 401·web 200의 **4/4**를 통과했다. 앞선 별도 사용자 token 확인과 다른 CI 전체 성공 증거다.
+원시 정제 record는 ignored `artifacts/cloud-run/release-39619750992.json`에 보관한다.
+
+API digest: `sha256:c2f7f30063fb1ec6867527fb107bc47d30f7974e83edcd842916178a10552e8c`.
+Web digest: `sha256:74792b7c9aa163c367ebf0e2da30f0151b73b82de25014bef7ed7f3ceb4ccc16`.
+서비스는 private이고 AI는 꺼져 있다. 로그인·실제 업무 저장·세션별 격리·공개 demo·main 자동 배포는
+이 성공에 포함되지 않는다. 아래 실패/로컬 수정 기록은 이 성공 이전의 이력으로 보존한다.
+
 ## 문제와 완료 조건
 
 DB는 이미 head `b63d91e52fa0`까지 migration됐으므로 빈 DB bootstrap을 재사용할 수 없다.

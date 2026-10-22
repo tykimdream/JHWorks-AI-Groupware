@@ -2,8 +2,10 @@
 
 이 문서의 본문은 최초 진단 시점의 snapshot이다. 후속 구현의 최신 상태는
 [staging 실제 실행 기록](staging-rehearsal.md)과 [로드맵](roadmap.md)을 따른다.
-2026-10-21 후속 private Cloud Run 기동·Supabase migration·수동 smoke 4개는 검증됐으나,
-공개 데모와 CI release 전체 성공·업무 로그인/저장·backup/restore는 아직 검증되지 않았다.
+후속으로 private Cloud Run 기동·Supabase migration·작은 빈 업무 DB의 backup/격리 restore,
+일반 CI release 전체 성공(deploy-SA HTTP 4개)이 검증됐다. 상세는
+[백업·일반 release 기록](staging-backup-release.md)을 따른다. 공개 데모·업무 로그인/저장·
+업무 데이터 복원·대용량 성능은 아직 미검증이다. 아래 본문은 최초 진단 시점의 이력이다.
 
 ## 기준과 결론
 

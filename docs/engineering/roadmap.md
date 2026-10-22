@@ -11,15 +11,23 @@
 - [x] 첫 구현: Cookie 쓰기 출처 검증과 기존 업무 흐름 회귀 테스트
 - [x] QA-01 평가 JSON/자식 프로세스 UTF-8 계약 구현·cp949 재현/관련 회귀 검증
 - [ ] 공개 데모 인증 격리·API/AI 호출량 제한
-- [ ] 실제 PostgreSQL 검증 및 승인받은 인프라 staging 배포
+- [x] 실제 Supabase migration·승인받은 private staging 일반 release 검증
 - [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
 - [x] CI URL 별칭 수정 PR #20 병합·소규모 staging dump/격리 restore 비교
 - [x] staging Environment main 전용·추가 배포 승인 없음으로 복원(사용자 승인)
-- [ ] 정상 release 재검증: ID token 경로 수정 PR → main CI → 일반 private release
+- [x] PR #21 main CI → 일반 private release 39619750992 → deploy-SA HTTP 4/4
+- [ ] 로컬 기본 seed의 원격 DB 실행 차단 PR·CI·병합
 - [ ] 실제 로그인·합성 업무 저장/권한·공개 demo 격리 검증
 - [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
 
 ## 우선순위 조정 — 먼저 배포하고 지속 개선
+
+2026-10-22 재개 상태: PR #21을 직접 코드 리뷰·라벨링·CI 확인 후 병합했고 main `2dfb0d0`의
+[일반 private release 39619750992](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39619750992)가 성공했다.
+PR #22(QA-01)도 리뷰와 CI 4개 성공 뒤 병합됐다. 배포된 SHA는 `2dfb0d0`이며 이후 main 수정이
+자동으로 배포되는 구조는 아직 아니다. 다음 실행 순서는 local seed 경계 → private 합성 계정
+준비(실제 인증정보 설정 전 확인) → 로그인·결재·휴가·권한 검증 → 공개 demo 격리/호출 제한이다.
+기존 빈 업무 DB의 복원·기동 성공만으로 업무 시나리오나 공개 준비 완료를 주장하지 않는다.
 
 2026-10-21 사용자 피드백으로 다음 마일스톤을 **외부에서 접속 가능한 제한 공개 staging과 CD**로 앞당긴다.
 디자인/대용량 성능/전체 운영 고도화가 완료될 때까지 첫 배포를 미루지 않는다.
@@ -79,7 +87,7 @@ main 자동 배포는 아직 구현하지 않았다. workflow_dispatch 이후 �
 | --- | --- | --- | --- |
 | 0-A 진단 | 기존 코드와 historical 기록 구분 | assessment, 로컬 baseline, UI 이미지, 위험/난도/범위 | 완료 |
 | 1-A 출처 검증 | 단일 frontend Cookie API의 Origin/Referer guard. token 체계 추가 대신 작은 경계 선택 | 변조/누락/중복/다른 port 거부, DB 무변경, 정상 workflow 회귀 | 로컬 완료, staging 후속 |
-| 1-B 개발 재현성 | locale 기본 인코딩 의존 제거 | [QA-01 재현·수정·검증](evaluation-encoding.md) | 로컬 수정 완료, PR CI 후 병합 |
+| 1-B 개발 재현성 | locale 기본 인코딩 의존 제거 | [QA-01 재현·수정·검증](evaluation-encoding.md) | PR #22 리뷰·CI 후 병합 완료 |
 | 1-C 공개 데모 정책 | local demo 로그인과 public 모드 분리, 합성 데이터만 사용. 가능하면 session별 격리/만료, shared demo는 쓰기 제한 | 기본 공개 비밀번호 미허용, 타 세션 데이터 접근 차단, seed 환경 guard, reset dry-run과 보존 정책 | SEC-01/GOV-01 |
 | 1-D 남용/비용 제한 | 로그인·일반 API·AI의 서로 다른 예산. 단일 instance는 proxy+최소 상태부터, worker가 늘면 공유 원자 카운터 비교 | 429/Retry-After, 동시 요청 경계, TTL 회복, AI budget 초과 시 provider 호출 0회. 기본 AI key 미주입 | 배포 topology·신뢰 proxy 결정 |
 | 1-E production artifact | 기존 Docker 재사용, 비root/버전 고정·DB 비노출·HTTPS proxy/secret 주입. 로컬 Compose와 분리 | image scan, config fail-fast, 5432 외부 차단, Cookie/CORS/CSRF 실제 browser 확인 | Docker engine, 1-C/D |

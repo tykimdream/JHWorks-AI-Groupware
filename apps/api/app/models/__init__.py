@@ -2,6 +2,7 @@ from app.models.approval import Approval, ApprovalLine
 from app.models.attendance import LeaveAccount, WorkCalendarEvent
 from app.models.employee import Credential, Department, Employee
 from app.models.leave_agent import LeaveAgentRun
+from app.models.login_budget import LoginBudget
 from app.models.policy import CompanyPolicy, PolicySection
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "Employee",
     "LeaveAccount",
     "LeaveAgentRun",
+    "LoginBudget",
     "PolicySection",
     "WorkCalendarEvent",
 ]

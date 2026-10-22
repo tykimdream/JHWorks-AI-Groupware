@@ -8,6 +8,7 @@ from app.core.errors import AuthenticationError
 from app.core.security import create_session_token, verify_password
 from app.models.employee import Employee
 from app.schemas.auth import LoginRequest, LoginResponse, LogoutResponse
+from app.services.login_budget import reserve_login_attempt
 from app.services.mappers import current_employee_read
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -15,6 +16,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, response: Response, db: DbSession) -> LoginResponse:
+    settings = get_settings()
+    reserve_login_attempt(db, settings.login_requests_per_minute)
     employee = db.scalar(
         select(Employee)
         .options(
@@ -32,7 +35,6 @@ def login(payload: LoginRequest, response: Response, db: DbSession) -> LoginResp
     ):
         raise AuthenticationError("The email or password is incorrect")
 
-    settings = get_settings()
     response.set_cookie(
         key=settings.session_cookie_name,
         value=create_session_token(employee.id),

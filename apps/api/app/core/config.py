@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "local-development-only-change-me"
     jwt_algorithm: str = "HS256"
     session_cookie_name: str = "jhworks_session"
+    login_requests_per_minute: int = Field(default=60, ge=1, le=600)
     session_ttl_minutes: int = 480
     frontend_origin: str = "http://localhost:3000"
     cookie_secure: bool = False

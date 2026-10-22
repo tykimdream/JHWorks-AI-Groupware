@@ -44,3 +44,15 @@ class DomainValidationError(AppError):
 class ServiceUnavailableError(AppError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(code, message, 503)
+
+
+class RateLimitError(AppError):
+    retry_after = 60
+
+    def __init__(self) -> None:
+        super().__init__(
+            "LOGIN_RATE_LIMITED",
+            "Login request limit reached. Please try again later.",
+            429,
+            {"retryAfterSeconds": self.retry_after},
+        )

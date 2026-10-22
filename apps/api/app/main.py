@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.csrf import has_trusted_write_origin
-from app.core.errors import AppError
+from app.core.errors import AppError, RateLimitError
 from app.core.logging import configure_logging, reset_request_id, set_request_id
 
 settings = get_settings()
@@ -96,6 +96,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     )
     return JSONResponse(
         status_code=exc.status_code,
+        headers={"Retry-After": str(exc.retry_after)} if isinstance(exc, RateLimitError) else None,
         content={
             "error": {
                 "code": exc.code,

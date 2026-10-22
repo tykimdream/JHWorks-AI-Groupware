@@ -1,6 +1,7 @@
 """Offline demo deployment plan with dedicated identities and secret references."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Self
@@ -38,6 +39,19 @@ def isolated_demo_manifests(
 ) -> dict[str, dict[str, Any]]:
     # Service validation also checks the fixed host/service/resource/image bounds.
     service = public_demo_service_manifest(settings, api_image, web_image, commit)
+    # Cloud Run revisions are immutable, including their identity and Secret refs.
+    # Retain the image source SHA; distinguish configuration without pretending
+    # an unchanged image was built from the manifest generator's newer commit.
+    configuration_hash = hashlib.sha256(
+        json.dumps(service, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    revision = f"{settings.service}-{commit[:12]}-{configuration_hash[:12]}"
+    service["spec"]["template"]["metadata"]["name"] = revision
+    service["spec"]["template"]["metadata"]["annotations"].update({
+        "jhworks.dev/image-source-commit": commit,
+        "jhworks.dev/configuration-sha256": configuration_hash,
+    })
+    service["spec"]["traffic"] = [{"revisionName": revision, "percent": 100}]
     maintenance = MaintenanceSettings(
         project_id=settings.project_id,
         region=settings.region,

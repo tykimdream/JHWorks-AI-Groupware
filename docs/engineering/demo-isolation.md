@@ -29,8 +29,9 @@ GCP 실행 계정 2개·Secret 3개를 분리하는 방식을 준비한다. 별�
 | GCP Secret | jhworks-demo-session-secret | staging과 다른 무작위 서명키 |
 | Cloud Run | jhworks-demo-migrate | 단일 migration Job, retry0/CPU1/512MiB/timeout300초, seed 없음 |
 
-위 GCP 권한은 **필요한 설계이며 아직 부여하지 않았다**. deploy SA의 새 계정 actAs도 필요하면
-정확한 대상을 확인받는다. 계정 이름이나 manifest만으로 실제 IAM 최소 권한이 증명되지는 않는다.
+위 GCP 권한은 승인 후 [실제 분리 기반](demo-identity-foundation.md)에 적용·독립 검증했다.
+이어 [credential 초기 설정](demo-credential-setup.md)에서 별도 승인/사용자 입력으로 v1 세 개와
+실제 역할 인증을 확인했다. 계정 이름이나 manifest만으로 실제 IAM 최소 권한이 증명되지는 않는다.
 기존 demo 서비스/maintenance는 새 참조로 업데이트할 계획이며 새 인터넷 접근은 포함하지 않는다.
 
 ## 구현과 안전장치
@@ -41,6 +42,7 @@ vector가 extensions에 미리 설치돼 있고 기존 private schema가 있어�
 schema 접근이 가능하면 전체 bootstrap을 롤백한다. private ACL을 자동 수정해서 통과시키지 않는다.
 두 역할은 NOLOGIN/NOINHERIT이며 superuser/create role/create DB/replication/bypass RLS 권한이 없다.
 비밀번호·LOGIN 설정은 후속 사용자 직접 실행 절차와 실제 인증 검증 전까지 보류한다.
+이 문장은 bootstrap 자체의 범위이며, 이후 실제 LOGIN 활성화 증거는 위 credential 문서를 따른다.
 Data API exposed schema에 새 schema를 추가하지 않는다.
 
 `app.ops.demo_isolation`은 전용 계정·세 Secret 이름만 받는 offline profile이다. 기존 리허설용

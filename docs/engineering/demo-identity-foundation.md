@@ -73,3 +73,16 @@ Cloud Shell 보조 결과 `demo-identity-apply-result.json`, `demo-identity-veri
 추가 비용을 승인받고 사용자가 숨김 prompt에 직접 기존 관리자 비밀번호를 입력해야 한다.
 그 후 실제 pooler 인증·전용 migration·private 데이터 보존·guest flow 검증까지 완료해야 체크포인트 1을
 완료로 표시한다. 현재 domain은 준비 화면이고 기존 서비스는 기존 리허설 참조를 계속 사용한다.
+
+## 추가 관찰: Data API 비활성 상태의 반복 로그
+
+Supabase dashboard의 최근 60분 PostgreSQL 오류 집계를 읽어 확인했다. 보이는 반복 항목은
+SQLSTATE 3F000, `schema "pg_pgrst_no_exposed_schemas" does not exist`였으며 약 32초 간격이었다.
+[공식 troubleshooting](https://supabase.com/docs/guides/troubleshooting/schema-pg_pgrst_no_exposed_schemas-does-not-exist)은
+Data API를 꺼도 PostgREST가 종료되지 않아 이 로그가 생길 수 있다고 설명한다.
+이 관찰을 앱 오류율이나 앱 DB 연결 실패로 집계하지 않는다. 두 앱의 실제 readiness는 HTTP200이었다.
+모든 과거 오류가 같은 원인이라고 단정하지는 않는다.
+
+Data API를 다시 켜거나 private/demo schema를 exposed schema에 추가하지 않았다.
+공식 empty-schema/config workaround는 별도 범위에서 권한·공개 표면·되돌리기와 로그 변화를
+검토할 후속 운영 과제로 남긴다. 이번 승인에는 authenticator/PostgREST 설정 변경이 포함되지 않았다.

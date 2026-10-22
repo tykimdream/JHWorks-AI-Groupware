@@ -49,6 +49,8 @@ fixture는 결재/휴가 상태를 SQL로 미리 완성하거나 AI 확인 절�
 Ruff app/tests/alembic, strict mypy app/tests 112 source files를 통과했다.
 실패 결과는 고정된 stage/errorType만 남기며 DB 원문·비밀번호·password hash를 출력하지 않는다.
 이것은 SQLite/대역 GCP 단위 검증이며 실제 Supabase fixture 생성·동시 쓰기 검증 완료를 의미하지 않는다.
+추가로 병합된 source `1b11879`의 frozen Cloud Shell 환경에서 실제 private 서비스·새 verified archive·
+Supabase head/빈 업무 DB의 read-only preflight를 통과했다. 생성 모드는 아직 실행하지 않았다.
 
 private 검증 계정을 공개 demo에 그대로 재사용하지 않는다. 공개 전 세션 격리·호출 제한·기존 검증 계정
 처리를 별도 확인한다. 예약 초기화/계정 만료/보존 정책은 아직 구현하지 않았다.

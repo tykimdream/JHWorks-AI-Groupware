@@ -2,6 +2,7 @@
 
 작성 기준: 2026-10-21, 로컬 `9814045`. 기존 제품 Phase 1~11을 다시 구현하는 계획이 아니다.
 현재 증거는 [assessment](assessment.md), 첫 구현의 판단은 [CSRF 작업 기록](csrf-origin-guard.md)에 둔다.
+최신 실행·병합 상태와 바로 다음 작업은 [current-status](current-status.md)를 먼저 읽는다.
 한 작업은 문제/완료 조건→대안→구현→관련 검사→결과/위험 기록 순서로 진행한다.
 진단/계획과 CSRF 구현은 별도 커밋으로 나누어 하나의 초기 고도화 PR에서 검토한다.
 
@@ -16,7 +17,9 @@
 - [x] CI URL 별칭 수정 PR #20 병합·소규모 staging dump/격리 restore 비교
 - [x] staging Environment main 전용·추가 배포 승인 없음으로 복원(사용자 승인)
 - [x] PR #21 main CI → 일반 private release 39619750992 → deploy-SA HTTP 4/4
-- [ ] 로컬 기본 seed의 원격 DB 실행 차단 PR·CI·병합
+- [x] 로컬 기본 seed의 원격 DB 실행 차단 PR #23 리뷰·CI·병합
+- [x] Python 전이 패키지 보안 패치 PR #24 리뷰·CI·병합, GitHub Python open alert 0개 확인
+- [x] private 합성 fixture 도구 PR #25 리뷰·CI·병합·실제 read-only preflight
 - [ ] 실제 로그인·합성 업무 저장/권한·공개 demo 격리 검증
 - [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
 

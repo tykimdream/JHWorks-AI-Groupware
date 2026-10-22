@@ -1,6 +1,7 @@
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -86,6 +87,27 @@ def test_backup_must_match_real_verified_archive(tmp_path: Path) -> None:
     (directory / "groupware.dump").write_bytes(b"changed")
     with pytest.raises(ValueError, match="does not match"):
         verify_backup(reference, tmp_path)
+
+
+def test_fixture_cli_records_safe_failure_stage_without_raw_details(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail(_reference: str, _root: Path) -> None:
+        raise ValueError("synthetic-private-error-detail")
+
+    monkeypatch.setattr(staging_fixture, "verify_backup", fail)
+    monkeypatch.setattr(sys, "argv", [
+        "fixture", "--commit", "a" * 40, "--backup-reference", "synthetic",
+        "--ca-file", "synthetic-ca.crt",
+    ])
+    with pytest.raises(SystemExit) as failure:
+        staging_fixture.main()
+    assert failure.value.code == 1
+    result = capsys.readouterr().out
+    assert json.loads(result) == {
+        "status": "failed", "stage": "backup_verify", "errorType": "ValueError",
+    }
+    assert "synthetic-private-error-detail" not in result
 
 
 @pytest.mark.parametrize("change", [None, "public", "iam_disabled", "wrong_revision", "ai"])

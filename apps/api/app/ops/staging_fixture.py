@@ -138,9 +138,12 @@ def main() -> None:
     parser.add_argument("--ca-file", type=Path, required=True)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
+    stage = "backup_verify"
     try:
         verify_backup(args.backup_reference, Path.home() / "jhworks-staging-backups")
+        stage = "service_verify"
         verify_private_service(args.commit)
+        stage = "database_credentials"
         url = run([
             "gcloud", "secrets", "versions", "access", "1", "--secret",
             "jhworks-migration-database", "--project", PROJECT,
@@ -151,6 +154,7 @@ def main() -> None:
             creator=lambda: psycopg.connect(**parameters),
         )
         try:
+            stage = "database_preflight"
             with Session(engine) as db, db.begin():
                 db.execute(text("SET TRANSACTION READ ONLY"))
                 db.execute(text("SET LOCAL search_path TO groupware,extensions,public"))
@@ -161,16 +165,20 @@ def main() -> None:
             if not args.apply:
                 print("Preflight only; no accounts created.")
                 return
+            stage = "operator_confirmation"
             if not sys.stdin.isatty():
                 raise ValueError("credential setup requires the operator's interactive terminal")
             if input("Type CREATE PRIVATE FIXTURE to continue: ") != "CREATE PRIVATE FIXTURE":
                 raise ValueError("operator confirmation missing")
+            stage = "credential_input"
             with warnings.catch_warnings():
                 warnings.simplefilter("error", getpass.GetPassWarning)
                 password = getpass.getpass("Private fixture password (hidden, 20+ characters): ")
                 if password != getpass.getpass("Confirm private fixture password (hidden): "):
                     raise ValueError("passwords do not match")
+            stage = "service_recheck"
             verify_private_service(args.commit)
+            stage = "fixture_transaction"
             with Session(engine) as db, db.begin():
                 db.execute(text("SET LOCAL search_path TO groupware,extensions,public"))
                 db.execute(text("SET LOCAL lock_timeout = '5s'"))
@@ -187,7 +195,7 @@ def main() -> None:
             engine.dispose()
     except Exception as error:
         # DB exceptions can contain bound password hashes; never print them.
-        print(json.dumps({"status": "failed", "errorType": type(error).__name__}))
+        print(json.dumps({"status": "failed", "stage": stage, "errorType": type(error).__name__}))
         raise SystemExit(1) from None
 
 

@@ -45,8 +45,9 @@ fixture는 결재/휴가 상태를 SQL로 미리 완성하거나 AI 확인 절�
 
 로컬 회귀는 세 합성 계정/manager 연결/별도 hash, 기본 비밀번호 차단, 재실행 거부,
 중간 credential 생성 실패의 전체 rollback, archive 변조, public IAM/다른 revision/AI 활성 거부를 검증한다.
-관련 테스트 9개와 전체 API **229 passed / 19.02초**(cp949 기본 모드),
+관련 테스트 10개와 전체 API **230 passed / 18.03초**(cp949 기본 모드),
 Ruff app/tests/alembic, strict mypy app/tests 112 source files를 통과했다.
+실패 결과는 고정된 stage/errorType만 남기며 DB 원문·비밀번호·password hash를 출력하지 않는다.
 이것은 SQLite/대역 GCP 단위 검증이며 실제 Supabase fixture 생성·동시 쓰기 검증 완료를 의미하지 않는다.
 
 private 검증 계정을 공개 demo에 그대로 재사용하지 않는다. 공개 전 세션 격리·호출 제한·기존 검증 계정

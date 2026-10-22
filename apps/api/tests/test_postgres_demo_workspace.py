@@ -350,3 +350,48 @@ def test_feedback_concurrent_retention_counts_each_deletion_once(
     with ThreadPoolExecutor(max_workers=8) as executor:
         counts = list(executor.map(attempt, range(8)))
     assert sorted(counts) == [0] * 7 + [3]
+
+
+def test_maintenance_runner_on_postgres_preserves_private_rows(
+    session_factory: sessionmaker[Session],
+) -> None:
+    from sqlalchemy import func
+
+    from app.core.config import Settings
+    from app.ops.demo_maintenance import run_maintenance
+    from app.services.demo_visitor import start_visit_safely
+    from tests.test_feedback_retention import add_feedback
+
+    with session_factory() as db:
+        before = db.scalar(select(func.count()).select_from(Employee))
+        actor = start_visit_safely(db, Settings(_env_file=None), None)
+        workspace_id = actor.demo_workspace_id
+        db.execute(
+            update(DemoWorkspace)
+            .where(DemoWorkspace.id == workspace_id)
+            .values(
+                expires_at_epoch=database_seconds(db) - 86401,
+            )
+        )
+        add_feedback(db, "synthetic_expired_feedback", 1)
+        db.commit()
+    report = run_maintenance(session_factory, apply=True)
+    assert report["status"] == "passed"
+    assert report["steps"]["feedback"]["removed"] == 1
+    assert report["steps"]["workspaces"]["removed"] == 1
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(Employee)) == before
+    again = run_maintenance(session_factory, apply=True)
+    assert again["steps"]["feedback"]["removed"] == 0
+    assert again["steps"]["workspaces"]["removed"] == 0
+
+
+def test_maintenance_postgres_transaction_timeouts(session_factory: sessionmaker[Session]) -> None:
+    from sqlalchemy import event, text
+
+    from app.ops.demo_maintenance import transaction_timeouts
+
+    with session_factory() as db:
+        event.listen(db, "after_begin", transaction_timeouts)
+        assert db.scalar(text("SHOW statement_timeout")) == "15s"
+        assert db.scalar(text("SHOW lock_timeout")) == "5s"

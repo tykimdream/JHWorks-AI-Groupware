@@ -13,6 +13,9 @@ smoke 4/4 성공. 실제 revision jhworks-staging-5342bd4f8acc/100%, DB head f30
 [배포·보존·복원 증거](demo-private-release.md)를 따른다. AI=false/public_demo=false/익명403 유지.
 domain은 정적 준비 화면이다.
 이번 보강은 [보관 정리 실행 계약](feedback-retention.md)이며 자동 주기 작업이 운영된다는 뜻은 아니다.
+PR #44는 최종 head ee35a63의 CI 5개 성공/자체 리뷰/라벨 후 병합했다(main a1d284e).
+이후 [정리 Job runner와 적용 경계](demo-maintenance-job.md)를 구현한다. 기본 dry-run이며
+새 외부 Job/Scheduler/IAM/자동 삭제는 승인 전 생성·활성화하지 않는다.
 웹 포트폴리오의 실제 버튼은 공개 폼이 검증된 뒤 연결한다. 실제 사용자 의견/만족도는 아직 없다.
 공개 전용 DB의 합성 공용 규정·일정, 30일 정리 실행 경로, 최종 workspace E2E, Hosting rewrite/쿠키/
 공개 IAM과 release 경로 검토가 남았다. 새 권한/실제 공개 수집·삭제·과금 자원 적용 전 확인받는다.

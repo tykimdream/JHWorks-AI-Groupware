@@ -1,5 +1,20 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
+## 최신 상태: PostgreSQL 수정 배포 완료
+
+[배포·백업·검증 증거](postgres-staging-release.md)가 현재 상태의 기준이다.
+
+- PR #28/#29 병합 완료, #29 head CI 5개 및 merge `cfe258f` main CI 통과.
+- 실제 staging은 `cfe258ff24f151fbb412b4a53b74788d9c48dd96`, revision `jhworks-staging-cfe258ff24f1`.
+- credential 3개를 포함한 새 backup/격리 restore 성공 후 private release와 HTTP smoke 4/4 성공.
+- Cloud Shell read-only preflight 통과: 비공개 IAM, AI=false, max=2, 익명 403 유지.
+- 실제 업무 workflow는 기존 새 fixture 비밀번호의 숨김 입력을 기다린다. 비밀번호 재교체는 필요 없다.
+- 다음은 workflow 증거 기록 → npm 잔여 advisory → 공개 demo 격리/비용 제한 검증이다.
+- 현재 CD는 workflow_dispatch다. 공개 전환·새 권한/유료 자원·AI 연결은 별도 확인 대상이다.
+
+이하 내용은 이전 실행 이력이다. 아래의 과거 배포 SHA·빈 DB backup·미배포 설명을 현재 상태로 해석하지 않는다.
+
+
 ## 구현·리뷰·CI·병합 완료
 
 사용자는 PR 생성·코드 리뷰·라벨링·문제 없는 변경의 병합을 위임했다. 아래 PR에는 직접 코드 리뷰의

@@ -1,6 +1,6 @@
 """Request admission for server-managed demo employees; no public provisioning."""
 
-from sqlalchemy import BigInteger, cast, func, or_, select, update
+from sqlalchemy import BigInteger, and_, cast, func, or_, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
@@ -8,6 +8,13 @@ from sqlalchemy.sql.elements import ColumnElement
 from app.core.errors import AppError, AuthenticationError, ServiceUnavailableError
 from app.models.demo_workspace import DemoWorkspace
 from app.models.employee import Employee
+
+
+class DemoRequestLimitError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            "DEMO_REQUEST_LIMIT_REACHED", "This demo workspace has reached its request limit.", 429
+        )
 
 
 class DemoWriteLimitError(AppError):
@@ -71,8 +78,6 @@ def require_demo_workspace(db: Session, actor: Employee, *, write: bool = False)
                 for item in related
             ):
                 raise AuthenticationError("The demo workspace manager is unavailable")
-        if not write:
-            return
         # Evaluate DB time inside UPDATE as well: a lock wait must not admit an expired space.
         admitted = db.scalar(
             update(DemoWorkspace)
@@ -80,9 +85,13 @@ def require_demo_workspace(db: Session, actor: Employee, *, write: bool = False)
                 DemoWorkspace.id == workspace.id,
                 DemoWorkspace.is_active.is_(True),
                 DemoWorkspace.expires_at_epoch > _database_epoch(db),
-                DemoWorkspace.writes_used < DemoWorkspace.write_limit,
+                DemoWorkspace.requests_used < DemoWorkspace.request_limit,
+                (DemoWorkspace.writes_used < DemoWorkspace.write_limit) if write else and_(True),
             )
-            .values(writes_used=DemoWorkspace.writes_used + 1)
+            .values(
+                writes_used=DemoWorkspace.writes_used + (1 if write else 0),
+                requests_used=DemoWorkspace.requests_used + 1,
+            )
             .returning(DemoWorkspace.id)
             .execution_options(synchronize_session=False)
         )
@@ -97,6 +106,9 @@ def require_demo_workspace(db: Session, actor: Employee, *, write: bool = False)
             )
             if active is None:
                 raise AuthenticationError("The demo workspace is unavailable or expired")
+            current = db.get(DemoWorkspace, actor.demo_workspace_id, populate_existing=True)
+            if current is not None and current.requests_used >= current.request_limit:
+                raise DemoRequestLimitError()
             raise DemoWriteLimitError()
     except SQLAlchemyError:
         db.rollback()

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "local-development-only-change-me"
     jwt_algorithm: str = "HS256"
     session_cookie_name: str = "jhworks_session"
+    public_demo_enabled: bool = False
+    demo_starts_per_day: int = Field(default=20, ge=1, le=100)
+    demo_retained_workspaces: int = Field(default=30, ge=1, le=100)
+    demo_ttl_minutes: int = Field(default=15, ge=5, le=30)
     login_requests_per_minute: int = Field(default=60, ge=1, le=600)
     session_ttl_minutes: int = 480
     frontend_origin: str = "http://localhost:3000"
@@ -44,14 +48,17 @@ class Settings(BaseSettings):
     policy_retrieval_min_score: float = Field(default=0.15, ge=-1.0, le=1.0)
 
     @model_validator(mode="after")
+    def validate_public_demo_safety(self) -> Self:
+        if self.public_demo_enabled and self.ai_enabled:
+            raise ValueError("Public demo requires JHWORKS_AI_ENABLED=false")
+        return self
+
+    @model_validator(mode="after")
     def validate_production_safety(self) -> Self:
         if self.environment.lower() not in {"production", "prod"}:
             return self
         errors: list[str] = []
-        if (
-            len(self.jwt_secret) < 32
-            or self.jwt_secret == "local-development-only-change-me"
-        ):
+        if len(self.jwt_secret) < 32 or self.jwt_secret == "local-development-only-change-me":
             errors.append("JHWORKS_JWT_SECRET must be a non-default value of 32+ characters")
         if not self.cookie_secure:
             errors.append("JHWORKS_COOKIE_SECURE must be true")

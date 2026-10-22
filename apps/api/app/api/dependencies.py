@@ -38,7 +38,11 @@ def get_current_employee(
         .options(joinedload(Employee.department), joinedload(Employee.manager))
         .where(Employee.id == employee_id)
     )
-    if employee is None or not employee.is_active:
+    if (
+        employee is None
+        or not employee.is_active
+        or (get_settings().public_demo_enabled and employee.demo_workspace_id is None)
+    ):
         raise AuthenticationError("The employee account is unavailable")
     require_demo_workspace(db, employee, write=request.method not in {"GET", "HEAD", "OPTIONS"})
     return employee

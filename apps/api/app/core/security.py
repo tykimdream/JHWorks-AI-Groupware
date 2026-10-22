@@ -19,13 +19,15 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
 
 
-def create_session_token(employee_id: str) -> str:
+def create_session_token(employee_id: str, expires_at: datetime | None = None) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
     payload = {
         "sub": employee_id,
         "iat": now,
-        "exp": now + timedelta(minutes=settings.session_ttl_minutes),
+        "exp": min(now + timedelta(minutes=settings.session_ttl_minutes), expires_at)
+        if expires_at is not None
+        else now + timedelta(minutes=settings.session_ttl_minutes),
         "type": "session",
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)

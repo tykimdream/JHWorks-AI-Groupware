@@ -5,6 +5,7 @@ from app.api.routes import (
     approvals,
     attendance,
     auth,
+    demo,
     employees,
     health,
     leave_agent,
@@ -26,3 +27,5 @@ api_router.include_router(leave_draft_tool.router)
 api_router.include_router(approval_drafts.router)
 api_router.include_router(policies.router)
 api_router.include_router(work_assistant.router)
+
+api_router.include_router(demo.router)

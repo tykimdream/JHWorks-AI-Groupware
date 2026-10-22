@@ -42,7 +42,8 @@ lockfile diff는 이 세 package 버전·integrity·snapshot 및 override 설정
 [braces 3.0.3의 stack exhaustion](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)은 현재 patched version이 없다.
 pnpm why에서 fast-glob → micromatch → braces가 eslint-config-next 개발 의존성 경로인 것을 확인했다.
 GitHub/npm audit은 scope를 runtime/dependencies로 표시하므로 이 분류만으로 실제 요청 경로 노출을 판단하지 않는다.
-production bundle/최종 Linux 이미지의 포함 여부와 앱의 비신뢰 pattern 유입 여부는 별도 검증이 필요하다.
+로컬 Windows standalone의 package.json 605개를 읽어 세 대상 패키지 이름은 발견하지 못했다. 이 검사는 Windows 산출물의 관찰이며 Linux 이미지 전체 부재를 증명하지 않는다.
+최종 Linux 이미지의 포함 여부와 앱의 비신뢰 pattern 유입 여부는 별도 검증이 필요하다.
 경고는 dismiss하지 않고 upstream fixed release와 최종 이미지 의존 경로를 추적한다.
 새 Major나 임의 fork를 근거 없이 도입하거나 알려진 경고를 CI에서 전역 무시하지 않는다.
 

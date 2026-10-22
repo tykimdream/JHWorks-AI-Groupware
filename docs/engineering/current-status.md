@@ -61,3 +61,9 @@ Cloud Shell home의 작은 빈 DB 복원은 장기/예약 백업이나 업무 �
 현재 CD는 workflow_dispatch로 시작하며 추가 Environment reviewer 승인만 제거한 상태다.
 Cloud Shell의 사용자 실행용 source는 `~/jhworks-staging-tools/1b11879`에 full SHA를 대조해 준비했다.
 앱 변경의 배포 SHA는 `1b11879`로 고정한다. 이후 상태 문서만 바뀐 main을 같은 이미지로 표현하지 않는다.
+
+## 인증정보 교체 후 추가 상태
+
+검증 계정 3개 교체 성공은 사용자 전달 결과로 확인했다. 이후 업무 검증은 initial_author_assigned에서
+실패했으며 결재·휴가 생성 전이다. [교체 도구·실제 증거와 한계](../operations/private-staging-password.md)를
+참조한다. 교체 명령을 다시 실행하지 않는다. 서버 목록 조회의 PostgreSQL 검증을 다음 단위로 진행한다.

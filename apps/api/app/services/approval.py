@@ -235,7 +235,8 @@ def list_approvals(db: Session, actor: Employee, scope: str) -> list[Approval]:
     if scope == "mine":
         query = query.where(Approval.author_id == actor.id)
     elif scope == "assigned":
-        query = query.join(ApprovalLine).where(ApprovalLine.approver_id == actor.id).distinct()
+        # EXISTS avoids comparing PostgreSQL JSON and duplicating approval rounds.
+        query = query.where(Approval.lines.any(ApprovalLine.approver_id == actor.id))
     else:
         raise DomainValidationError("INVALID_SCOPE", "scope must be 'mine' or 'assigned'")
     return list(db.scalars(query).unique())

@@ -67,3 +67,17 @@ Cloud Shell의 사용자 실행용 source는 `~/jhworks-staging-tools/1b11879`�
 검증 계정 3개 교체 성공은 사용자 전달 결과로 확인했다. 이후 업무 검증은 initial_author_assigned에서
 실패했으며 결재·휴가 생성 전이다. [교체 도구·실제 증거와 한계](../operations/private-staging-password.md)를
 참조한다. 교체 명령을 다시 실행하지 않는다. 서버 목록 조회의 PostgreSQL 검증을 다음 단위로 진행한다.
+
+## 배정 목록 PostgreSQL 재현과 수정
+
+PR #28은 CI 4개·직접 리뷰·라벨링 후 병합했다. 별도 PR #29에서 동일 기존 쿼리의
+실제 PostgreSQL 17.11 오류를 4 failed/3 passed로 재현했고 EXISTS 최소 수정을 준비했다.
+[원인·대안·실험 경계](postgres-assigned-approvals.md)에 baseline job과 로컬 결과를 기록했다.
+최신 head의 postgres 포함 CI 5개는 PR checks를 확인한다. live staging 배포/업무 재검증은 아직이다.
+앱 배포 SHA는 여전히 1b11879다. credentials가 생긴 뒤의 새 backup/격리 restore를 확보한 후
+현재 main CI→비공개 release→실제 업무 검증 순서로 진행한다. 기존 빈 DB backup을 현재 계정의
+백업이라고 표현하거나 비밀번호 교체 명령을 다시 실행하지 않는다.
+
+이번 실행 장애는 일반 pipe/기본 실행에서는 재현됐지만 Windows PowerShell의 PTY와 승인된
+실행 경로에서는 명령이 정상 완료됐다. 후속 세션에서 같은 장애가 나면 이 차이를 먼저 확인한다.
+플랫폼 승인·파일 권한 규칙을 우회한다는 뜻이 아니며 모든 확대 실행은 도구의 승인 검사를 따른다.

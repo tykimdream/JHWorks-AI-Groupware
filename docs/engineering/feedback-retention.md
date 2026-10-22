@@ -27,7 +27,8 @@ uv run pytest tests/test_postgres_demo_workspace.py -o addopts= -q
 - 로컬 SQLite: 관련 15개 통과. 30일 경계 포함/직전 제외, dry-run 보존, 재실행 0건,
   commit 실패 복구, 호출자 미저장 변경 거부, 운영 오류 원문 미노출을 검증했다.
 - PostgreSQL 회귀 추가: 별도 연결 8개가 동시에 정리해 3건을 정확히 한 번만 보고하는지 검사한다.
-  실제 실행 결과는 PR CI에 남기며 SQLite 통과를 PostgreSQL 동시성 증거로 해석하지 않는다.
+  PR #44 첫 head aa38006의 CI에서 PostgreSQL 19 passed (6.96초)를 확인했다.
+  SQLite 통과를 PostgreSQL 동시성 증거로 해석하지 않는다.
 - 새 migration, 의존성, 인증정보, 외부 유료 자원은 없다.
 - 로컬 전체 API 386 passed/19 skipped (38.65초), Ruff app/tests/alembic,
   strict mypy app/tests 145 files 통과. PostgreSQL 19개 skip은 로컬 DB 미연결이며 CI에서 별도 실행한다.

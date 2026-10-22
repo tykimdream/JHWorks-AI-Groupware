@@ -16,7 +16,7 @@
 - [x] 서명 token 4종 필수 claim/만료 계약·신규 69개 회귀 (PR #40, 외부 재배포 전)
 - [x] 방문자 workspace 경계·서버 수명·원자 쓰기 예산 기반 (#41/#42 CI 검증, 외부 적용 전)
 - [x] 방문자 체험·피드백 UI/API와 실제 API 브라우저 검증 (#43, 원격 공개/수집 전)
-- [ ] 최신 main 비공개 migration/release와 기존 합성 업무 데이터 보존·격리 restore
+- [x] #43 main 비공개 migration/release와 기존 합성 업무 데이터 보존·새 head 격리 restore
 - [ ] 피드백 보관 정리 주기·실패 감지·실제 실행 검증 (코드와 운영 완료 구분)
 - [ ] 공개 데모 생성 총량·전용 인증 모드·읽기/AI 비용 제한·정리/초기화·Hosting 연결
 - [x] 실제 Supabase migration·승인받은 private staging 일반 release 검증

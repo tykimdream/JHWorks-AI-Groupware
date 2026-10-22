@@ -1,0 +1,8 @@
+{
+  "project_id": "replace-project",
+  "region": "asia-northeast3",
+  "job": "jhworks-demo-maintenance",
+  "runtime_service_account": "jhworks-runtime@replace-project.iam.gserviceaccount.com",
+  "runtime_database": { "name": "jhworks-runtime-database", "version": "1" },
+  "jwt_secret": { "name": "jhworks-session-secret", "version": "1" }
+}

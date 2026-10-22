@@ -100,3 +100,5 @@ PR #28은 CI 4개·직접 리뷰·라벨링 후 병합했다. 별도 PR #29에�
 이번 실행 장애는 일반 pipe/기본 실행에서는 재현됐지만 Windows PowerShell의 PTY와 승인된
 실행 경로에서는 명령이 정상 완료됐다. 후속 세션에서 같은 장애가 나면 이 차이를 먼저 확인한다.
 플랫폼 승인·파일 권한 규칙을 우회한다는 뜻이 아니며 모든 확대 실행은 도구의 승인 검사를 따른다.
+
+Domain continuation: PR #34 cache boundary merged at 569ad5f; hosting preflight branch prepares only a static page and offline validator. Firebase addition/Blaze/site creation and subdomain DNS are awaiting explicit approval; private Cloud Run is unchanged. See pikan-domain-release.md.

@@ -43,3 +43,62 @@ The default private staging cookie is unchanged. A fresh Python process starts w
 The full API suite passed after implementation. Ruff and strict mypy results are checked before the PR is submitted. PostgreSQL integration cases remain CI-owned; no external database was used by these tests.
 
 Local result: 257 passed / 7 skipped in 35.21 seconds; Ruff passed; strict mypy 119 source files passed. The seven skipped PostgreSQL tests are verified in PR CI rather than claimed as locally executed.
+
+## Static HTTPS milestone (prepared, not deployed)
+
+The first public milestone is a static holding page on groupware.pikan.dev.
+This separates DNS/certificate verification from exposing the application and database.
+It is not the completed interactive demo. No rewrite can reach Cloud Run in this configuration.
+
+Reviewed inputs:
+- deploy/firebase/firebase.json: one existing-project site, public/index.html and styles.css only.
+- .firebaserc binds jhworks-staging-tykimdream explicitly.
+- No Firebase SDK, JavaScript, analytics, remote fonts, authentication or database integration.
+- CSP prohibits scripts, frames and forms; all responses use private, no-store.
+- python -m app.ops.firebase_hosting --config ../../deploy/firebase/firebase.json
+  runs from apps/api, performs an offline plan only and rejects other targets,
+  dynamic routes, extra files (including hidden secrets), symlinks and uploads above 32 KiB.
+- This validator checks deployment inputs, not HTML safety or a cloud spend cap.
+  The exact files must still be reviewed at the deployment commit.
+- New validator tests and cache/cookie tests: 16 passed in 5.15 seconds.
+  Ruff passed; strict mypy app/tests passed (121 source files).
+- Desktop preview was inspected in the actual browser. Mobile and deployed HTTPS/header
+  checks remain pending; no WCAG compliance claim is made.
+
+### Next approval boundary and operational procedure
+
+Firebase Console confirms that the existing GCP project is eligible for adding Firebase.
+It warns that this addition cannot be undone, billing and project IAM are shared,
+and deleting the Firebase project would delete the existing GCP project too.
+Never delete the project as a Hosting rollback.
+
+Before applying: obtain approval to enable Firebase on this specific project,
+create one Hosting site and its managed service identities, use the existing billing
+account (Blaze), and publish only this reviewed static holding page.
+Disable optional Analytics/Gemini products; do not create Firestore/Auth/Storage,
+new databases, load balancers or new billing accounts.
+Existing Cloud Run IAM, Secrets and database access stay unchanged.
+
+The approximately 2.9 KiB page is expected to fit the Hosting no-cost allowance
+at low traffic, but usage beyond allowances is billable. Existing 5,000/10,000 KRW
+alerts are notifications rather than spending caps. Verify live quotas and plan first.
+A static Holding release must use --only hosting with the explicit project and
+reviewed config; do not use a generic multi-product firebase deploy.
+
+After creating Hosting, inspect the exact domain verification instructions.
+Change only records for groupware.pikan.dev in Vercel DNS, preserve root/portfolio
+and nameserver records, and confirm certificate issuance before calling this milestone
+complete. Record old DNS values and Hosting release ID for rollback.
+Rollback uses the previous Hosting release or the recorded subdomain DNS values,
+never deletion of the Firebase/GCP project.
+
+### Remaining application gates
+
+Public demo isolation, anonymous/login throttling and resource limits must be tested
+before any Cloud Run public IAM or live __session/origin change.
+The existing private release workflow intentionally rejects public IAM and must not
+be weakened. Choose a separate reviewed public-demo release path.
+Then verify real CDN cookie forwarding, CSRF, login/logout, no-store,
+unauthorized access, max instances and billing on the final domain.
+
+Full local API result for this unit: 266 passed / 7 skipped in 36.68 seconds; PostgreSQL integration cases are delegated to CI. JUnit: artifacts/cloud-run/firebase-preflight-tests.xml (ignored local evidence).

@@ -50,3 +50,18 @@ GitHub/npm audit은 scope를 runtime/dependencies로 표시하므로 이 분류�
 이 패치는 공개 demo의 요청 제한·tenant 격리·AI 비용 제한을 대신하지 않는다. private staging/AI off 정책은 유지한다.
 면접에서는 “개발 의존성 경고를 왜 무시하지 않았는가?”, “왜 모든 소비자에 최신 major를 강제하지 않는가?”,
 “audit findings 수와 실제 공격 가능한 경로를 어떻게 구분하는가?”를 이 diff와 실제 검사 결과로 설명할 수 있다.
+
+## 병합·외부 배포 후 실제 확인
+
+- PR #31(업무 증거), #32(패치)는 최종 head의 CI 5개 성공·직접 리뷰 COMMENT·reviewed 라벨 확인 후 병합했다. 독립적인 사람의 승인은 아니다.
+- 패치 merge `049f5d9ffc8bfdd56893749c091bd33b4878233f`, [main CI 39721349050](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39721349050) 성공.
+- [private release 39721684081](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39721684081) 성공; migration/private revision/HTTP smoke 4/4 통과.
+- revision `jhworks-staging-049f5d9ffc8b`; 업무 데이터 포함 backup `20261022T040623Z-5fdce560` reference 사용, bootstrap=false.
+- 동일 source의 read-only service-preflight passed/changed=0: Ready, traffic 100%, service/project public binding 없음, invoker check 활성, AI=false, service max=2.
+- 별도 익명 curl HTTP 403. 세션 없는 API 401은 GCP 인증을 쓰는 deploy-SA smoke의 별도 검사다.
+- GitHub open Dependabot도 High 1개(braces #28)로 갱신됐음을 조회했다. dismissed 처리하지 않았다.
+- 기존 실제 업무 검증은 cfe258f에서 수행했고 신규 버전에서는 초기 fixture --apply를 재실행하지 않았다.
+
+API digest: `sha256:60aa7792442ab51c4e219c309d728e4f0895af5e7d1f320db84e0d3b6b4d8452`
+
+Web digest: `sha256:67d5cce2f8dad3b3ab91e31f5b6e91096da5769c01d9b8dee6d9d7a0d0396509`

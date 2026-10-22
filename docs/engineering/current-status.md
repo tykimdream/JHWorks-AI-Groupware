@@ -1,8 +1,14 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
-## 최신 상태: 준비 화면의 사용자 도메인 HTTPS 검증 완료
+## 최신 상태: 사용자 도메인 HTTPS와 공유 로그인 예산의 비공개 배포 검증 완료
 
-최신 배포는 [npm 패치·외부 검증](npm-security-patches.md), 실제 업무는 [workflow 증거](private-workflow-smoke.md)가 기준이다.
+최신 배포는 [공유 로그인 예산·실제 배포 증거](public-demo-login-budget.md)가 기준이다. 실제 결재·휴가 업무의 마지막 검증은 [기존 workflow 증거](private-workflow-smoke.md)를 따르며 이번 배포에서 다시 실행했다고 표현하지 않는다.
+
+- 최신 앱 SHA 9a29f2e0c0292ec9239600f896c0f68c1fb10daf, revision jhworks-staging-9a29f2e0c029, DB head c84f2a19d6e0. main CI·release 39728919669·smoke 4/4와 추가 HTTP/DB 검증 성공.
+- 로그인 고정 분당 기본 60건을 DB 원자 카운터로 공유한다. 429·동시성·실패 지속성·DB 장애는 CI, 실제 카운터 쓰기·기존 업무 fingerprint 보존은 private staging에서 확인했다.
+- PR #37/#38 리뷰·CI 5개·병합·브랜치 정리 완료. public domain은 정적 준비 화면이며 방문자 격리/쓰기 제한/공개 전환은 다음 단위다.
+
+아래 npm 배포 SHA와 기존 backup은 과거 검증 이력이며 최신 앱 버전이 아니다.
 
 - PR #28~32 병합 완료. #31/#32 최종 head CI 5개·직접 리뷰·라벨링 후 브랜치를 정리했다.
 - 실제 staging은 `049f5d9ffc8bfdd56893749c091bd33b4878233f`, revision `jhworks-staging-049f5d9ffc8b`. main CI와 release 39721684081/HTTP 4/4가 통과했다.

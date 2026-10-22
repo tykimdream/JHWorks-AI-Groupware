@@ -156,6 +156,11 @@ DRAFT ──submit──> PENDING ──approve──> APPROVED
 
 공통 비밀번호: `demo1234`
 
+이 계정은 로컬 개발·테스트 전용이다. 기본 seed는 development/test의 SQLite 또는
+localhost/loopback/로컬 Compose `db` PostgreSQL에서만 실행되며 원격 DB와 staging/production은
+연결 전에 거부한다. 공개 서비스에는 이 비밀번호를 등록하지 않는다.
+[실행 경계와 검증](docs/engineering/local-seed-boundary.md)을 참고한다.
+
 | 역할 | 이메일 | 가능한 작업 |
 | --- | --- | --- |
 | 작성자 윤서진 | `seojin.yoon@jhworks.test` | Draft 작성·제출·재작성 |

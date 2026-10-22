@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.models.attendance import LeaveAccount, WorkCalendarEvent
@@ -138,6 +139,18 @@ def _seed_attendance(db: Session) -> None:
 
 
 def seed_database(db: Session) -> None:
+    # These credentials are public local fixtures. An environment typo must not
+    # let them reach a hosted database, even if that database is still empty.
+    settings = get_settings()
+    database = db.get_bind().engine.url
+    if settings.environment not in {"development", "test"} or not (
+        database.get_backend_name() == "sqlite"
+        or (
+            database.get_backend_name() == "postgresql"
+            and database.host in {"localhost", "127.0.0.1", "::1", "db"}
+        )
+    ):
+        raise RuntimeError("Public demo seed is restricted to local development/test databases")
     if db.scalar(select(Employee.id).limit(1)) is not None:
         _seed_attendance(db)
         db.commit()

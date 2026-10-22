@@ -10,7 +10,8 @@
 - Cloud Shell read-only preflight 통과: 비공개 IAM, AI=false, max=2, 익명 403 유지.
 - 실제 업무 workflow passed: 합성 결재 2건·연차 1일, 3명 권한/CSRF/409/logout 검증 완료. 초기 --apply 재실행 금지.
 - 업무 데이터 포함 backup `20261022T040623Z-5fdce560`의 격리 restore/비교도 통과했다. [실제 업무 증거](private-workflow-smoke.md)를 따른다.
-- 다음은 npm 잔여 advisory → 공개 demo 격리/비용 제한 검증이다.
+- npm 수정 가능 advisory는 [major별 전이 패치](npm-security-patches.md)로 처리했다. 동일 audit 8→1, web lint/type/build 통과. 잔여 braces는 별도 추적한다.
+- 다음은 공개 demo의 사용자별 격리·초기화·요청/AI 비용 제한 설계와 회귀 검증이다. 공개 전환 전 확인은 유지한다.
 - 현재 CD는 workflow_dispatch다. 공개 전환·새 권한/유료 자원·AI 연결은 별도 확인 대상이다.
 
 이하 내용은 이전 실행 이력이다. 아래의 과거 배포 SHA·빈 DB backup·미배포 설명을 현재 상태로 해석하지 않는다.

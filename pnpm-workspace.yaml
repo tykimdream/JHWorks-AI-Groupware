@@ -5,3 +5,7 @@ packages:
 # Patch-compatible fix for the indexed source map denial-of-service advisory.
 overrides:
   source-map-js: 1.2.2
+  # Keep the CommonJS 1.x and ESM 5.x consumers on their own patched major.
+  brace-expansion@1: 1.1.21
+  brace-expansion@5: 5.0.12
+  js-yaml@4: 4.3.2

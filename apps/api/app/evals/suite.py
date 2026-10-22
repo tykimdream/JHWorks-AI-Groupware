@@ -61,7 +61,7 @@ class CapabilityOutcome(BaseModel):
     report: dict[str, Any] | None = None
 
 def load_manifest(path: Path = MANIFEST_PATH) -> EvalManifest:
-    return EvalManifest.model_validate_json(path.read_text())
+    return EvalManifest.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def _case_results(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -190,10 +190,11 @@ def run_capability(
     started_at = perf_counter()
     try:
         completed = subprocess.run(
-            [sys.executable, "-m", capability.module],
+            [sys.executable, "-X", "utf8", "-m", capability.module],
             capture_output=True,
             check=False,
             text=True,
+            encoding="utf-8",
             timeout=timeout_seconds,
         )
     except subprocess.TimeoutExpired:
@@ -275,7 +276,9 @@ def main() -> int:
     ]
     report = build_report(outcomes)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    args.output.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if any(outcome.status == "unavailable" for outcome in outcomes):
         return 2

@@ -31,7 +31,7 @@ class LeaveAssistantEvalCase(BaseModel):
 
 
 def load_cases() -> list[LeaveAssistantEvalCase]:
-    raw = json.loads(DATASET_PATH.read_text())
+    raw = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
     return [LeaveAssistantEvalCase.model_validate(item) for item in raw]
 
 

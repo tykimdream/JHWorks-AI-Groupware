@@ -30,7 +30,7 @@ class WorkAssistantEvalCase(BaseModel):
 
 
 def load_cases() -> list[WorkAssistantEvalCase]:
-    raw = json.loads(DATASET_PATH.read_text())
+    raw = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
     return [WorkAssistantEvalCase.model_validate(item) for item in raw]
 
 

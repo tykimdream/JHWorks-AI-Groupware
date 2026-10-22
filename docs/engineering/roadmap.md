@@ -9,7 +9,7 @@
 
 - [x] Phase 0: Git/지침/구현/테스트/CI/UI/DB 정밀 진단, 기준 테스트·build 재검증
 - [x] 첫 구현: Cookie 쓰기 출처 검증과 기존 업무 흐름 회귀 테스트
-- [ ] Windows JSON 읽기 인코딩을 명시적으로 수정(QA-01, 현재 UTF-8 실행 우회)
+- [x] QA-01 평가 JSON/자식 프로세스 UTF-8 계약 구현·cp949 재현/관련 회귀 검증
 - [ ] 공개 데모 인증 격리·API/AI 호출량 제한
 - [ ] 실제 PostgreSQL 검증 및 승인받은 인프라 staging 배포
 - [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
@@ -79,7 +79,7 @@ main 자동 배포는 아직 구현하지 않았다. workflow_dispatch 이후 �
 | --- | --- | --- | --- |
 | 0-A 진단 | 기존 코드와 historical 기록 구분 | assessment, 로컬 baseline, UI 이미지, 위험/난도/범위 | 완료 |
 | 1-A 출처 검증 | 단일 frontend Cookie API의 Origin/Referer guard. token 체계 추가 대신 작은 경계 선택 | 변조/누락/중복/다른 port 거부, DB 무변경, 정상 workflow 회귀 | 로컬 완료, staging 후속 |
-| 1-B 개발 재현성 | locale 기본 인코딩 의존 제거 | Windows 기본 모드/Linux에서 평가 dataset 읽기 및 전체 테스트 | 비용/외부 인증 불필요, 다음 작업 |
+| 1-B 개발 재현성 | locale 기본 인코딩 의존 제거 | [QA-01 재현·수정·검증](evaluation-encoding.md) | 로컬 수정 완료, PR CI 후 병합 |
 | 1-C 공개 데모 정책 | local demo 로그인과 public 모드 분리, 합성 데이터만 사용. 가능하면 session별 격리/만료, shared demo는 쓰기 제한 | 기본 공개 비밀번호 미허용, 타 세션 데이터 접근 차단, seed 환경 guard, reset dry-run과 보존 정책 | SEC-01/GOV-01 |
 | 1-D 남용/비용 제한 | 로그인·일반 API·AI의 서로 다른 예산. 단일 instance는 proxy+최소 상태부터, worker가 늘면 공유 원자 카운터 비교 | 429/Retry-After, 동시 요청 경계, TTL 회복, AI budget 초과 시 provider 호출 0회. 기본 AI key 미주입 | 배포 topology·신뢰 proxy 결정 |
 | 1-E production artifact | 기존 Docker 재사용, 비root/버전 고정·DB 비노출·HTTPS proxy/secret 주입. 로컬 Compose와 분리 | image scan, config fail-fast, 5432 외부 차단, Cookie/CORS/CSRF 실제 browser 확인 | Docker engine, 1-C/D |

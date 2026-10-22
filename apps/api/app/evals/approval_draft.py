@@ -30,7 +30,7 @@ class ApprovalDraftEvalCase(BaseModel):
 
 
 def load_cases() -> list[ApprovalDraftEvalCase]:
-    raw = json.loads(DATASET_PATH.read_text())
+    raw = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
     return [ApprovalDraftEvalCase.model_validate(item) for item in raw]
 
 

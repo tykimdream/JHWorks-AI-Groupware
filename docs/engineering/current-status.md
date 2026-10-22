@@ -2,6 +2,12 @@
 
 ## 2026-10-23 재개: 공개 전용 경계 준비
 
+[분리 기반 실제 적용](demo-identity-foundation.md): 사용자 승인 후 NOLOGIN DB 역할2/schema와
+GCP SA2/빈 Secret3/v1 조건부 읽기4/deploy actAs2를 적용·독립 검증했다. 기존 행 수/head와
+기존 Secret version1 유지, 새 버전0/관리 키0/project grant0을 확인했다. 서비스는 기존 75d5e8a 참조 그대로다.
+다음은 [초기 credential 도구](demo-credential-setup.md)의 검증·리뷰·병합이며 실제 값 등록/LOGIN은
+별도 비용·인증 승인 및 사용자 직접 입력 후 진행한다. 체크포인트 1은 아직 완료가 아니다.
+
 첫 공개까지 5개 체크포인트와 이후 6개 단계를 [roadmap](roadmap.md)에 최신화했다.
 [공개 데모 분리](demo-isolation.md)는 전용 schema/NOLOGIN DB 역할·GCP 계정/Secret 참조 profile과
 실제 PostgreSQL 전체 migration/권한 회귀를 준비한다. 기존 staging과 실제 private demo 자원은

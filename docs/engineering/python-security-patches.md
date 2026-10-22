@@ -27,9 +27,10 @@ strict mypy app/tests 110 source files 통과. PR의 frozen install/build/E2E/co
 
 ## 배포 및 남은 범위
 
-lock 변경의 병합과 실행 중인 image 교체를 구분한다. 현재 private service SHA `2dfb0d0`는 이전
-bundle을 포함하므로 이 PR과 main CI 통과 후 새 SHA image로 정상 배포를 다시 검증해야 한다.
-GitHub alert 해소도 병합 후 실제 조회로 확인하며 자동 dismissed 처리하지 않는다.
+lock 변경의 병합과 실행 중인 image 교체를 구분한다. 변경 준비 당시 private service SHA `2dfb0d0`는
+이전 bundle을 포함했다. 이후 PR #24/25와 main CI를 통과한 `1b11879` image로
+[release 39708645497](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39708645497)가 성공했고 deploy-SA HTTP 4/4를 검증했다.
+GitHub 재조회에서 Python open alert 0개를 확인했으며 수동 dismissed 처리하지 않았다.
 남은 npm alert는 실제 runtime/build 경로와 upstream patch를 별도 검토한다. 현재 공개 전환은 하지 않는다.
 
 근거:

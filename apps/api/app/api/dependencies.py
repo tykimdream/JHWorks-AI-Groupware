@@ -24,11 +24,7 @@ from app.services.demo_workspace import require_demo_workspace
 DbSession = Annotated[Session, Depends(get_db)]
 
 
-def get_current_employee(
-    request: Request,
-    db: DbSession,
-    session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
-) -> Employee:
+def _session_employee(db: Session, session_token: str | None) -> Employee:
     if session_token is None:
         raise AuthenticationError()
 
@@ -44,10 +40,31 @@ def get_current_employee(
         or (get_settings().public_demo_enabled and employee.demo_workspace_id is None)
     ):
         raise AuthenticationError("The employee account is unavailable")
+    return employee
+
+
+def get_current_employee(
+    request: Request,
+    db: DbSession,
+    session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
+) -> Employee:
+    employee = _session_employee(db, session_token)
     require_demo_workspace(db, employee, write=request.method not in {"GET", "HEAD", "OPTIONS"})
     return employee
 
 
+def get_feedback_employee(
+    db: DbSession,
+    session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
+) -> Employee:
+    employee = _session_employee(db, session_token)
+    if employee.demo_workspace_id is None:
+        raise AuthenticationError()
+    require_demo_workspace(db, employee, admit=False)
+    return employee
+
+
+FeedbackEmployee = Annotated[Employee, Depends(get_feedback_employee)]
 CurrentEmployee = Annotated[Employee, Depends(get_current_employee)]
 
 

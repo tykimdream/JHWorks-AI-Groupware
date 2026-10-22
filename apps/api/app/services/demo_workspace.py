@@ -34,7 +34,9 @@ def _database_epoch(db: Session) -> ColumnElement[int]:
     raise ValueError("Unsupported demo workspace database")
 
 
-def require_demo_workspace(db: Session, actor: Employee, *, write: bool = False) -> None:
+def require_demo_workspace(
+    db: Session, actor: Employee, *, write: bool = False, admit: bool = True
+) -> None:
     """Check persisted identity, then commit only the admission counter before business work."""
     if actor.demo_workspace_id is None:
         return
@@ -78,6 +80,8 @@ def require_demo_workspace(db: Session, actor: Employee, *, write: bool = False)
                 for item in related
             ):
                 raise AuthenticationError("The demo workspace manager is unavailable")
+        if not admit:
+            return  # Feedback has its own one-per-workspace and global storage admission.
         # Evaluate DB time inside UPDATE as well: a lock wait must not admit an expired space.
         admitted = db.scalar(
             update(DemoWorkspace)

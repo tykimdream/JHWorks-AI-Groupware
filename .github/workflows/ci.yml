@@ -65,12 +65,15 @@ jobs:
       - run: uv sync --frozen --project apps/api
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - run: pnpm test:e2e:public-demo
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: browser-evidence
           path: |
             playwright-report/
+            playwright-public-demo-report/
+            artifacts/feedback/*.png
             docs/portfolio/screenshots/
 
   container-smoke:

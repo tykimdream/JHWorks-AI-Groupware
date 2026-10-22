@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
+import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
+import { DemoRoleSwitcher } from '@/components/demo-entry';
 import { apiFetch } from '@/lib/api';
 
 interface AppShellProps {
@@ -14,6 +16,7 @@ interface AppShellProps {
 export const AppShell = ({ children }: AppShellProps) => {
   const router = useRouter();
   const { employee, isLoading, isRefreshing } = useCurrentEmployee();
+  const { configuration } = useDemoConfiguration();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
@@ -35,7 +38,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   }
 
   if (!employee) {
-    return <main className="centered-state" role="alert">계정 정보를 확인하지 못했습니다. <Link href="/login">다시 로그인</Link></main>;
+    return <main className="centered-state" role="alert">계정 정보를 확인하지 못했습니다. <Link href="/login">다시 로그인</Link> · <Link href="/feedback">의견 남기기</Link></main>;
   }
 
   return (
@@ -50,10 +53,12 @@ export const AppShell = ({ children }: AppShellProps) => {
         <nav className="nav-list" aria-label="주 메뉴">
           <Link href="/approvals">전자결재</Link>
           <Link href="/attendance">근태·휴가</Link>
-          <Link href="/assistant">AI 업무 조회</Link>
-          <Link href="/approvals/ai-draft">AI 초안 작성</Link>
+          {!configuration?.enabled && <Link href="/assistant">AI 업무 조회</Link>}
+          {!configuration?.enabled && <Link href="/approvals/ai-draft">AI 초안 작성</Link>}
           <Link href="/approvals/new">새 결재 작성</Link>
+          <Link href="/feedback">의견 남기기</Link>
         </nav>
+        {configuration?.enabled && <DemoRoleSwitcher key={employee.id} currentRole={employee.role} />}
         <div className="profile-card">
           <div className="avatar" aria-hidden="true">
             {employee.name.slice(0, 1)}

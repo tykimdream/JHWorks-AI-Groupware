@@ -22,7 +22,8 @@
     "type-check:api": "cd apps/api && uv run mypy app tests",
     "type-check:web": "pnpm --filter @jhworks/web type-check",
     "validate": "pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:public-demo": "playwright test --config=playwright.public-demo.config.ts"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {

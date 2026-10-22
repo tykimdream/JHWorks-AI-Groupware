@@ -1,5 +1,19 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
+## 가장 최근 코드와 공개 준비
+PR #42 방문자 lifecycle은 exact head afd2f21의 CI 5개 성공·자체 리뷰·reviewed/security 라벨 후
+병합했다(main 6652eed). 로컬 API 371 passed/16 skipped, Ruff/mypy 138 files 통과.
+[설계와 운영 경계](demo-visitor-lifecycle.md)를 따른다. 공간 생성·정리 도구는 아직 실제 실행하지 않았다.
+
+다음 변경은 [익명 피드백·개선 기록](demo-feedback.md): 기본 비활성의 공개 체험 화면, 공간당 1회 접수,
+멱등 재전송/전체 보관 300건 상한/비공개 운영 CLI와 30일 purge를 준비한다. 웹 포트폴리오의 실제
+버튼은 공개 폼이 검증된 뒤 연결한다. 실제 사용자 피드백/만족도 자료를 만들어내지 않는다.
+public_demo_enabled 기본 false. 실제 원격 앱은 여전히 9a29f2e, DB c84f2a19d6e0, domain은 정적 준비 화면이다.
+공개 전용 DB의 합성 공용 규정·일정, 30일 정리 실행 경로, 최종 workspace E2E, Hosting rewrite/쿠키/
+공개 IAM과 release 경로 검토가 남았다. 새 권한/실제 공개 수집·삭제·과금 자원 적용 전 확인받는다.
+
+아래는 이전 실행 기록이다.
+
 ## 최신 코드 검증: token 만료 계약 완료, 방문자 workspace 기반 진행
 [PR #40](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/40)을 정확한 head CI 5개 성공,
 자체 리뷰 COMMENT·reviewed/security 라벨 후 병합했다(main f378e6b). 로컬/원격 작업 브랜치를 정리했다.

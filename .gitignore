@@ -5,6 +5,7 @@
 gha-creds-*.json
 deploy/cloud-run/settings.local.json
 artifacts/cloud-run/
+artifacts/feedback/
 
 # Python
 __pycache__/
@@ -30,4 +31,5 @@ artifacts/smoke/*.json
 .vscode/
 
 playwright-report/
+playwright-public-demo-report/
 test-results/

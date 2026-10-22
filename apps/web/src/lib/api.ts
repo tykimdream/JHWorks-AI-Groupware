@@ -22,6 +22,14 @@ export class ApiError extends Error {
 }
 
 const errorMessages: Record<string, string> = {
+  DEMO_START_LIMIT_REACHED: '체험 접속 한도에 도달했습니다. 나중에 다시 시도해주세요.',
+  DEMO_START_UNAVAILABLE: '체험 공간을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.',
+  DEMO_WORKSPACE_UNAVAILABLE: '체험 공간 연결이 원활하지 않습니다. 잠시 후 다시 시도해주세요.',
+  DEMO_REQUEST_LIMIT_REACHED: '체험 요청 한도에 도달했습니다. 로그아웃하거나 피드백을 남길 수 있습니다.',
+  DEMO_WRITE_LIMIT_REACHED: '체험 저장 한도에 도달했습니다. 조회와 피드백은 계속 사용할 수 있습니다.',
+  DEMO_FEEDBACK_ALREADY_SENT: '이 체험 공간에서는 이미 의견을 접수했습니다.',
+  DEMO_FEEDBACK_CAPACITY: '현재 피드백 접수 한도에 도달했습니다. 나중에 다시 시도해주세요.',
+  DEMO_FEEDBACK_UNAVAILABLE: '지금 의견을 접수하지 못했습니다. 입력은 유지되니 잠시 후 다시 시도해주세요.',
   APPROVAL_NOT_READY: '제출에 필요한 정보를 모두 입력해주세요.',
   AI_DRAFT_UNAVAILABLE: 'AI 초안 작성을 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
   AI_REVIEW_UNAVAILABLE: 'AI 검토를 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',

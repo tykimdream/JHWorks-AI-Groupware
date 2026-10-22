@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
 import { ApiError, apiFetch } from '@/lib/api';
+import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
+import { DemoEntry } from '@/components/demo-entry';
 import type { CurrentEmployee } from '@/lib/types';
 
 const demoAccounts = [
@@ -25,6 +27,7 @@ const demoAccounts = [
 ];
 
 export default function LoginPage() {
+  const { configuration, error: configurationError } = useDemoConfiguration();
   const router = useRouter();
   const [email, setEmail] = useState(demoAccounts[0].email);
   const [password, setPassword] = useState('demo1234');
@@ -47,6 +50,10 @@ export default function LoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (configurationError) return <main className="centered-state" role="alert">접속 설정을 불러오지 못했습니다. 새로고침 후 다시 확인해주세요.</main>;
+  if (!configuration) return <main className="centered-state" role="status">접속 설정을 확인하고 있습니다.</main>;
+  if (configuration.enabled) return <DemoEntry durationMinutes={configuration.durationMinutes} />;
 
   return (
     <main className="login-page">

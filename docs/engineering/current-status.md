@@ -14,6 +14,8 @@
 - 다음은 공개 demo의 사용자별 격리·초기화·요청/AI 비용 제한 설계와 회귀 검증이다. 공개 전환 전 확인은 유지한다.
 - 현재 CD는 workflow_dispatch다. 공개 전환·새 권한/유료 자원·AI 연결은 별도 확인 대상이다.
 
+도메인 작업을 시작했다. [pikan.dev 연결 준비](pikan-domain-release.md)에서 API no-store와 시작 시점 __session 쿠키 회귀를 검증했다. Firebase 생성/Blaze/DNS/IAM/공개 전환은 아직 적용하지 않았다.
+
 이하 내용은 이전 실행 이력이다. 아래의 과거 배포 SHA·빈 DB backup·미배포 설명을 현재 상태로 해석하지 않는다.
 
 

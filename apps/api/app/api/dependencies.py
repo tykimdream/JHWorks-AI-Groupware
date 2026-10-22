@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Cookie, Depends
+from fastapi import Cookie, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -19,11 +19,13 @@ from app.core.database import get_db
 from app.core.errors import AuthenticationError
 from app.core.security import decode_session_token
 from app.models.employee import Employee
+from app.services.demo_workspace import require_demo_workspace
 
 DbSession = Annotated[Session, Depends(get_db)]
 
 
 def get_current_employee(
+    request: Request,
     db: DbSession,
     session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
 ) -> Employee:
@@ -38,6 +40,7 @@ def get_current_employee(
     )
     if employee is None or not employee.is_active:
         raise AuthenticationError("The employee account is unavailable")
+    require_demo_workspace(db, employee, write=request.method not in {"GET", "HEAD", "OPTIONS"})
     return employee
 
 

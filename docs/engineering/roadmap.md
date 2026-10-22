@@ -13,7 +13,9 @@
 - [x] QA-01 평가 JSON/자식 프로세스 UTF-8 계약 구현·cp949 재현/관련 회귀 검증
 - [x] groupware.pikan.dev 정적 준비 화면·DNS·HTTPS 실제 검증 (앱 공개와 구분)
 - [x] DB 공유 로그인 예산·PostgreSQL 동시성·private migration/배포·데이터 보존·새 head 격리 restore
-- [ ] 공개 데모 인증 격리·전체 API/AI 호출량 제한
+- [x] 서명 token 4종 필수 claim/만료 계약·신규 69개 회귀 (PR #40, 외부 재배포 전)
+- [ ] 방문자 workspace 경계·서버 수명·원자 쓰기 예산 기반 (구현/로컬 361개 통과, CI 및 외부 검증 구분)
+- [ ] 공개 데모 생성 총량·전용 인증 모드·읽기/AI 비용 제한·정리/초기화·Hosting 연결
 - [x] 실제 Supabase migration·승인받은 private staging 일반 release 검증
 - [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
 - [x] CI URL 별칭 수정 PR #20 병합·소규모 staging dump/격리 restore 비교

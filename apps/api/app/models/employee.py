@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Date, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, Date, Enum, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,11 +27,17 @@ class Department(Base):
 
 class Employee(Base):
     __tablename__ = "employees"
+    __table_args__ = (
+        Index("ix_employees_department_demo_workspace", "department_id", "demo_workspace_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     department_id: Mapped[str] = mapped_column(ForeignKey("departments.id"), nullable=False)
+    demo_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("demo_workspaces.id"), nullable=True
+    )
     position: Mapped[str] = mapped_column(String(120), nullable=False)
     role: Mapped[EmployeeRole] = mapped_column(
         Enum(EmployeeRole, native_enum=False, length=32), nullable=False

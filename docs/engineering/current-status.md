@@ -1,10 +1,16 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
-## 다음 공개 준비 단위: 서명 토큰 만료 계약 보강
-세션/AI 확인 token의 필수 시간 claim 검증 공백을 재현하고 공통 decoder로 보강한다.
-[작업·검증 기록](session-expiry-contract.md)을 따른다. 방문자 workspace 격리·수명·쓰기 예산은
-아직 완료하지 않았고 공개 인증 endpoint를 추가하지 않았다. 조직 전체 조회와 공유 일정/규정 범위를
-구분한 접근 계약을 다음 단위로 검증한다. 아래 실제 배포 SHA는 이 코드 변경을 포함하지 않는다.
+## 최신 코드 검증: token 만료 계약 완료, 방문자 workspace 기반 진행
+[PR #40](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/40)을 정확한 head CI 5개 성공,
+자체 리뷰 COMMENT·reviewed/security 라벨 후 병합했다(main f378e6b). 로컬/원격 작업 브랜치를 정리했다.
+서명 token 필수 claim/시간 검증과 신규 69개 회귀를 추가했다. CI API 342 passed/10 skipped (28.06초),
+별도 PostgreSQL 10 passed (3.74초), browser/container/dependency 성공.
+[상세](session-expiry-contract.md)를 따른다. 실제 외부 staging은 아직 9a29f2e이고 이 코드를 재배포하지 않았다.
+
+다음 단위는 [workspace 경계·수명·쓰기 예산](demo-workspace-boundary.md)이다. 새 공개 bootstrap·쿠키
+전환·IAM 변경·실제 guest 계정은 아직 없다. workspace 생성 전체 상한/읽기·AI 제한/정리 정책/
+공개 전용 인증 모드/화면과 Hosting 연결은 별도 작업이다. 전역 회사 일정·규정은 향후 공개용 합성
+read-only 자료로만 구성해야 한다. private 데이터를 그대로 공개하지 않는다.
 
 ## 최신 상태: 사용자 도메인 HTTPS와 공유 로그인 예산의 비공개 배포 검증 완료
 

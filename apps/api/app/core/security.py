@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 from pwdlib import PasswordHash
@@ -30,10 +31,35 @@ def create_session_token(employee_id: str) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def decode_session_token(token: str) -> str:
+def _decode_timed_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm],
+            options={"require": ["sub", "type", "iat", "exp"]},
+        )
+    except (TypeError, OverflowError) as exc:
+        raise jwt.InvalidTokenError("Invalid token time claims") from exc
+
+    issued_at = payload["iat"]
+    expires_at = payload["exp"]
+    # Our issuers produce integer NumericDates; coercion would also accept bool/string.
+    if (
+        type(issued_at) is not int
+        or type(expires_at) is not int
+        or expires_at <= issued_at
+        or not isinstance(payload["sub"], str)
+        or not payload["sub"].strip()
+    ):
+        raise jwt.InvalidTokenError("Invalid token lifetime or subject")
+    return payload
+
+
+def decode_session_token(token: str) -> str:
+    try:
+        payload = _decode_timed_token(token)
     except jwt.PyJWTError as exc:
         raise AuthenticationError("The session is invalid or expired") from exc
 
@@ -94,9 +120,8 @@ def create_approval_draft_confirmation_token(
 
 
 def decode_approval_draft_confirmation_token(token: str) -> ApprovalDraftConfirmation:
-    settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = _decode_timed_token(token)
     except jwt.PyJWTError as exc:
         raise ConflictError(
             "INVALID_CONFIRMATION",
@@ -152,9 +177,8 @@ def create_leave_draft_confirmation_token(
 
 
 def decode_leave_draft_confirmation_token(token: str) -> LeaveDraftConfirmation:
-    settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = _decode_timed_token(token)
     except jwt.PyJWTError as exc:
         raise ConflictError(
             "INVALID_LEAVE_CONFIRMATION",
@@ -223,9 +247,8 @@ def create_leave_submit_confirmation_token(
 
 
 def decode_leave_submit_confirmation_token(token: str) -> LeaveSubmitConfirmation:
-    settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = _decode_timed_token(token)
     except jwt.PyJWTError as exc:
         raise ConflictError(
             "INVALID_LEAVE_SUBMIT_CONFIRMATION",

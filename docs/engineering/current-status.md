@@ -2,6 +2,14 @@
 
 ## 2026-10-23 재개: 공개 전용 경계 준비
 
+최신: [전용 credential 설정](demo-credential-setup.md#실제-초기-설정-결과--2026-10-23)은
+추가 비용/인증 승인과 사용자 직접 입력 후 실제 성공했다. 새 Secret v1 ENABLED 3개와 실제
+두 역할의 TLS pooler 인증/private SELECT 거부를 확인했다. 기존 서비스/Job은 아직 전용 신원으로
+전환하지 않았다. 다음 [격리 배포 계획](demo-isolated-rollout.md)은 offline 준비이며 실제
+migration Job 생성·실행/서비스·maintenance 전환은 별도 확인 후 수행한다.
+
+아래 NOLOGIN/빈 Secret 및 credential 미실행 설명은 초기 기반 적용 당시 기록이다.
+
 [분리 기반 실제 적용](demo-identity-foundation.md): 사용자 승인 후 NOLOGIN DB 역할2/schema와
 GCP SA2/빈 Secret3/v1 조건부 읽기4/deploy actAs2를 적용·독립 검증했다. 기존 행 수/head와
 기존 Secret version1 유지, 새 버전0/관리 키0/project grant0을 확인했다. 서비스는 기존 75d5e8a 참조 그대로다.

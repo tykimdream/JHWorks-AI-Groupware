@@ -102,3 +102,44 @@ Then verify real CDN cookie forwarding, CSRF, login/logout, no-store,
 unauthorized access, max instances and billing on the final domain.
 
 Full local API result for this unit: 266 passed / 7 skipped in 36.68 seconds; PostgreSQL integration cases are delegated to CI. JUnit: artifacts/cloud-run/firebase-preflight-tests.xml (ignored local evidence).
+
+## Live static release evidence — 2026-10-22
+
+User approved Firebase addition/Hosting/Blaze on the existing project and, separately,
+the exact subdomain CNAME and certificate verification.
+Firebase is now enabled on jhworks-staging-tykimdream with Analytics disabled.
+One Hosting site exists; no Firestore/Auth/Storage database or public Cloud Run
+access was created. Existing billing is shared (Blaze); this is not a free-only plan.
+
+Deployment source: eb876ecf7c0969af50915e5acc69f05444efdcd1.
+Cloud Shell used its existing Firebase CLI 15.32.0 / Node 24.21.0 and existing
+authenticated project access. Offline preflight passed: 2,943 upload bytes,
+two files, no backend rewrites, no Cloud Run IAM changes, no AI calls.
+Only hosting was deployed, with the explicit project and firebase.json.
+No CLI login token or service-account key was created.
+
+- Release: sites/jhworks-staging-tykimdream/releases/1792645703936000
+- Version: sites/jhworks-staging-tykimdream/versions/adf392792bd31141
+- Release time: 2026-10-22T05:08:23.936Z
+- Default HTTPS URL: https://jhworks-staging-tykimdream.web.app/
+- GET / and /styles.css: HTTP 200; private, no-store and reviewed CSP observed.
+- GET /api/auth/me and /.env: HTTP 404; no backend rewrite.
+- Anonymous existing Cloud Run: HTTP 403.
+- HTML SHA256: 592325ff5173961c3570c9c89d70c0a130a474ea5bc6f98ed4c21909904ce2cd
+- CSS SHA256: a8601be91c80f568425c6650ab519fb6332ad7075ac82eb935d5cc061c99810f
+- Both served asset hashes match the approved Git blobs.
+
+Vercel DNS now contains one added record:
+groupware / CNAME / jhworks-staging-tykimdream.web.app. / TTL 60.
+The authoritative ns1.vercel-dns.com response confirms this CNAME.
+No explicit groupware record existed before the change; it inherited Vercel's
+wildcard. Root and wildcard ALIAS, three CAA records, nameservers and portfolio
+project binding were retained. The old A values shown by Firebase were inherited
+answers; no root/wildcard record was deleted.
+
+Custom-domain certificate verification was started. Its final status and real
+groupware.pikan.dev HTTPS checks must be recorded before claiming domain completion.
+The application is still private, and this static release is not an interactive demo.
+No updated invoice or post-release cost is claimed; billing reports can lag.
+
+At 05:10 UTC, both authoritative nameservers plus Google (8.8.8.8) and Cloudflare (1.1.1.1) returned the expected CNAME. Firebase reports HOST_ACTIVE / OWNERSHIP_ACTIVE / CERT_VALIDATING, with matching HTTP ACME challenge and no issues. No extra TXT or CAA change is needed at this point. Local TLS verification still rejects the custom domain due to hostname mismatch while certificate provisioning completes; verification was not bypassed. Existing https://pikan.dev/ still returns HTTP 200.

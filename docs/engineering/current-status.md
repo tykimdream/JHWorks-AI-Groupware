@@ -102,3 +102,5 @@ PR #28은 CI 4개·직접 리뷰·라벨링 후 병합했다. 별도 PR #29에�
 플랫폼 승인·파일 권한 규칙을 우회한다는 뜻이 아니며 모든 확대 실행은 도구의 승인 검사를 따른다.
 
 Domain continuation: PR #34 cache boundary merged at 569ad5f; hosting preflight branch prepares only a static page and offline validator. Firebase addition/Blaze/site creation and subdomain DNS are awaiting explicit approval; private Cloud Run is unchanged. See pikan-domain-release.md.
+
+2026-10-22 live domain milestone: explicit Firebase/Blaze and CNAME approvals received. Static Holding release 1792645703936000 is live on jhworks-staging-tykimdream.web.app; groupware CNAME is authoritative/public. Firebase ownership and host are active; certificate is validating (05:10 UTC), so custom HTTPS is not yet complete. Root portfolio HTTP 200 and private Cloud Run HTTP 403 were verified. Interactive demo remains gated.

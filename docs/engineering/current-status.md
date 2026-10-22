@@ -16,6 +16,10 @@ domain은 정적 준비 화면이다.
 PR #44는 최종 head ee35a63의 CI 5개 성공/자체 리뷰/라벨 후 병합했다(main a1d284e).
 이후 [정리 Job runner와 적용 경계](demo-maintenance-job.md)를 구현한다. 기본 dry-run이며
 새 외부 Job/Scheduler/IAM/자동 삭제는 승인 전 생성·활성화하지 않는다.
+PR #45는 최종 head 77f93de CI 5개/리뷰/라벨 후 병합했다(main 75d5e8a).
+CI API402/21 skipped, PostgreSQL21, browser16+2 통과. 실제 Job은 아직 없다.
+다음 [공개 모드의 별도 비공개 리허설 서비스](public-demo-service.md)는 기존 staging을 덮지 않고
+domain/cookie/resource 경계를 고정한 offline manifest를 준비한다. 새 자원 생성은 비용·권한 확인 후 수행한다.
 웹 포트폴리오의 실제 버튼은 공개 폼이 검증된 뒤 연결한다. 실제 사용자 의견/만족도는 아직 없다.
 공개 전용 DB의 합성 공용 규정·일정, 30일 정리 실행 경로, 최종 workspace E2E, Hosting rewrite/쿠키/
 공개 IAM과 release 경로 검토가 남았다. 새 권한/실제 공개 수집·삭제·과금 자원 적용 전 확인받는다.

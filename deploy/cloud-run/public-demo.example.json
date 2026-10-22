@@ -1,0 +1,13 @@
+{
+  "project_id": "replace-project",
+  "region": "asia-northeast3",
+  "service": "jhworks-demo",
+  "frontend_origin": "https://groupware.pikan.dev",
+  "runtime_service_account": "jhworks-runtime@replace-project.iam.gserviceaccount.com",
+  "migration_service_account": "jhworks-migrate@replace-project.iam.gserviceaccount.com",
+  "runtime_database": { "name": "jhworks-runtime-database", "version": "1" },
+  "migration_database": { "name": "jhworks-migration-database", "version": "1" },
+  "jwt_secret": { "name": "jhworks-session-secret", "version": "1" },
+  "max_instances": 1,
+  "concurrency": 4
+}

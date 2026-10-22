@@ -3,9 +3,11 @@
 import os
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from alembic.config import Config
+from psycopg import Connection as PsycopgConnection
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection, make_url
 from sqlalchemy.exc import DBAPIError
@@ -80,6 +82,12 @@ def denied(connection: Connection, statement: str) -> None:
 
 def test_full_history_and_runtime_grants_do_not_cross_private_boundary(owner: Connection) -> None:
     owner.exec_driver_sql(SQL)
+    from app.ops.demo_credentials import database_preflight
+
+    database_preflight(
+        cast(PsycopgConnection[Any], owner.connection.driver_connection),
+        expected_database="jhworks_test",
+    )
     roles = owner.execute(text(
         "SELECT rolcanlogin, rolsuper, rolcreaterole, rolcreatedb, rolreplication, rolbypassrls "
         "FROM pg_roles WHERE rolname IN ('jhworks_demo_runtime','jhworks_demo_migrate')"

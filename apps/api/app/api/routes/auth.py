@@ -8,6 +8,7 @@ from app.core.errors import AuthenticationError
 from app.core.security import create_session_token, verify_password
 from app.models.employee import Employee
 from app.schemas.auth import LoginRequest, LoginResponse, LogoutResponse
+from app.services.demo_workspace import require_demo_workspace
 from app.services.login_budget import reserve_login_attempt
 from app.services.mappers import current_employee_read
 
@@ -35,6 +36,7 @@ def login(payload: LoginRequest, response: Response, db: DbSession) -> LoginResp
     ):
         raise AuthenticationError("The email or password is incorrect")
 
+    require_demo_workspace(db, employee)
     response.set_cookie(
         key=settings.session_cookie_name,
         value=create_session_token(employee.id),

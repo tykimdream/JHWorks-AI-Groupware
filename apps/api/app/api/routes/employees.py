@@ -15,8 +15,9 @@ def me(current_employee: CurrentEmployee) -> CurrentEmployeeRead:
 
 
 @router.get("/departments", response_model=list[DepartmentRead])
-def departments(db: DbSession, _: CurrentEmployee) -> list[DepartmentRead]:
-    items = db.scalars(
-        select(Department).where(Department.is_active.is_(True)).order_by(Department.name)
-    )
+def departments(db: DbSession, current_employee: CurrentEmployee) -> list[DepartmentRead]:
+    query = select(Department).where(Department.is_active.is_(True))
+    if current_employee.demo_workspace_id is not None:
+        query = query.where(Department.id == current_employee.department_id)
+    items = db.scalars(query.order_by(Department.name))
     return [department_read(item) for item in items]

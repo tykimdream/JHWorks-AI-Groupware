@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -62,13 +62,28 @@ def _get_approval_for_update(db: Session, approval_id: str) -> Approval:
     return _get_approval(db, approval_id)
 
 
+def _same_workspace(approval: Approval, actor: Employee) -> bool:
+    if actor.demo_workspace_id is None:
+        return True
+    return approval.author.demo_workspace_id == actor.demo_workspace_id and all(
+        line.approver.demo_workspace_id == actor.demo_workspace_id for line in approval.lines
+    )
+
+
+def _require_workspace(approval: Approval, actor: Employee) -> None:
+    if not _same_workspace(approval, actor):
+        raise AuthorizationError("This approval belongs to another demo workspace")
+
+
 def _can_view(approval: Approval, actor: Employee) -> bool:
-    return approval.author_id == actor.id or any(
-        line.approver_id == actor.id for line in approval.lines
+    return _same_workspace(approval, actor) and (
+        approval.author_id == actor.id
+        or any(line.approver_id == actor.id for line in approval.lines)
     )
 
 
 def _require_author(approval: Approval, actor: Employee) -> None:
+    _require_workspace(approval, actor)
     if approval.author_id != actor.id:
         raise AuthorizationError("Only the approval author can perform this action")
 
@@ -239,6 +254,18 @@ def list_approvals(db: Session, actor: Employee, scope: str) -> list[Approval]:
         query = query.where(Approval.lines.any(ApprovalLine.approver_id == actor.id))
     else:
         raise DomainValidationError("INVALID_SCOPE", "scope must be 'mine' or 'assigned'")
+    if actor.demo_workspace_id is not None:
+        query = query.where(
+            Approval.author.has(Employee.demo_workspace_id == actor.demo_workspace_id),
+            ~Approval.lines.any(
+                ApprovalLine.approver.has(
+                    or_(
+                        Employee.demo_workspace_id.is_(None),
+                        Employee.demo_workspace_id != actor.demo_workspace_id,
+                    )
+                )
+            ),
+        )
     return list(db.scalars(query).unique())
 
 
@@ -334,9 +361,7 @@ def submit_approval(
             db,
             approval,
             expected_account_version=(
-                leave_confirmation.account_version
-                if leave_confirmation is not None
-                else None
+                leave_confirmation.account_version if leave_confirmation is not None else None
             ),
         )
 
@@ -370,6 +395,7 @@ def decide_approval(
     decision: ApprovalStatus,
 ) -> Approval:
     approval = _get_approval_for_update(db, approval_id)
+    _require_workspace(approval, actor)
     _require_version(approval, payload.version)
     if approval.status != ApprovalStatus.PENDING:
         raise ConflictError("INVALID_STATUS", "Only pending approvals can be decided")

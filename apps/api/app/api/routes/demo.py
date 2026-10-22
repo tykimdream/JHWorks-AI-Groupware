@@ -1,0 +1,67 @@
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Cookie, Response
+
+from app.api.dependencies import CurrentEmployee, DbSession
+from app.core.config import get_settings
+from app.core.errors import NotFoundError
+from app.core.security import create_session_token
+from app.models.demo_workspace import DemoWorkspace
+from app.models.employee import Employee
+from app.schemas.demo import DemoConfiguration, DemoRoleRequest, DemoVisitRead
+from app.services.demo_visitor import start_visit_safely, switch_role
+from app.services.mappers import current_employee_read
+
+router = APIRouter(prefix="/demo", tags=["demo"])
+
+
+def _require_enabled() -> None:
+    if not get_settings().public_demo_enabled:
+        raise NotFoundError("Demo")
+
+
+def _visit_response(db: DbSession, response: Response, actor: Employee) -> DemoVisitRead:
+    settings = get_settings()
+    workspace = db.get(DemoWorkspace, actor.demo_workspace_id)
+    if workspace is None:
+        raise NotFoundError("Demo workspace")
+    response.set_cookie(
+        settings.session_cookie_name,
+        create_session_token(actor.id, datetime.fromtimestamp(workspace.expires_at_epoch, UTC)),
+        max_age=settings.demo_ttl_minutes * 60,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,  # type: ignore[arg-type]
+        path="/",
+    )
+    return DemoVisitRead(
+        employee=current_employee_read(actor), expires_at_epoch=workspace.expires_at_epoch
+    )
+
+
+@router.get("/configuration", response_model=DemoConfiguration)
+def configuration() -> DemoConfiguration:
+    settings = get_settings()
+    return DemoConfiguration(
+        enabled=settings.public_demo_enabled, duration_minutes=settings.demo_ttl_minutes
+    )
+
+
+@router.post("/start", response_model=DemoVisitRead)
+def start(
+    db: DbSession,
+    response: Response,
+    session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
+) -> DemoVisitRead:
+    _require_enabled()
+    actor = start_visit_safely(db, get_settings(), session_token)
+    return _visit_response(db, response, actor)
+
+
+@router.post("/role", response_model=DemoVisitRead)
+def role(
+    payload: DemoRoleRequest, db: DbSession, response: Response, actor: CurrentEmployee
+) -> DemoVisitRead:
+    _require_enabled()
+    return _visit_response(db, response, switch_role(db, actor, payload.role))

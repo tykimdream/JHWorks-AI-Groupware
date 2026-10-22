@@ -18,6 +18,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, response: Response, db: DbSession) -> LoginResponse:
     settings = get_settings()
+    if settings.public_demo_enabled:
+        raise AuthenticationError("Password login is unavailable in the public demo")
     reserve_login_attempt(db, settings.login_requests_per_minute)
     employee = db.scalar(
         select(Employee)

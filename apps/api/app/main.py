@@ -16,6 +16,7 @@ from app.core.logging import configure_logging, reset_request_id, set_request_id
 settings = get_settings()
 configure_logging(settings.log_format, settings.log_level)
 logger = logging.getLogger("jhworks.api")
+PRIVATE_API_CACHE_CONTROL = "private, no-store"
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
@@ -64,6 +65,8 @@ async def request_context(request: Request, call_next):  # type: ignore[no-untyp
         else:
             response = await call_next(request)
         duration_ms = round((perf_counter() - started_at) * 1000, 2)
+        # Cookie-authenticated data and errors must not enter shared gateway caches.
+        response.headers["Cache-Control"] = PRIVATE_API_CACHE_CONTROL
         response.headers["X-Request-ID"] = request_id
         logger.info(
             "request_completed",
@@ -114,6 +117,7 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     )
     return JSONResponse(
         status_code=500,
+        headers={"Cache-Control": PRIVATE_API_CACHE_CONTROL},
         content={
             "error": {
                 "code": "INTERNAL_SERVER_ERROR",

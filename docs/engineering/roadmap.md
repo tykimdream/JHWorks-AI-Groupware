@@ -11,7 +11,9 @@
 - [x] Phase 0: Git/지침/구현/테스트/CI/UI/DB 정밀 진단, 기준 테스트·build 재검증
 - [x] 첫 구현: Cookie 쓰기 출처 검증과 기존 업무 흐름 회귀 테스트
 - [x] QA-01 평가 JSON/자식 프로세스 UTF-8 계약 구현·cp949 재현/관련 회귀 검증
-- [ ] 공개 데모 인증 격리·API/AI 호출량 제한
+- [x] groupware.pikan.dev 정적 준비 화면·DNS·HTTPS 실제 검증 (앱 공개와 구분)
+- [x] DB 공유 로그인 예산·PostgreSQL 동시성·private migration/배포·데이터 보존·새 head 격리 restore
+- [ ] 공개 데모 인증 격리·전체 API/AI 호출량 제한
 - [x] 실제 Supabase migration·승인받은 private staging 일반 release 검증
 - [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
 - [x] CI URL 별칭 수정 PR #20 병합·소규모 staging dump/격리 restore 비교

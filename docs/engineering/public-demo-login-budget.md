@@ -66,3 +66,56 @@ https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#insert-on-conflict-up
 로컬 검증: baseline HTTP 2 failed → 수정 후 전체 API 273 passed / PostgreSQL 10 skipped (33.35초). Ruff app/tests/alembic, strict mypy app/tests 125 files, git diff --check 통과. Docker daemon은 실행 중이 아니어서 PostgreSQL 동시성은 CI 전용 loopback DB에서 실행한다. 성능 개선율은 측정하지 않았다. 실제 staging migration/배포는 아직 하지 않았다.
 
 첫 PostgreSQL CI는 CHECK 식의 window 예약어에서 DDL 실패를 재현했다(동시성 실행 전). 아직 미배포인 신규 migration/model의 컬럼을 window_number로 변경하고 불필요한 singleton SERIAL sequence를 제거했다. 최종 PostgreSQL 결과는 정확한 후속 head의 CI에서 확인한다.
+
+## 실제 비공개 배포와 검증 — 2026-10-22
+
+- PR #37 최종 5139d6a: CI 5개 성공 후 자체 diff 리뷰·라벨링·병합.
+  실제 PostgreSQL 17.11: 기존 목록 7건 + 신규 카운터 3건, 10 passed / 4.24초.
+  validate: 273 passed / 10 skipped / 22.74초, Ruff·strict mypy 125 files 통과.
+  8 workers / 24 attempts / limit 5인 신규·기존 행 경쟁 모두 승인 수와 최종 카운터가 5 이하임을 확인했다.
+- 배포 SHA: 9a29f2e0c0292ec9239600f896c0f68c1fb10daf.
+- 정확한 main CI: https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39728420399 성공.
+- 일반 private release: https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39728919669 성공.
+- Ready revision: jhworks-staging-9a29f2e0c029.
+- API image: sha256:d0d3de2e77e07bee7cd7ef569d95a588c9f5e07797b987c0392a80eded8efa91.
+- Web image: sha256:5e51611261083b49717f5efa806861de350f35d7c3228e97a95b89a744042317.
+- migration 먼저 성공 후 새 앱으로 traffic 전환, 배포 smoke 4/4 통과.
+- 새 migration head c84f2a19d6e0, login_budget 한 행과 runtime SELECT/INSERT/UPDATE/DELETE 권한 확인.
+- 실제 합성 unknown 계정 로그인 한 건이 401/no-store/세션 미발급을 반환했고,
+  해당 요청으로 런타임 카운터 DB 쓰기가 성공했다.
+  비로그인 protected GET 401, portfolio Origin logout 403, trusted logout 200을 확인했다.
+- 배포 전 백업의 각 업무 테이블 행 수·fingerprint와 배포 후 값이 모두 일치했다.
+  변경 허용 범위는 alembic_version과 새 login_budget뿐이다.
+- 실제 private-service 검사는 새 revision·100% traffic·비공개 IAM·max2·AI=false를 확인했다.
+  쿠키 이름은 jhworks_session, origin은 기존 private Cloud Run URL을 유지했다.
+- 실제 서비스에서는 60회 요청으로 quota를 소진하거나 부하 실험을 하지 않았다.
+  429/구간 회복/기존 세션 보존은 재현 가능한 HTTP·PostgreSQL CI 증거이며,
+  이 배포에서 실제 사용자 비밀번호를 이용한 정상 로그인·결재 흐름을 다시 실행하지 않았다.
+
+배포 전 backup: 20261022T052814Z-09a64709, 40,814 bytes,
+SHA256 432e654375b61b81e136e11a93ff9135d1bc3907b2ecadba73c79d32bf29fcea,
+head b63d91e52fa0. dump 11.57초 / 격리 restore·비교 9.25초, schema/ACL/rows/sequence/head
+일치 및 temporaryContainerRemoved=true. 이 숫자는 DB 성능 개선율이나 대용량 RTO가 아니다.
+실제 dump는 Cloud Shell private home에만 있으며 저장소에는 넣지 않았다.
+
+### 재현 순서와 다음 경계
+
+1. 정확한 PR/main head CI와 postgres job에서 테스트 명령·요약을 확인한다.
+2. 배포 전 버전의 staging_backup 도구로 고정된 pgvector image와 검증된 CA를 사용해
+   dump·격리 restore를 실행하고 실제 backupReference를 release 입력에 연결한다.
+3. 기존 cloud-run-staging workflow를 main에서 실행한다. migration 실패 시 중단,
+   앱 실패 시 이전 traffic 복귀라는 기존 절차를 유지한다.
+4. 새 commit을 인자로 staging_workflow의 --apply 없는 service-preflight만 실행한다.
+   초기 --apply 업무 workflow는 이미 데이터가 있으므로 재실행하지 않는다.
+5. 기존 Google ID token은 메모리의 X-Serverless-Authorization에만 넣고,
+   정확한 private Origin으로 synthetic unknown login 한 건을 호출해 401/no-store/미발급을 확인한다.
+   비밀 값과 원문 DB 행은 출력하지 않는다.
+6. migration DB role의 verify-full TLS, read-only repeatable-read snapshot에서
+   기존 backup의 업무 fingerprint와 비교한다. counter/head 변경을 업무 변경으로 오해하지 않는다.
+
+도메인의 준비 화면은 그대로이며 Firebase rewrite·공개 IAM·새 사용자 인증정보·AI key를
+추가하지 않았다. 새 과금 실측은 없고 기존 종량제·budget alert의 한계는 유지된다.
+다음 단위는 방문자별 데이터/역할 경계, 세션 만료·생성량·쓰기량·초기화 정책을
+현재 API별 권한에 맞춰 검증하는 것이다. 이 로그인 예산만으로 공개 준비 완료라고 판단하지 않는다.
+
+배포 후 새 head의 backup/격리 restore도 성공했다: 20261022T054016Z-80debf70, 42,193 bytes, SHA256 6f85034c7394a8d8d5a8923ce34306842b2de5059c0b84e4a78de2337658a130, head c84f2a19d6e0. 12 tables(새 login_budget 1행 포함)의 schema/ACL/rows/sequence/head 비교, temporaryContainerRemoved=true. dump 11.83초 / restore 9.51초. 다음 배포용 참조: cloud-shell:20261022T054016Z-80debf70:sha256:6f85034c7394a8d8d5a8923ce34306842b2de5059c0b84e4a78de2337658a130:restore-verified. 장기/예약 백업이 아닌 수동 검증이며 다음 변경 전 상태를 다시 점검한다.

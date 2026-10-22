@@ -31,6 +31,9 @@ worker의 PUBLIC_DEMO_ENABLED는 이 프로세스에서만 적용되며 HTTP 서
 재실행 때 이미 정리한 항목은 0건이 된다. 예외 원문·비밀번호·의견 본문은 출력하지 않는다.
 PostgreSQL 트랜잭션마다 statement_timeout=15초, lock_timeout=5초를 설정한다.
 Job 자체 timeout은 120초이며 강제 종료 시 마지막 JSON이 없을 수 있어 Cloud Run 실행 결과도 봐야 한다.
+설정 검증이 초기 DB/model import에서 실행되는 경우도 JSON 오류 경계 안으로 옮겼다.
+잘못된 production 설정을 별도 Python 프로세스로 실행하는 회귀는 수정 전 1 failed(JSON 없음),
+수정 후 passed였다. stdout의 안전한 오류 유형과 빈 stderr를 확인하며 합성 비밀 값이 출력되지 않는다.
 
 offline generator는 고정 image digest, 같은 project/region, 숫자 Secret 버전만 받는다.
 Job 1 task/parallelism 1, CPU 1/512MiB, retry=0, runtime 계정·runtime DB/session Secret 참조만 생성한다.
@@ -47,7 +50,7 @@ uv run python -m app.ops.demo_maintenance_manifest \
 ```
 
 예시는 placeholder이므로 실제 실행 전 project/digest를 교체한다. 이 명령은 파일만 만들며 gcloud를 실행하지 않는다.
-로컬 전체 API 401 passed/21 skipped (36.58초), 신규 관련 15 passed, Ruff와 strict mypy149 files 통과.
+로컬 전체 API 402 passed/21 skipped (37.14초), 신규 관련 16 passed, Ruff와 strict mypy149 files 통과.
 추가 PostgreSQL 회귀는 실제 Job runner의 정리/재실행/private 행 보존 및 실제 timeout 설정을 검사한다.
 해당 PostgreSQL 실행은 별도 CI로 확인하며 로컬 skip을 통과로 표시하지 않는다.
 

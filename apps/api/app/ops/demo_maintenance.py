@@ -9,9 +9,6 @@ from sqlalchemy import Connection, event
 from sqlalchemy.orm import Session, SessionTransaction
 
 from app.core.config import get_settings
-from app.core.database import SessionLocal
-from app.services.demo_cleanup import cleanup_expired_demo
-from app.services.demo_feedback import purge_expired_feedback
 
 
 def transaction_timeouts(
@@ -34,6 +31,11 @@ def run_maintenance(
         "steps": {},
     }
     try:
+        # Models import the shared database module, which validates configuration.
+        # Keep those imports inside the sanitized boundary for standalone jobs.
+        from app.services.demo_cleanup import cleanup_expired_demo
+        from app.services.demo_feedback import purge_expired_feedback
+
         # Feedback has an independent retention promise. A malformed workspace must
         # not prevent its purge. Each stage commits separately; retries are safe.
         with factory() as db:
@@ -64,10 +66,20 @@ def main() -> None:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--batch-size", type=int, default=5, choices=range(1, 11))
     args = parser.parse_args()
-    settings = get_settings()
-    if not settings.public_demo_enabled or settings.ai_enabled:
-        parser.error("Maintenance requires explicit public demo configuration and AI disabled")
-    report = run_maintenance(SessionLocal, apply=args.apply, batch_size=args.batch_size)
+    try:
+        settings = get_settings()
+        if not settings.public_demo_enabled or settings.ai_enabled:
+            parser.error("Maintenance requires explicit public demo configuration and AI disabled")
+        from app.core.database import SessionLocal
+
+        report = run_maintenance(SessionLocal, apply=args.apply, batch_size=args.batch_size)
+    except Exception as exc:
+        report = {
+            "status": "failed",
+            "stage": "configuration",
+            "severity": "ERROR",
+            "errorType": type(exc).__name__,
+        }
     print(json.dumps(report))
     raise SystemExit(0 if report["status"] == "passed" else 1)
 

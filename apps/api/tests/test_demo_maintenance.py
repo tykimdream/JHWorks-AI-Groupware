@@ -55,7 +55,7 @@ def test_workspace_failure_preserves_completed_feedback_step_and_hides_error(
     def fail(*args: Any, **kwargs: Any) -> None:
         raise ValueError("Synthetic private content must never enter logs")
 
-    monkeypatch.setattr(maintenance, "cleanup_expired_demo", fail)
+    monkeypatch.setattr("app.services.demo_cleanup.cleanup_expired_demo", fail)
     result = maintenance.run_maintenance(session_factory, apply=True)
     assert result["status"] == "failed" and result["severity"] == "ERROR"
     assert result["stage"] == "workspaces" and result["errorType"] == "ValueError"
@@ -75,8 +75,8 @@ def test_feedback_failure_stops_before_workspace_changes(
     def unexpected(*args: Any, **kwargs: Any) -> None:
         pytest.fail("Workspace cleanup must not run after failed feedback retention")
 
-    monkeypatch.setattr(maintenance, "purge_expired_feedback", fail)
-    monkeypatch.setattr(maintenance, "cleanup_expired_demo", unexpected)
+    monkeypatch.setattr("app.services.demo_feedback.purge_expired_feedback", fail)
+    monkeypatch.setattr("app.services.demo_cleanup.cleanup_expired_demo", unexpected)
     result = maintenance.run_maintenance(session_factory, apply=True)
     assert result["stage"] == "feedback" and result["steps"] == {}
 
@@ -96,7 +96,7 @@ def test_cli_requires_opt_in_and_reports_failure_exit(
     def fail_factory() -> Session:
         raise RuntimeError("Synthetic connection string")
 
-    monkeypatch.setattr(maintenance, "SessionLocal", fail_factory)
+    monkeypatch.setattr("app.core.database.SessionLocal", fail_factory)
     with pytest.raises(SystemExit) as exc:
         maintenance.main()
     assert exc.value.code == 1
@@ -128,7 +128,7 @@ def test_cli_success_is_dry_by_default(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setattr(maintenance, "SessionLocal", session_factory)
+    monkeypatch.setattr("app.core.database.SessionLocal", session_factory)
     monkeypatch.setattr(sys, "argv", ["maintenance"])
     with pytest.raises(SystemExit) as exc:
         maintenance.main()
@@ -137,3 +137,38 @@ def test_cli_success_is_dry_by_default(
     assert report["status"] == "passed" and report["dryRun"] is True
     assert report["steps"]["feedback"]["removed"] == 0
     assert report["steps"]["workspaces"]["removed"] == 0
+
+
+def test_cli_invalid_production_config_never_prints_secret_values() -> None:
+    import os
+    import subprocess
+    from pathlib import Path
+
+    secret = "synthetic-short-private-key"
+    url = "postgresql+psycopg://synthetic:synthetic-password@localhost/db"
+    result = subprocess.run(
+        [sys.executable, "-m", "app.ops.demo_maintenance"],
+        cwd=Path(__file__).parents[1],
+        env={
+            **os.environ,
+            "JHWORKS_ENVIRONMENT": "production",
+            "JHWORKS_JWT_SECRET": secret,
+            "JHWORKS_DATABASE_URL": url,
+            "JHWORKS_AI_ENABLED": "false",
+            "JHWORKS_PUBLIC_DEMO_ENABLED": "true",
+        },
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=20,
+    )
+    assert result.returncode == 1
+    assert result.stderr == ""
+    assert secret not in result.stdout + result.stderr
+    assert "synthetic-password" not in result.stdout + result.stderr
+    assert json.loads(result.stdout) == {
+        "status": "failed",
+        "stage": "configuration",
+        "severity": "ERROR",
+        "errorType": "ValidationError",
+    }

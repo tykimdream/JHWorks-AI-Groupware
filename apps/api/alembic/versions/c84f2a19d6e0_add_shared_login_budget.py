@@ -19,11 +19,11 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "login_budget",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("window", sa.BigInteger(), nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("window_number", sa.BigInteger(), nullable=False),
         sa.Column("attempts", sa.Integer(), nullable=False),
         sa.CheckConstraint("id = 1", name="ck_login_budget_singleton"),
-        sa.CheckConstraint("window >= 0", name="ck_login_budget_window"),
+        sa.CheckConstraint("window_number >= 0", name="ck_login_budget_window"),
         sa.CheckConstraint("attempts >= 1", name="ck_login_budget_attempts"),
         sa.PrimaryKeyConstraint("id"),
     )

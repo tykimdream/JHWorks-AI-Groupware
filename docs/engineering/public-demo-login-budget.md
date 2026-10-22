@@ -64,3 +64,5 @@ https://www.postgresql.org/docs/17/sql-insert.html
 https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#insert-on-conflict-upsert
 
 로컬 검증: baseline HTTP 2 failed → 수정 후 전체 API 273 passed / PostgreSQL 10 skipped (33.35초). Ruff app/tests/alembic, strict mypy app/tests 125 files, git diff --check 통과. Docker daemon은 실행 중이 아니어서 PostgreSQL 동시성은 CI 전용 loopback DB에서 실행한다. 성능 개선율은 측정하지 않았다. 실제 staging migration/배포는 아직 하지 않았다.
+
+첫 PostgreSQL CI는 CHECK 식의 window 예약어에서 DDL 실패를 재현했다(동시성 실행 전). 아직 미배포인 신규 migration/model의 컬럼을 window_number로 변경하고 불필요한 singleton SERIAL sequence를 제거했다. 최종 PostgreSQL 결과는 정확한 후속 head의 CI에서 확인한다.

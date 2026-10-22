@@ -82,7 +82,7 @@ def test_window_recovery_and_clock_regression(
     with session_factory() as db:
         assert db.scalar(select(func.count()).select_from(LoginBudget)) == 1
         row = db.get(LoginBudget, 1)
-        assert row is not None and row.window == 3 and row.attempts == 1
+        assert row is not None and row.window_number == 3 and row.attempts == 1
 
 
 def test_existing_session_and_logout_remain_available(
@@ -144,7 +144,7 @@ def test_budget_does_not_commit_existing_work(
     session_factory: sessionmaker[Session],
 ) -> None:
     with session_factory() as db:
-        db.add(LoginBudget(id=1, window=2, attempts=1))
+        db.add(LoginBudget(id=1, window_number=2, attempts=1))
         with pytest.raises(ValueError, match="fresh request session"):
             login_budget.reserve_login_attempt(db, 2)
         db.rollback()

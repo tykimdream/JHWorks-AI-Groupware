@@ -38,18 +38,18 @@ def reserve_login_attempt(db: Session, limit: int) -> None:
         window = database_seconds(db) // 60
         dialect = db.get_bind().dialect.name
         insert = pg_insert(LoginBudget) if dialect == "postgresql" else sqlite_insert(LoginBudget)
-        newer_window = LoginBudget.window < window
+        newer_window = LoginBudget.window_number < window
         statement = (
-            insert.values(id=1, window=window, attempts=1)
+            insert.values(id=1, window_number=window, attempts=1)
             .on_conflict_do_update(
                 index_elements=["id"],
                 set_={
-                    "window": case((newer_window, window), else_=LoginBudget.window),
+                    "window_number": case((newer_window, window), else_=LoginBudget.window_number),
                     "attempts": case((newer_window, 1), else_=LoginBudget.attempts + 1),
                 },
                 where=or_(
                     newer_window,
-                    and_(LoginBudget.window == window, LoginBudget.attempts < limit),
+                    and_(LoginBudget.window_number == window, LoginBudget.attempts < limit),
                 ),
             )
             .returning(LoginBudget.id)

@@ -10,10 +10,10 @@ class LoginBudget(Base):
     __tablename__ = "login_budget"
     __table_args__ = (
         CheckConstraint("id = 1", name="ck_login_budget_singleton"),
-        CheckConstraint("window >= 0", name="ck_login_budget_window"),
+        CheckConstraint("window_number >= 0", name="ck_login_budget_window"),
         CheckConstraint("attempts >= 1", name="ck_login_budget_attempts"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    window: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    window_number: Mapped[int] = mapped_column(BigInteger, nullable=False)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False)

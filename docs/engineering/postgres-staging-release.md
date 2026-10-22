@@ -34,7 +34,7 @@ JSON 응답과 결재 이력을 유지하면서 목록 중복을 방지한다. �
 - [private release 39719348765](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39719348765): success, 총 2분 37초. bootstrap=false, 위 backup reference 사용.
 - revision `jhworks-staging-cfe258ff24f1`. migration, private release, deploy-SA HTTP smoke 4/4 통과.
 - 2026-10-22 12:56 KST 이후 동일 SHA의 Cloud Shell read-only `service-preflight`도 passed, changed=0.
-  이 검사는 Ready/traffic 100%, public binding 없음, invoker check 활성, AI=false, service max=2, 익명 HTTP 403을 확인한다.
+  이 검사는 Ready/traffic 100%, public binding 없음, invoker check 활성, AI=false, service max=2를 확인한다. 익명 HTTP 403은 별도 curl로 확인한다.
 - release record의 app session 없는 API 요청은 401, liveness/readiness/web root는 200이다. GCP 인증을 쓰는 smoke와 익명 ingress 403은 별도 경계다.
 
 API digest: `sha256:9a9f871e5cf24db1b81b97f7aa15e20939c34c30ef8f9d2cfc80846a78ad4a28`

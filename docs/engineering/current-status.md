@@ -48,14 +48,15 @@ strict mypy app/tests 112 source files 통과. 해당
 
 ## 지금 이어갈 순서
 
-1. 사용자가 직접 인증정보를 설정해야 하는 단계에서만 확인한다. 작성자/결재자/비참여자 3명의
-   private fixture는 [운영 절차](../operations/private-staging-fixture.md)에 따라 만든다.
-   기본 demo1234·실제 사람 정보·GCP/Supabase 비밀번호 재사용은 금지한다.
+1. 작성자/결재자/비참여자 private fixture 3명 생성은 이후 사용자 직접 입력으로 성공했다.
+   도구가 department 1 / employee 3 / credential 3 / leave account 3을 출력했다.
+   기존 backup은 생성 **전** 빈 업무 DB를 보관한다. 새 업무 데이터를 포함한다고 표현하지 않는다.
 2. 로그인·일반 결재·휴가·비참여자 거부를 실제 command endpoint로 검증한다.
+   [검증 도구와 판단](private-workflow-smoke.md)을 준비하며 실제 외부 업무 결과는 실행 후 기록한다.
 3. 별도 작은 단위로 npm 패치/잔여 advisory, 공개 demo 격리·요청/비용 제한,
    backup 자동화와 main CI 성공 후 자동 배포를 연결한다. 이후 대표 화면 UI/성능 실험을 진행한다.
 
-공개 demo/IAP/production·유료 AI 연결·새 유료 자원·실제 fixture 생성은 아직 완료하지 않았다.
+공개 demo/IAP/production·유료 AI 연결·새 유료 자원은 아직 완료하지 않았다.
 Cloud Shell home의 작은 빈 DB 복원은 장기/예약 백업이나 업무 데이터 복구를 대체하지 않는다.
 현재 CD는 workflow_dispatch로 시작하며 추가 Environment reviewer 승인만 제거한 상태다.
 Cloud Shell의 사용자 실행용 source는 `~/jhworks-staging-tools/1b11879`에 full SHA를 대조해 준비했다.

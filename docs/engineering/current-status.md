@@ -1,6 +1,6 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
-## 최신 상태: 실제 업무 검증과 npm 패치 배포 완료
+## 최신 상태: 준비 화면의 사용자 도메인 HTTPS 검증 완료
 
 최신 배포는 [npm 패치·외부 검증](npm-security-patches.md), 실제 업무는 [workflow 증거](private-workflow-smoke.md)가 기준이다.
 
@@ -14,7 +14,7 @@
 - 다음은 공개 demo의 사용자별 격리·초기화·요청/AI 비용 제한 설계와 회귀 검증이다. 공개 전환 전 확인은 유지한다.
 - 현재 CD는 workflow_dispatch다. 공개 전환·새 권한/유료 자원·AI 연결은 별도 확인 대상이다.
 
-도메인 작업을 시작했다. [pikan.dev 연결 준비](pikan-domain-release.md)에서 API no-store와 시작 시점 __session 쿠키 회귀를 검증했다. Firebase 생성/Blaze/DNS/IAM/공개 전환은 아직 적용하지 않았다.
+도메인 최신 결과: [https://groupware.pikan.dev/](https://groupware.pikan.dev/)의 정적 준비 화면이 정상 TLS/hostname 검증과 HTTP 200을 통과했다. Firebase Hosting/Blaze와 groupware CNAME은 사용자 승인 후 적용했다. HTML/CSS hash, no-store/CSP, API·.env 404 및 루트 포트폴리오 HTTP 200을 확인했다. [실제 증거](pikan-domain-release.md)를 따른다. 앱·DB는 여전히 비공개이며 로그인 예산·방문자 격리 검증 후 실제 앱 연결을 진행한다. 아래의 승인 대기·인증서 검증 중 내용은 과거 이력이다.
 
 이하 내용은 이전 실행 이력이다. 아래의 과거 배포 SHA·빈 DB backup·미배포 설명을 현재 상태로 해석하지 않는다.
 

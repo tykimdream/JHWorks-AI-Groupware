@@ -143,3 +143,25 @@ The application is still private, and this static release is not an interactive 
 No updated invoice or post-release cost is claimed; billing reports can lag.
 
 At 05:10 UTC, both authoritative nameservers plus Google (8.8.8.8) and Cloudflare (1.1.1.1) returned the expected CNAME. Firebase reports HOST_ACTIVE / OWNERSHIP_ACTIVE / CERT_VALIDATING, with matching HTTP ACME challenge and no issues. No extra TXT or CAA change is needed at this point. Local TLS verification still rejects the custom domain due to hostname mismatch while certificate provisioning completes; verification was not bypassed. Existing https://pikan.dev/ still returns HTTP 200.
+
+## Custom-domain HTTPS verified — 2026-10-22 14:23 KST
+
+https://groupware.pikan.dev/ now passes normal TLS certificate/hostname verification.
+The certificate SAN contains groupware.pikan.dev and expires at
+2027-01-20 05:07:11 UTC (14:07:11 KST). No certificate warning or verification was bypassed.
+
+Fresh real-domain checks:
+- GET / and /styles.css: HTTP 200, both match the original approved Git blob hashes above.
+- GET /api/v1/employees/me and /.env: HTTP 404.
+- All four responses: Cache-Control: private, no-store.
+- Homepage CSP matches the reviewed static Hosting policy.
+- Root https://pikan.dev/ remains HTTP 200.
+- Actual browser screenshot: artifacts/cloud-run/custom-domain-https-live.png (local ignored evidence).
+- Machine-readable report: artifacts/cloud-run/custom-domain-https-passed.json (local ignored evidence).
+
+This completes the static domain/DNS/HTTPS milestone. The earlier CERT_VALIDATING
+and old-IP ACME errors above are historical observations, not the current HTTPS result.
+The existing Cloud Run application and Supabase database remain private; no rewrite
+to the interactive application has been introduced.
+The next application unit is the shared login computation budget, followed by
+visitor isolation/reset policy and public-demo release gates.

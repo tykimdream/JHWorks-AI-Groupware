@@ -1,14 +1,17 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
 ## 가장 최근 코드와 공개 준비
-PR #42 방문자 lifecycle은 exact head afd2f21의 CI 5개 성공·자체 리뷰·reviewed/security 라벨 후
-병합했다(main 6652eed). 로컬 API 371 passed/16 skipped, Ruff/mypy 138 files 통과.
-[설계와 운영 경계](demo-visitor-lifecycle.md)를 따른다. 공간 생성·정리 도구는 아직 실제 실행하지 않았다.
+PR #42 방문자 lifecycle과 [PR #43 피드백](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/43)은
+exact head CI 5개·자체 리뷰·reviewed/security 라벨 후 병합했다(main 5342bd4).
+#43 CI API 382 passed/18 skipped, PostgreSQL 18 passed, 기본 browser 16 + 실제 public-demo 2 passed.
+[방문자 lifecycle](demo-visitor-lifecycle.md)과 [피드백·개선 기록](demo-feedback.md)을 따른다.
+공간 생성·정리 도구는 아직 실제 실행하지 않았다. public_demo_enabled 기본 false.
 
-다음 변경은 [익명 피드백·개선 기록](demo-feedback.md): 기본 비활성의 공개 체험 화면, 공간당 1회 접수,
-멱등 재전송/전체 보관 300건 상한/비공개 운영 CLI와 30일 purge를 준비한다. 웹 포트폴리오의 실제
-버튼은 공개 폼이 검증된 뒤 연결한다. 실제 사용자 피드백/만족도 자료를 만들어내지 않는다.
-public_demo_enabled 기본 false. 실제 원격 앱은 여전히 9a29f2e, DB c84f2a19d6e0, domain은 정적 준비 화면이다.
+2026-10-22 재조회: 실제 Cloud Run revision은 여전히 jhworks-staging-9a29f2e0c029/100%, AI=false다.
+main 5342bd4의 push CI 39764503071 성공을 확인했다. 실제 DB의 마지막 검증 head는 c84f2a19d6e0이고
+코드 head f30c9a71b624는 아직 미적용이다. domain은 정적 준비 화면이다.
+이번 보강은 [보관 정리 실행 계약](feedback-retention.md)이며 자동 주기 작업이 운영된다는 뜻은 아니다.
+웹 포트폴리오의 실제 버튼은 공개 폼이 검증된 뒤 연결한다. 실제 사용자 의견/만족도는 아직 없다.
 공개 전용 DB의 합성 공용 규정·일정, 30일 정리 실행 경로, 최종 workspace E2E, Hosting rewrite/쿠키/
 공개 IAM과 release 경로 검토가 남았다. 새 권한/실제 공개 수집·삭제·과금 자원 적용 전 확인받는다.
 

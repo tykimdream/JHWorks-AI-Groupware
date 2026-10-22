@@ -1,8 +1,9 @@
 import hashlib
 import json
+from dataclasses import dataclass
 from uuid import uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,6 +17,65 @@ from app.services.login_budget import database_seconds
 
 MAX_FEEDBACK = 300
 RETENTION_SECONDS = 30 * 86400
+
+
+def _lock_gate(db: Session) -> None:
+    insert = (
+        pg_insert(DemoFeedbackGate)
+        if db.get_bind().dialect.name == "postgresql"
+        else sqlite_insert(DemoFeedbackGate)
+    )
+    db.execute(
+        insert.values(id=1, revision=1).on_conflict_do_update(
+            index_elements=["id"],
+            set_={"revision": DemoFeedbackGate.revision + 1},
+        )
+    )
+
+
+@dataclass(frozen=True)
+class FeedbackRetentionResult:
+    expired: int
+    removed: int
+    stored: int
+
+
+def purge_expired_feedback(db: Session, *, apply: bool = False) -> FeedbackRetentionResult:
+    """Use the admission lock so concurrent operators report actual deletions."""
+    if db.new or db.dirty or db.deleted or db.in_transaction():
+        raise ValueError("Feedback retention requires a fresh session")
+    try:
+        _lock_gate(db)
+        cutoff = database_seconds(db) - RETENTION_SECONDS
+        expired = (
+            db.scalar(
+                select(func.count())
+                .select_from(DemoFeedback)
+                .where(DemoFeedback.created_at_epoch <= cutoff)
+            )
+            or 0
+        )
+        removed = 0
+        if apply:
+            removed = len(
+                list(
+                    db.scalars(
+                        delete(DemoFeedback)
+                        .where(DemoFeedback.created_at_epoch <= cutoff)
+                        .returning(DemoFeedback.id)
+                    )
+                )
+            )
+        stored = db.scalar(select(func.count()).select_from(DemoFeedback)) or 0
+        result = FeedbackRetentionResult(expired=expired, removed=removed, stored=stored)
+        if apply:
+            db.commit()
+        else:
+            db.rollback()
+        return result
+    except Exception:
+        db.rollback()
+        raise
 
 
 def submit_feedback(
@@ -34,18 +94,8 @@ def submit_feedback(
         ).encode()
     ).hexdigest()
     try:
-        insert = (
-            pg_insert(DemoFeedbackGate)
-            if db.get_bind().dialect.name == "postgresql"
-            else sqlite_insert(DemoFeedbackGate)
-        )
         # Serialize capacity and idempotency checks across all instances.
-        db.execute(
-            insert.values(id=1, revision=1).on_conflict_do_update(
-                index_elements=["id"],
-                set_={"revision": DemoFeedbackGate.revision + 1},
-            )
-        )
+        _lock_gate(db)
         existing = db.scalar(
             select(DemoFeedback).where(
                 DemoFeedback.workspace_hash == workspace_hash,

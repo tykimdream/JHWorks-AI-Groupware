@@ -31,4 +31,5 @@ artifacts/smoke/*.json
 .vscode/
 
 playwright-report/
+playwright-public-demo-report/
 test-results/

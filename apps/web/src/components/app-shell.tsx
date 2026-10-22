@@ -58,7 +58,7 @@ export const AppShell = ({ children }: AppShellProps) => {
           <Link href="/approvals/new">새 결재 작성</Link>
           <Link href="/feedback">의견 남기기</Link>
         </nav>
-        {configuration?.enabled && <DemoRoleSwitcher currentRole={employee.role} />}
+        {configuration?.enabled && <DemoRoleSwitcher key={employee.id} currentRole={employee.role} />}
         <div className="profile-card">
           <div className="avatar" aria-hidden="true">
             {employee.name.slice(0, 1)}

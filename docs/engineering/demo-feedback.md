@@ -42,3 +42,15 @@ PostgreSQL의 신규 2개는 별도 CI에서 8 connection 경합의 전체 저�
 Windows 기본 uv 경로가 없어 ignored 로컬 config에서 같은 venv의 Python으로 test API를 실행한다.
 CI는 원래 frozen uv 경로를 그대로 사용한다. 대조/키보드/입력 보존/모바일 폭을 검사하며
 WCAG 전체 수동 검증 완료로 주장하지 않는다. 새 이미지/trace/log는 ignored artifacts/feedback에 둔다.
+
+## 실제 API를 연결한 공개 모드 브라우저 회귀
+별도 설정의 pnpm test:e2e:public-demo는 실제 API/임시 SQLite를 연결해 가입 없는 시작 →
+작성·제출 → 결재자 전환 → 승인 → 작성자 복귀 → 피드백 접수/멱등 재전송/조회 차단을 검사한다.
+작성·제출·승인은 같은 브라우저의 API 요청으로 수행하고 역할 전환/의견 전송은 화면에서 조작한다.
+외부 AI/원격 DB/실제 사용자 데이터는 사용하지 않는다.
+
+새 테스트는 PC/mobile 2 failed로 역할 버튼이 변경 중에 남는 문제를 재현했다.
+신원 조회는 새 직원으로 바뀌어도 React가 같은 위치의 버튼 state를 유지하는 원인이었다.
+버튼에 employee.id key를 둬 새 신원에서 state를 다시 만들고, 기존 abort/숨김/내용 key 경계를 유지했다.
+수정 후 동일 조건 2 passed (14.2초). CI browser job은 기존 16개와 별도 공개 모드 2개를 연속 실행하고
+각각의 HTML report를 별도 폴더에 보존한다. 실제 배포된 공개 서비스의 검증으로 표현하지 않는다.

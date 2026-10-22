@@ -8,8 +8,9 @@
 - 실제 staging은 `cfe258ff24f151fbb412b4a53b74788d9c48dd96`, revision `jhworks-staging-cfe258ff24f1`.
 - credential 3개를 포함한 새 backup/격리 restore 성공 후 private release와 HTTP smoke 4/4 성공.
 - Cloud Shell read-only preflight 통과: 비공개 IAM, AI=false, max=2, 익명 403 유지.
-- 실제 업무 workflow는 기존 새 fixture 비밀번호의 숨김 입력을 기다린다. 비밀번호 재교체는 필요 없다.
-- 다음은 workflow 증거 기록 → npm 잔여 advisory → 공개 demo 격리/비용 제한 검증이다.
+- 실제 업무 workflow passed: 합성 결재 2건·연차 1일, 3명 권한/CSRF/409/logout 검증 완료. 초기 --apply 재실행 금지.
+- 업무 데이터 포함 backup `20261022T040623Z-5fdce560`의 격리 restore/비교도 통과했다. [실제 업무 증거](private-workflow-smoke.md)를 따른다.
+- 다음은 npm 잔여 advisory → 공개 demo 격리/비용 제한 검증이다.
 - 현재 CD는 workflow_dispatch다. 공개 전환·새 권한/유료 자원·AI 연결은 별도 확인 대상이다.
 
 이하 내용은 이전 실행 이력이다. 아래의 과거 배포 SHA·빈 DB backup·미배포 설명을 현재 상태로 해석하지 않는다.

@@ -53,3 +53,34 @@ redirect/timeout 무재시도, CLI 오류 원문 비노출을 확인했다.
 있는가?”, “HTTP 성공과 DB 정합성 검증은 어떻게 다른가?”를 현재 경계로 설명할 수 있어야 한다.
 
 비밀번호 교체·실제 실패 단계는 [교체 기록](../operations/private-staging-password.md)에 구분했다.
+
+## 실제 외부 업무 검증 완료 — 2026-10-22
+
+배포 SHA `cfe258ff24f151fbb412b4a53b74788d9c48dd96`의 비공개 Cloud Run → Supabase에서
+사용자가 기존 fixture 비밀번호를 숨김 입력한 뒤 `status=passed`, `createdApprovals=2`,
+`usedLeaveDays=1`을 확인했다. 앞선 두 번의 login_author 실패는 checks=[]였으며 업무 쓰기 전이었다.
+
+- 작성자/결재자/비참여자 3명 로그인, 신원·역할·관리자 관계·세션·Secure/HttpOnly/SameSite cookie 통과.
+- 빈 mine/assigned 목록, 초기 연차 잔액, 다른 Origin logout 403과 기존 세션 보존 확인.
+- 일반·휴가 결재 각각 DRAFT → PENDING → APPROVED, 후속 GET의 상태·version 보존 확인.
+- 비참여자 조회·승인 403, stale version 승인 409, 거부 뒤 PENDING/version 유지 확인.
+- 클라이언트 requestedDays=99에도 서버 계산 1일, pending 예약 → used 1일, 일정 TENTATIVE → CONFIRMED 확인.
+- 세 계정 logout 후 인증 필요 API 401 확인.
+
+이 결과는 실제 HTTP command API 검증이다. 브라우저 UI/접근성, 동시에 열린 DB transaction의 충돌,
+부하, AI provider는 검증하지 않았다. 이미 데이터가 생성됐으므로 초기 fixture 전용 --apply를 다시 실행하지 않는다.
+
+### 업무 데이터 포함 백업과 격리 복원
+
+기존 staging_backup 도구와 고정 pgvector image digest로 원본 DB를 변경하지 않고 수행했다.
+
+- ID `20261022T040623Z-5fdce560`, archive 40,814 bytes.
+- SHA256 `717275dca6be6cf861d2d7ca6f8abe5809ab0da44875552d059134254261b87f`.
+- reference `cloud-shell:20261022T040623Z-5fdce560:sha256:717275dca6be6cf861d2d7ca6f8abe5809ab0da44875552d059134254261b87f:restore-verified`.
+- dump 11.44초 / restore·비교 9.81초; 작은 합성 데이터의 명령 시간이며 대용량 RTO가 아니다.
+- approvals 2 / approval_lines 2 / work_calendar_events 1 / employees·credentials·leave_accounts 각 3행.
+- head `b63d91e52fa0`; schema/ACL/rows/sequences/head 비교 passed, temporaryContainerRemoved=true.
+
+이 backup은 실제 업무 검증 **후** 상태다. 이전 배포 전 계정만 포함한 checkpoint와 구분한다.
+archive와 verification 원본은 Cloud Shell home에 남기고 Git에 업로드하지 않는다.
+장기 보관·예약 백업·Cloud Shell home 상실 시 복구는 여전히 후속 과제다.

@@ -1,5 +1,12 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
+## 2026-10-23 재개: 공개 전용 경계 준비
+
+첫 공개까지 5개 체크포인트와 이후 6개 단계를 [roadmap](roadmap.md)에 최신화했다.
+[공개 데모 분리](demo-isolation.md)는 전용 schema/NOLOGIN DB 역할·GCP 계정/Secret 참조 profile과
+실제 PostgreSQL 전체 migration/권한 회귀를 준비한다. 기존 staging과 실제 private demo 자원은
+변경하지 않았다. 새 IAM/DB 권한·credential·Secret/Job 생성은 CI/리뷰와 적용 직전 확인 뒤 수행한다.
+
 ## 최신 실제 상태: 별도 데모 비공개 리허설 통과
 
 [비공개 데모 리허설 증거](private-demo-rehearsal.md)가 현재 기준이다.

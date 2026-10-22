@@ -1,5 +1,18 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
+## 최신 실제 상태: 별도 데모 비공개 리허설 통과
+
+[비공개 데모 리허설 증거](private-demo-rehearsal.md)가 현재 기준이다.
+기존 staging은 release 39771645700 / revision jhworks-staging-75d5e8a98fb2 / smoke 4/4 성공.
+PR #46은 exact-head CI 5개·자체 리뷰·라벨 후 병합했다(main 9ec7b34).
+승인받은 jhworks-demo와 jhworks-demo-maintenance를 실제 생성했고, 익명403·max1·AI=false·v1 참조,
+15개 HTTP 확인, 실제 Job dry-run 성공/삭제0을 확인했다. 전체 합성 생성량은 공간6/결재3/피드백3이다.
+공유 runtime/session은 비공개 리허설용이다. 실제 공개·예약 실행·실제 삭제·Hosting rewrite는 적용하지 않았다.
+다음은 공개 전용 신원/DB/key 경계와 정리 운영·실패 감지를 준비하고, 필요한 권한/비용/공개 전환을 확인하는 것이다.
+domain은 여전히 준비 화면이며 포트폴리오 라이브 데모 버튼도 아직 연결하지 않았다.
+
+아래 기록의 '아직 없음'과 이전 revision은 해당 작업 당시 상태다.
+
 ## 가장 최근 코드와 공개 준비
 PR #42 방문자 lifecycle과 [PR #43 피드백](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/43)은
 exact head CI 5개·자체 리뷰·reviewed/security 라벨 후 병합했다(main 5342bd4).

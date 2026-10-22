@@ -33,6 +33,21 @@ class Workflow:
         self.stage = "initialization"
         self.passed: list[str] = []
 
+    def run_remote(self, password: str, commit: str) -> None:
+        self.stage = "ingress_authentication"
+        token = run(["gcloud", "auth", "print-identity-token"],
+                    capture_output=True, text=True).stdout.strip()
+        if not token:
+            raise ValueError("Google ID token missing")
+        self.stage = "service_recheck"
+        verify_private_service(commit)
+        with ExitStack() as stack:
+            self.clients = {actor: stack.enter_context(httpx.Client(
+                base_url=ORIGIN, timeout=60, follow_redirects=False, trust_env=False,
+                headers={"Origin": ORIGIN, "X-Serverless-Authorization": "Bearer " + token},
+            )) for actor in ACTORS}
+            self.execute(password, datetime.now(UTC).year)
+
     def require(self, name: str, condition: bool) -> None:
         self.stage = name
         if not condition:
@@ -142,34 +157,25 @@ class Workflow:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--commit", required=True)
+    parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     stage = "service_verify"
     workflow: Workflow | None = None
     try:
         verify_private_service(args.commit)
+        if not args.apply:
+            print(json.dumps({"status": "passed", "mode": "service-preflight", "changed": 0}))
+            return
         stage = "operator_confirmation"
         if not sys.stdin.isatty():
             raise ValueError("interactive operator terminal required")
-        if input("Type RUN PRIVATE WORKFLOW to continue: ") != "RUN PRIVATE WORKFLOW":
-            raise ValueError("operator confirmation missing")
+        print("Scope: create two synthetic approvals and use one fixture leave day.")
         stage = "credential_input"
         with warnings.catch_warnings():
             warnings.simplefilter("error", getpass.GetPassWarning)
             password = getpass.getpass("Existing private fixture password (hidden): ")
-        stage = "ingress_authentication"
-        token = run(["gcloud", "auth", "print-identity-token"],
-                    capture_output=True, text=True).stdout.strip()
-        if not token:
-            raise ValueError("Google ID token missing")
-        stage = "service_recheck"
-        verify_private_service(args.commit)
-        with ExitStack() as stack:
-            clients = {actor: stack.enter_context(httpx.Client(
-                base_url=ORIGIN, timeout=60, follow_redirects=False, trust_env=False,
-                headers={"Origin": ORIGIN, "X-Serverless-Authorization": "Bearer " + token},
-            )) for actor in ACTORS}
-            workflow = Workflow(clients)
-            workflow.execute(password, datetime.now(UTC).year)
+        workflow = Workflow({})
+        workflow.run_remote(password, args.commit)
         print(json.dumps({"status": "passed", "commit": args.commit,
                           "checks": workflow.passed, "createdApprovals": 2, "usedLeaveDays": 1}))
     except Exception as error:

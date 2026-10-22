@@ -25,8 +25,9 @@ department 1 / employee 3 / credential 3 / leave account 3 생성 성공을 출�
 
 `uv run --frozen python -m app.ops.staging_workflow --commit <현재 배포된 full SHA>`
 
-고정 프로젝트의 private/AI-off/revision/max=2 검사를 통과한 뒤
-`Type RUN PRIVATE WORKFLOW to continue:`와 숨김 비밀번호 입력을 **사용자가 직접** 수행한다.
+기본 명령은 service preflight만 실행한다. 실제 업무 검증은 --apply를 명시하고
+고정 프로젝트의 private/AI-off/revision/max=2 검사와 쓰기 범위 표시 뒤
+숨김 비밀번호를 **사용자가 직접** 입력한다. 일반 텍스트 확인 칸은 제거했다.
 생성한 fixture 전용 비밀번호를 사용하고 GCP/Supabase 비밀번호를 재사용하지 않는다.
 비밀번호·cookie·Google token을 인자/환경변수/파일/채팅으로 전달하지 않는다.
 
@@ -50,3 +51,5 @@ redirect/timeout 무재시도, CLI 오류 원문 비노출을 확인했다.
 
 면접에서는 “Google 인증을 통과했는데 앱 API는 왜 401인가?”, “409 재시도가 결재를 중복 처리할 수
 있는가?”, “HTTP 성공과 DB 정합성 검증은 어떻게 다른가?”를 현재 경계로 설명할 수 있어야 한다.
+
+비밀번호 교체·실제 실패 단계는 [교체 기록](../operations/private-staging-password.md)에 구분했다.

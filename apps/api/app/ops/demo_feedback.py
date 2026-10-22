@@ -3,12 +3,12 @@
 import argparse
 import json
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.models.demo_feedback import DemoFeedback
-from app.services.demo_feedback import RETENTION_SECONDS
+from app.services.demo_feedback import RETENTION_SECONDS, purge_expired_feedback
 from app.services.login_budget import database_seconds
 
 
@@ -25,6 +25,7 @@ def main() -> None:
         parser.error("--apply requires --purge-expired")
     try:
         with SessionLocal() as db:
+            retention = purge_expired_feedback(db, apply=args.apply) if args.purge_expired else None
             cutoff = database_seconds(db) - RETENTION_SECONDS
             expired = (
                 db.scalar(
@@ -38,15 +39,16 @@ def main() -> None:
             )
             report: dict[str, object] = {
                 "status": "passed",
-                "expired": expired,
+                "expired": retention.expired if retention else expired,
                 "retentionDays": 30,
-                "removed": 0,
+                "removed": retention.removed if retention else 0,
             }
-            if args.purge_expired and args.apply:
-                db.execute(delete(DemoFeedback).where(DemoFeedback.created_at_epoch <= cutoff))
-                db.commit()
-                report["removed"] = expired
-            report["stored"] = db.scalar(select(func.count()).select_from(DemoFeedback)) or 0
+            report["dryRun"] = not args.apply
+            report["stored"] = (
+                retention.stored
+                if retention
+                else db.scalar(select(func.count()).select_from(DemoFeedback)) or 0
+            )
             if args.include_text:
                 report["submissions"] = [
                     {

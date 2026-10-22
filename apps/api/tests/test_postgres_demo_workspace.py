@@ -326,3 +326,27 @@ def test_feedback_concurrent_retries_return_one_receipt(
         assert len(set(executor.map(attempt, range(8)))) == 1
     with session_factory() as db:
         assert db.scalar(select(func.count()).select_from(DemoFeedback)) == 1
+
+
+def test_feedback_concurrent_retention_counts_each_deletion_once(
+    session_factory: sessionmaker[Session],
+) -> None:
+    from app.services.demo_feedback import purge_expired_feedback
+    from tests.test_feedback_retention import add_feedback
+
+    with session_factory() as db:
+        for index in range(3):
+            add_feedback(db, f"expired_{index}", 1)
+        db.commit()
+    barrier = Barrier(8)
+
+    def attempt(_: int) -> int:
+        barrier.wait(timeout=20)
+        with session_factory() as db:
+            result = purge_expired_feedback(db, apply=True)
+            assert result.stored == 0
+            return result.removed
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        counts = list(executor.map(attempt, range(8)))
+    assert sorted(counts) == [0] * 7 + [3]

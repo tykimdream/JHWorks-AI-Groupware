@@ -1,3 +1,4 @@
+import getpass
 import json
 import sys
 from collections.abc import Generator
@@ -16,6 +17,7 @@ from app.main import app
 from app.models import Approval, LeaveAccount
 from app.ops import staging_workflow
 from app.ops.staging_fixture import populate
+from app.ops.staging_password import rotate_passwords
 from app.ops.staging_workflow import ACTORS, ORIGIN, HttpClient, Workflow
 
 PASSWORD = "synthetic-workflow-test-only-password"
@@ -79,6 +81,37 @@ def test_wrong_password_stops_before_any_business_write(workflow: Workflow) -> N
         assert db.scalar(select(func.count()).select_from(Approval)) == 0
 
 
+def test_replaced_fixture_password_completes_real_workflow(workflow: Workflow) -> None:
+    replacement = PASSWORD + "-replacement"
+    with next_database() as db, db.begin():
+        rotate_passwords(db, replacement, 2026)
+    workflow.execute(replacement, 2026)
+    assert "confirmed_leave_calendar" in workflow.passed
+
+
+def test_cli_apply_uses_only_hidden_input(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[str] = []
+
+    def no_plaintext_input(*_args: object) -> None:
+        raise AssertionError("plaintext input is forbidden")
+
+    def execute(_self: Workflow, password: str, _commit: str) -> None:
+        assert password == PASSWORD
+        calls.append("remote")
+
+    monkeypatch.setattr(staging_workflow, "verify_private_service", lambda _commit: None)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", no_plaintext_input)
+    monkeypatch.setattr(getpass, "getpass", lambda _prompt: PASSWORD)
+    monkeypatch.setattr(Workflow, "run_remote", execute)
+    monkeypatch.setattr(sys, "argv", ["workflow", "--commit", "a" * 40, "--apply"])
+    staging_workflow.main()
+    assert calls == ["remote"]
+    assert PASSWORD not in capsys.readouterr().out
+
+
 def test_http_redirect_is_failure_and_not_retried() -> None:
     calls: list[str] = []
 
@@ -124,3 +157,30 @@ def test_cli_failure_does_not_print_raw_exception_or_credentials(
         "status": "failed", "stage": "service_verify", "errorType": "ValueError", "checks": [],
     }
     assert "synthetic-sensitive-token-and-password" not in result
+
+
+def test_cli_defaults_to_no_credentials_and_no_writes(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    def unexpected(*_args: object) -> None:
+        raise AssertionError("must not ask for credentials or run workflows")
+
+    monkeypatch.setattr(staging_workflow, "verify_private_service", lambda _commit: None)
+    monkeypatch.setattr(getpass, "getpass", unexpected)
+    monkeypatch.setattr(staging_workflow.Workflow, "run_remote", unexpected)
+    monkeypatch.setattr(sys, "argv", ["workflow", "--commit", "a" * 40])
+    staging_workflow.main()
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "passed", "mode": "service-preflight", "changed": 0,
+    }
+
+
+def test_cli_noninteractive_apply_refuses_before_credential_input(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(staging_workflow, "verify_private_service", lambda _commit: None)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+    monkeypatch.setattr(sys, "argv", ["workflow", "--commit", "a" * 40, "--apply"])
+    with pytest.raises(SystemExit):
+        staging_workflow.main()
+    assert json.loads(capsys.readouterr().out)["stage"] == "operator_confirmation"

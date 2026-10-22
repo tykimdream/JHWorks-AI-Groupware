@@ -20,7 +20,8 @@
 - [x] 로컬 기본 seed의 원격 DB 실행 차단 PR #23 리뷰·CI·병합
 - [x] Python 전이 패키지 보안 패치 PR #24 리뷰·CI·병합, GitHub Python open alert 0개 확인
 - [x] private 합성 fixture 도구 PR #25 리뷰·CI·병합·실제 read-only preflight
-- [ ] 실제 로그인·합성 업무 저장/권한·공개 demo 격리 검증
+- [x] 실제 private staging 로그인·일반/휴가 결재·권한·CSRF·stale version·logout 검증 및 업무 데이터 격리 restore
+- [ ] 공개 demo 격리·요청/비용 제한 검증
 - [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
 
 ## 우선순위 조정 — 먼저 배포하고 지속 개선

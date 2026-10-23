@@ -122,7 +122,7 @@ CPU1/512Mi에서 실행당60~120초는 약$0.00137~$0.00274,6회는 약$0.0082~$
 
 후속 자동 운영은 매시1회/31일744회로 동일60~120초 가정의 compute 약$1.02~$2.04 + Scheduler
 최대$0.10/월(무료 적용 전, 위 부대 항목 제외)이다. timeout은 instance 총 과금의 상한이 아니다.
-현재 공지상 metric alerting 과금은2027-09-01보다 일찍 시작하지 않으며, 이후3 metric reference의
+현재 공지상 metric alerting 과금은2027-09-01보다 일찍 시작하지 않으며, 이후2 metric reference의
 기본료/조회 포인트 비용을 재검토한다. 기존 시스템 지표를 사용하고 새 custom/log-based metric은 만들지 않는다.
 
 공식 근거: [Cloud Run 예약/OAuth/IAM](https://docs.cloud.google.com/run/docs/execute/jobs-on-schedule),

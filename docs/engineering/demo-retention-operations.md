@@ -110,7 +110,8 @@ Ruff app/tests/alembic·strict mypy163파일 통과. 권한 범위·private/demo
 Job invoker binding·Scheduler 생성 후 pause·알림 정책2/수신 채널 연결·검증 실행 최대6회(수동 명령 기준)를
 검토한다. 자동 apply/resume·실제 삭제·private 변경은 이 승인에 포함하지 않는다.
 Scheduler 생성과 pause 사이/중복 전송으로 추가 invocation이 가능하므로 dry-run을 먼저 보장한다.
-관리 키/새 Secret version은 만들지 않는다. 수신 주소는 사용자 선택 후 실제 채널에만 설정한다.
+관리 키/새 Secret version은 만들지 않는다. 사용자가 기존 계정 이메일 수신을 선택했으며 주소는
+공개 저장소 밖의0600 채널 생성 파일에만 보관했다. 실제 채널/알림은 아직 생성하지 않았다.
 
 2026-10-23 공식 가격표 재확인: Scheduler는 계정 전체3 Job 무료 이후 Job당$0.10/31일이며
 paused도 집계된다. 서울 Jobs 기본 단가 CPU $0.0000216/vCPU초·RAM $0.0000024/GiB초를 사용하면

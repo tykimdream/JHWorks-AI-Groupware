@@ -53,7 +53,7 @@ private sentinel 미포함·원본 보존을 추가한다. 이는 pg_dump/pg_res
 app/tests157 source files, diff --check 통과. 로컬 PostgreSQL은 설정 부재로 skip이며 실제 CI 결과는
 정확한 PR head에서 별도 확인한다. 로컬 skip을 PostgreSQL 통과로 표현하지 않는다.
 
-실제 demo dump/격리 restore는 아직 미실행이다. 성공하더라도 Cloud Shell home의 1회 복원 리허설이며
+아래 실제 실행 결과 이전까지 demo dump/격리 restore는 미실행이었다. 성공하더라도 Cloud Shell home의 1회 복원 리허설이며
 예약/오프사이트 백업·장기 보존·RPO/RTO 보장·운영 장애 복구 완료를 뜻하지 않는다.
 실행 시간은 작은 합성 데이터와 이미지 준비/프로세스 시간을 포함하므로 DB 성능 지표로 사용하지 않는다.
 이후 실제 만료 데이터 정리는 별도 삭제 승인과 보존 검증을 거쳐 진행한다.
@@ -61,3 +61,34 @@ app/tests157 source files, diff --check 통과. 로컬 PostgreSQL은 설정 부�
 면접에서 설명할 핵심은 “dump 파일이 있다”와 “현재 전용 schema의 권한/데이터를 격리된 DB로
 복원해 비교했다”의 차이다. 다음 실습은 disposable PG에서 schema/행/ACL 중 하나를 바꾸고
 어떤 비교 항목이 실패하는지 확인하는 것이다. 원격 demo 자료를 바꾸어 실습하지 않는다.
+
+## 실제 1회 실행 — 2026-10-23
+
+PR #53 head `bafe62424c2f6511bb8513723b597c6f11b3d869`의 필수 CI5개 성공 후 자체 리뷰 COMMENT/
+라벨/병합(main `9a47405`)을 완료했다. CI39885849401: API447 passed/27 skipped38.35초,
+PostgreSQL27 passed8.62초(기존 Alembic deprecation5회), browser16+2/container/dependency 성공.
+사용자가 demo migration DB Secret v1의 운영 도구 사용과 읽기 전용 dump/격리 restore1회를 승인했다.
+
+Cloud Shell에 위 source archive의 SHA256
+`cb3e4053f6adf83e621c4b29d2cbd8b828bd4e391c91cd84e35e1c589f79d907`을 대조해 새 폴더에 안전하게 풀고
+frozen 의존성을 설치했다. CA checksum/프로필/CLI, 초기 여유 디스크4.0GiB를 확인했다.
+고정 이미지가 없어 Secret 읽기 전에 pull을 마쳤다. 시도 파일을 먼저 만들어 중복 실행을 차단했다.
+
+| 항목 | 실제 결과 |
+| --- | --- |
+| backup ID | `20261023T015811Z-653f204f` |
+| dump | 55,567 bytes, SHA256 `ccee4dd12c7da5c19e41c2b6588f7c576fc1dd312548f9ddb5f8475da2c139bf` |
+| schema/head | `groupware_demo` / `f30c9a71b624` |
+| 복원 비교 | 16 tables/85 rows, columns/constraints/indexes/ownership ACL/schema ACL/default ACL/rows/sequences/head 일치 |
+| 포함 자료 | 규정3/조항10/회사 일정48/방문 공간3/결재1/피드백1/password credential0 |
+| 단계 시간 | dump15.29초, restore/비교12.12초; 사전 image pull 시간 제외 |
+| 보관/정리 | dump/report0600·개별 폴더0700 독립 재확인, dump 해시 재계산 일치, temporaryContainerRemoved=true |
+
+원본 remote restore/쓰기/삭제, 새 자원/IAM/키, staging/session Secret payload 읽기는 없었다.
+추가 Secret 재접근 없이 로컬 report/dump 해시와 권한/건수를 재확인했다.
+Supabase 독립 SELECT로 private16테이블64행/head/fingerprint `788dd33280257ec9b390ce8d64b5f3da`,
+demo 공간3/결재1/피드백1 불변을 확인했다. 이 fingerprint의 한계는 기존 데이터 보존 문서를 따른다.
+덤프는 Cloud Shell `~/jhworks-demo-backups/20261023T015811Z-653f204f/` 안에만 보관하며 Git/채팅에 옮기지 않았다.
+안전한 실행 요약은 `~/jhworks-demo-backup-attempt-bafe62424c2f.json`, 전체 검증 보고는 dump 폴더의
+`verification.json`이다. 로컬 증거 이미지는 `artifacts/cloud-run/demo-backup-success-20261023.png`다.
+이 기록은 장기 백업 서비스나 실제 삭제 후 복구를 검증했다는 뜻이 아니다.

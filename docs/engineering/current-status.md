@@ -1,5 +1,20 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
+## 2026-10-23 후속: 정리 실행 증거 대조와 사전 점검 보강
+
+앱 내부 브라우저에서 기존 Cloud Shell 인증을 연결하고, 저장소에 없던 오전 정리 결과를 발견했다.
+실제 execution3건의 완료 시각/succeeded1/failed0과 Cloud Logging 앱 보고서1개씩을 읽어 대조했다.
+dry-run planned1/removed0 → apply planned1/removed1 → 재실행 planned0/removed0이며
+feedback은 모두 expired0/removed0/stored1이다. 이번에 삭제/Job 실행을 새로 한 것이 아니다.
+현재 Job은 전용 runtime/DB·session v1/기본 dry-run을 유지한다.
+[세부 증거와 한계](demo-retention-rehearsal.md)를 따른다. 현재 DB 보존 재대조·주기 실행·실패/누락 감지는 남아 있다.
+아래 '실제 정리 미실행'은 당시 저장소 기록이며, 같은 작업을 반복 실행하지 않는다.
+
+사전 SQL에 실제 정리 순서의 첫 대상·건수·관찰/정리 가능 시각을 추가했다.
+최신 빈 후보를 실제 삭제 대상으로 혼동하지 않도록 하고 PostgreSQL 회귀를 추가했다.
+작업 PR은 [#58](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/58)이며 병합 여부는 PR 상태를 따른다.
+다음은 원격 세션키 경계 검증과 정리 운영 준비다.
+
 2026-10-23 저장소 분석에 따른 [실행 계획](execution-plan-2026-10-23.md)을 추가했다.
 바로 다음 단위는 기존 정리 리허설 완결이며, 원격 키 경계·정리 운영·최종 QA·공개·포트폴리오 순서로 진행한다.
 이 계획 추가로 실제 외부 자원·데이터·배포 상태가 바뀌지는 않았다.

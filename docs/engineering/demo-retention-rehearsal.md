@@ -1,5 +1,39 @@
 # 전용 데모 정리 리허설 준비
 
+## 2026-10-23 18:34 KST 이후 읽기 재검증
+
+운영 Cloud Shell에 저장돼 있던 오전 실행 보고서를 발견하고 실제 Cloud Run execution과
+Cloud Logging을 읽어 대조했다. 아래 리허설은 이번 후속 작업에서 새로 실행한 것이 아니다.
+아래 본문의 '아직 실행하지 않았다'는 이전 준비 시점의 기록이다.
+
+| 단계 | 기존 execution | 완료 시각 KST | 앱 결과 |
+| --- | --- | --- | --- |
+| dry-run / batch1 | `jhworks-demo-maintenance-mp62b` | 2026-10-23 11:31:29 | workspace planned1/removed0 |
+| apply / batch1 | `jhworks-demo-maintenance-22s54` | 2026-10-23 11:33:41 | workspace planned1/removed1 |
+| apply 재실행 / batch1 | `jhworks-demo-maintenance-7vk85` | 2026-10-23 11:35:31 | workspace planned0/removed0 |
+
+각 execution은 succeeded1/failed0이고 완료 시각이 저장된 `step-N.json`과 일치했다.
+각 execution의 로그에서 앱 보고서가 정확히1개 조회됐고 저장 보고서와 내용이 같았다.
+세 실행 모두 feedback expired0/removed0/stored1이다. 이 결과는 만료 피드백의 실제 삭제 증거는 아니다.
+기존 보고서는 `~/jhworks-demo-retention-rehearsal/`의 `step-1.json`~`step-3.json`,
+`step-N-execution.json`, `final-boundary.json`에 있다.
+
+현재 Job은 전용 runtime SA와 전용 DB/session Secret v1, CPU1/512Mi/timeout120/retry0,
+기본 `--batch-size 5`/dry-run을 유지하는 것으로 읽기 확인했다. 현재 Job 설정의 이미지 참조는
+`sha256:f2c2a591add033bda6f5019977f5b52cccbfdd92b1bd00ed86109eb579c274f0`이고,
+조회한 세 execution의 이미지 참조는
+`sha256:dbb7df278f586b6ff32e32cd13e9218b72f10af57f490aab36e5b3437a87fb5f`다.
+두 digest의 manifest 관계/source 동일성은 이번 조회만으로 단정하지 않는다.
+
+기존 `final-boundary.json`은 Job 기본값/private revision/준비 화면 유지, 익명403 두 건,
+AI off, operator Secret payload 읽기0을 기록한다. 이 파일을 읽은 것을 새로운 DB fingerprint
+비교나 새로운 domain HTTP 검증으로 표현하지 않는다. 백업 보고서의 passed/격리 컨테이너 제거 기록도 확인했다.
+원격 DB의 현재 관계·행 보존 재대조와 원래 삭제 대상/시간 조정의 근거는 별도 확인이 필요하다.
+추가 Job 실행·삭제·Secret payload 읽기·권한 변경·Scheduler 생성은 이번 읽기 재검증에 포함하지 않았다.
+
+다음 작업은 이 증거를 기준으로 원격 키 경계 확인과 정리 주기·실패/누락 감지를 준비하는 것이다.
+같은 정리 리허설을 무조건 다시 실행하지 않는다.
+
 ## 현재 완료와 다음 문제
 
 전용 demo migration/runtime 경계와 공용 자료/업무 HTTP, maintenance dry-run/삭제0,

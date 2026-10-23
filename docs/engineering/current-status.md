@@ -2,6 +2,15 @@
 
 ## 2026-10-23 재개: 공개 전용 경계 준비
 
+최신 실제 상태: [전용 신원 전환 검증](demo-isolated-rehearsal.md) 성공. demo revision은
+`jhworks-demo-75d5e8a98fb2-3c51785fafdb`/traffic100%, 전용 runtime DB/session v1을 사용한다.
+전용 migration1회·HTTP20개·maintenance dry-run1회/삭제0 통과, private16테이블64행 fingerprint/head
+보존·staging spec 유지·익명403·domain 준비 HTML 유지 확인. 새 demo에는 방문 공간2/결재1/피드백1.
+서비스 이미지는 75d5e8a 그대로이며 새 도구 커밋으로 재빌드했다고 표현하지 않는다.
+합성 공용 규정/일정·실제 HMAC 상호 검증·backup/정리 운영·최종 브라우저/domain QA·공개는 남아 있다.
+
+아래 전용 신원 전환 미실행 설명은 credential 설정 직후 기록이다.
+
 최신: [전용 credential 설정](demo-credential-setup.md#실제-초기-설정-결과--2026-10-23)은
 추가 비용/인증 승인과 사용자 직접 입력 후 실제 성공했다. 새 Secret v1 ENABLED 3개와 실제
 두 역할의 TLS pooler 인증/private SELECT 거부를 확인했다. 기존 서비스/Job은 아직 전용 신원으로

@@ -18,6 +18,7 @@ from alembic import command
 ROOT = Path(__file__).resolve().parents[3]
 SQL = (ROOT / "deploy/cloud-run/supabase-demo-bootstrap.sql").read_text(encoding="utf-8")
 COMMON_SQL = (ROOT / "deploy/cloud-run/supabase-demo-common.sql").read_text(encoding="utf-8")
+RETENTION_SQL = (ROOT / "deploy/cloud-run/verify-demo-retention.sql").read_text(encoding="utf-8")
 
 
 @pytest.fixture
@@ -229,6 +230,79 @@ def test_common_fixtures_preserve_existing_rows_and_refuse_repeat_or_runtime(
         "SELECT title FROM groupware_demo.work_calendar_events WHERE id='existing_event'"
     )) == "Existing department event"
     assert db.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"
+
+
+@pytest.mark.parametrize("populated", [False, True])
+def test_retention_preflight_reports_actual_cleanup_order_without_changes(
+    common_owner: Connection, populated: bool,
+) -> None:
+    from app.ops.staging_backup import BackupProfile, snapshot
+
+    db = common_owner
+    now = int(db.scalar(text("SELECT floor(extract(epoch FROM statement_timestamp()))")))
+    if populated:
+        # a/b tie at the retention boundary; c is expired but not yet eligible.
+        # d is still active. The newest empty candidate is not the runner target.
+        for letter, offset in [("a", -86400), ("b", -86400), ("c", -60), ("d", 3600)]:
+            suffix = letter * 32
+            params = {"space": "demo_" + suffix, "dept": "demo_dept_" + suffix,
+                      "expiry": now + offset}
+            db.execute(text(
+                "INSERT INTO groupware_demo.departments (id,name,is_active) "
+                "VALUES (:dept,:dept,true)"
+            ), params)
+            db.execute(text(
+                "INSERT INTO groupware_demo.demo_workspaces "
+                "(id,department_id,expires_at_epoch,is_active,write_limit,writes_used) "
+                "VALUES (:space,:dept,:expiry,true,20,0)"
+            ), params)
+            for role in ("author", "mgr"):
+                employee_id = "demo_" + role + "_" + suffix
+                db.execute(text(
+                    "INSERT INTO groupware_demo.employees "
+                    "(id,name,email,department_id,demo_workspace_id,position,role,"
+                    "hire_date,leave_balance,is_active) "
+                    "VALUES (:employee,:employee,:email,:dept,:space,'Synthetic','EMPLOYEE',"
+                    "CURRENT_DATE,15,true)"
+                ), {**params, "employee": employee_id, "email": employee_id + "@jhworks.test"})
+        db.execute(text(
+            "INSERT INTO groupware_demo.approvals "
+            "(id,type,title,content,author_id,status,details,attachment_metadata,version,"
+            "created_at,updated_at) VALUES ('retention_probe','GENERAL','Synthetic','Synthetic',"
+            ":author,'DRAFT','{}','[]',1,now(),now())"
+        ), {"author": "demo_author_" + "a" * 32})
+        db.execute(text(
+            "INSERT INTO groupware_demo.demo_feedback "
+            "(id,workspace_hash,content_hash,category,screen,message,created_at_epoch) "
+            "VALUES ('retention_probe',:hash,:hash,'idea','general','Synthetic',:created)"
+        ), {"hash": "a" * 64, "created": now - 2592000})
+
+    def query(statement: str) -> Any:
+        return db.exec_driver_sql(statement).scalar_one()
+
+    before = snapshot(query, profile=BackupProfile.DEMO)
+    db.exec_driver_sql("SET LOCAL ROLE jhworks_demo_runtime")
+    report = db.exec_driver_sql(RETENTION_SQL).scalar_one()
+    db.exec_driver_sql("RESET ROLE")
+    assert snapshot(query, profile=BackupProfile.DEMO) == before
+    assert db.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"
+    assert report["demo_head"] == "f30c9a71b624"
+    assert report["observed_at_epoch"] >= now
+    assert report["cleanup_eligible"] == (2 if populated else 0)
+    if not populated:
+        assert report["next_cleanup"] is None and report["candidate"] is None
+        assert report["next_eligible_at_epoch"] is None
+    else:
+        assert report["workspaces"] == 4 and report["expired_feedback"] == 1
+        assert report["next_cleanup"] == {
+            "workspace_id": "demo_" + "a" * 32,
+            "department_id": "demo_dept_" + "a" * 32,
+            "expires_at_epoch": now - 86400,
+            "employee_count": 2, "approval_count": 1,
+        }
+        assert report["candidate"]["workspace_id"] == "demo_" + "c" * 32
+        assert report["candidate"]["cleanup_eligible"] is False
+        assert report["next_eligible_at_epoch"] == now
     db.exec_driver_sql("SET SESSION AUTHORIZATION jhworks_demo_runtime")
     try:
         assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 3

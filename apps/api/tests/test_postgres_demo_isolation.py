@@ -1,5 +1,6 @@
 """Real migration/grant checks; only disposable loopback PostgreSQL is allowed."""
 
+import hashlib
 import os
 from collections.abc import Generator
 from pathlib import Path
@@ -16,6 +17,7 @@ from alembic import command
 
 ROOT = Path(__file__).resolve().parents[3]
 SQL = (ROOT / "deploy/cloud-run/supabase-demo-bootstrap.sql").read_text(encoding="utf-8")
+COMMON_SQL = (ROOT / "deploy/cloud-run/supabase-demo-common.sql").read_text(encoding="utf-8")
 
 
 @pytest.fixture
@@ -149,3 +151,120 @@ def test_rerun_and_public_private_schema_fail_atomically(owner: Connection) -> N
             owner.exec_driver_sql(SQL)
         savepoint.rollback()
     assert owner.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"
+
+
+@pytest.fixture
+def common_owner(owner: Connection) -> Connection:
+    owner.exec_driver_sql(SQL)
+    owner.exec_driver_sql("ALTER ROLE jhworks_demo_runtime LOGIN")
+    owner.exec_driver_sql("ALTER ROLE jhworks_demo_migrate LOGIN")
+    owner.exec_driver_sql("SET LOCAL ROLE jhworks_demo_migrate")
+    owner.exec_driver_sql("SET LOCAL search_path TO groupware_demo, extensions")
+    config = Config(str(ROOT / "apps/api/alembic.ini"))
+    config.set_main_option("script_location", str(ROOT / "apps/api/alembic"))
+    config.attributes["connection"] = owner
+    command.upgrade(config, "head")
+    owner.exec_driver_sql("RESET ROLE")
+    owner.exec_driver_sql(
+        "INSERT INTO groupware_demo.departments (id,name,is_active) "
+        "VALUES ('existing_dept','Existing synthetic team',true)"
+    )
+    owner.exec_driver_sql(
+        "INSERT INTO groupware_demo.work_calendar_events "
+        "(id,category,title,start_date,end_date,scope,department_id,status,impact,created_at) "
+        "VALUES ('existing_event','COMPANY_EVENT','Existing department event',"
+        "CURRENT_DATE,CURRENT_DATE,'DEPARTMENT','existing_dept','CONFIRMED','CAUTION',now())"
+    )
+    return owner
+
+
+def test_common_fixtures_preserve_existing_rows_and_refuse_repeat_or_runtime(
+    common_owner: Connection,
+) -> None:
+    db = common_owner
+    db.exec_driver_sql(COMMON_SQL)
+    policies = db.execute(text(
+        "SELECT record_id,title,content_hash FROM groupware_demo.company_policies"
+    )).all()
+    assert len(policies) == 3
+    for record_id, title, content_hash in policies:
+        assert title.startswith("[체험·합성]")
+        sections = db.execute(text(
+            'SELECT section_id,title,content,"order",embedding FROM groupware_demo.policy_sections '
+            'WHERE policy_record_id=:record ORDER BY "order"'
+        ), {"record": record_id}).all()
+        canonical = "\n".join("|".join(row[:3]) for row in sections)
+        assert hashlib.sha256(canonical.encode()).hexdigest() == content_hash
+        assert [row[3] for row in sections] == list(range(1, len(sections) + 1))
+        assert all(row[4] is None for row in sections)
+    assert db.scalar(text("SELECT count(*) FROM groupware_demo.policy_sections")) == 10
+    from app.scripts.seed import POLICY_RULES
+
+    rules = dict(db.execute(text(
+        "SELECT section_id,rule_config FROM groupware_demo.policy_sections "
+        "WHERE rule_config IS NOT NULL"
+    )).tuples().all())
+    assert rules == POLICY_RULES
+    headers = db.execute(text(
+        "SELECT type,status,version,effective_from FROM groupware_demo.company_policies"
+    )).all()
+    assert {row[0] for row in headers} == {"TRAVEL", "EXPENSE", "LEAVE"}
+    assert all(row[1] == "ACTIVE" and row[2] == "demo-1.0" for row in headers)
+    events = db.execute(text(
+        "SELECT title,start_date,end_date,department_id,employee_id,approval_id "
+        "FROM groupware_demo.work_calendar_events WHERE scope='COMPANY'"
+    )).all()
+    year = int(db.scalar(text("SELECT extract(year FROM CURRENT_DATE)")))
+    assert len(events) == 48
+    assert {row[1].year for row in events} == {year, year + 1}
+    assert len({(row[1].year, row[1].month) for row in events}) == 24
+    assert all(row[0].startswith("[체험·합성]") and row[1] == row[2]
+               and row[3:] == (None, None, None) for row in events)
+    with db.begin_nested() as savepoint:
+        with pytest.raises(DBAPIError, match="Common data already exists"):
+            db.exec_driver_sql(COMMON_SQL)
+        savepoint.rollback()
+    assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 3
+    assert db.scalar(text(
+        "SELECT title FROM groupware_demo.work_calendar_events WHERE id='existing_event'"
+    )) == "Existing department event"
+    assert db.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"
+    db.exec_driver_sql("SET SESSION AUTHORIZATION jhworks_demo_runtime")
+    try:
+        assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 3
+        with db.begin_nested() as savepoint:
+            with pytest.raises(DBAPIError, match="approved operator"):
+                db.exec_driver_sql(COMMON_SQL)
+            savepoint.rollback()
+        denied(db, "SELECT * FROM groupware.private_sentinel")
+    finally:
+        db.exec_driver_sql("RESET SESSION AUTHORIZATION")
+
+
+def test_common_fixture_late_failure_rolls_back_inserted_policy_rows(
+    common_owner: Connection,
+) -> None:
+    db = common_owner
+    db.exec_driver_sql(
+        "ALTER TABLE groupware_demo.work_calendar_events "
+        "ADD CONSTRAINT synthetic_reject_common CHECK (scope <> 'COMPANY')"
+    )
+    with db.begin_nested() as savepoint:
+        with pytest.raises(DBAPIError) as error:
+            db.exec_driver_sql(COMMON_SQL)
+        assert getattr(error.value.orig, "sqlstate", None) == "23514"
+        savepoint.rollback()
+    assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 0
+    assert db.scalar(text("SELECT count(*) FROM groupware_demo.policy_sections")) == 0
+    assert db.scalar(text("SELECT count(*) FROM groupware_demo.work_calendar_events")) == 1
+    assert db.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"
+
+
+def test_common_fixture_refuses_private_access_leak(common_owner: Connection) -> None:
+    db = common_owner
+    db.exec_driver_sql("GRANT USAGE ON SCHEMA groupware TO jhworks_demo_runtime")
+    with db.begin_nested() as savepoint:
+        with pytest.raises(DBAPIError, match="authenticated isolated demo roles"):
+            db.exec_driver_sql(COMMON_SQL)
+        savepoint.rollback()
+    assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 0

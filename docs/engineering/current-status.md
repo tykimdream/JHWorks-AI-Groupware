@@ -1,5 +1,15 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
+## 2026-10-23 A3: 정리 예약·실패/누락 감지 적용 준비
+
+새 retention Job의 dry-run/apply, OAuth Scheduler, Job 범위 invoker와 disabled 실패/성공 누락
+정책을 생성하는 offline 도구·회귀13개를 준비했다. 전체 API490 passed/PG29 skipped(로컬), Ruff/mypy 통과.
+기존 Job의 전용 신원·Secret v1·dry-run/batch5/고정 digest를 읽기 확인했고,
+Scheduler API 비활성/알림 채널0/정책0, 실제 `succeeded` 지표와 PromQL 정상/누락 대조4개를 확인했다.
+자원 생성·새 IAM·Job 실행·알림 발송·삭제는 하지 않았다. 수신 주소 선택을 요청했으며
+[변경·비용·단계·복구 절차](demo-retention-operations.md)를 검토해 첫 dry-run 기반 시설 적용을 확인해야 한다.
+자동 정리 활성화/실제3시간 누락 incident·수신·첫 apply·자연 예약 완료 전에는 A3 완료가 아니다.
+
 ## 2026-10-23 20:50 KST: 실제 HTTP 세션 경계 검증 성공
 
 PR #61 exact-head CI5개·자체 리뷰·reviewed/security 라벨 후 병합(main `2357ca4`).

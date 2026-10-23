@@ -36,7 +36,7 @@ SQL UTF-8/LF SHA256: `27f6faccd43972850fcf231982eaceeb85923cef7f3bf9ea3067502129
 먼저 PR의 실제 PostgreSQL CI를 통과하고 리뷰·병합한다. 소유자/role/대상 schema·기존 공용 자료0과
 기존 데이터 기준값을 다시 확인한 뒤 운영자 SQL Editor에서 이 고정 SQL을 실행한다.
 이는 schema 권한/credential 변경이 아니며 private 원문을 읽어 옮기는 작업도 아니다.
-이 문서 작성 시에는 원격 DML을 실행하지 않았다.
+아래 실제 적용 결과 이전까지는 원격 DML을 실행하지 않았다.
 
 테스트는 loopback의 disposable jhworks_test DB/user만 허용하는 기존 PG fixture 안에서
 bootstrap→실제 전체 migration→LOGIN 상태를 준비한다. 정상 건수/정책 hash/조항 순서·embedding NULL,
@@ -48,3 +48,30 @@ fixture의 역할/schema/DDL/DML은 outer transaction으로 rollback하며 기�
 실제 적용 후에는 private fingerprint/head와 기존 방문 공간2/결재1/피드백1 보존을 비교한다.
 새 방문자가 정책 목록과 현재 날짜 창의 공통 일정을 읽는 실제 HTTP를 확인한다.
 이 검증도 custom domain 브라우저·접근성·성능·실제 AI 검증과 구분한다.
+
+## 실제 적용 결과 — 2026-10-23
+
+PR #52 head `7dd266295aaa36f5b48f96c4a91188ed3f002c6b`의 CI
+[39881061284](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39881061284)
+5개 성공 후 자체 리뷰 COMMENT/라벨/병합(main `c990cec`)을 완료했다. 독립적인 사람의 승인과 구분한다.
+API441 passed/26 skipped(38.43초), 실제 PostgreSQL26 passed(6.26초), browser16+public2,
+container-smoke/dependency-review 성공이다. PG의 기존 Alembic path_separator deprecation 경고4개는 남았다.
+
+Supabase SQL Editor에서 기존 대상/빈 공통 자료/LOGIN2/credential0을 확인하고 위 SHA의 SQL을 1회
+실행했다. Success 후 별도 SELECT로 규정3/조항10/COMPANY 일정48, credential0을 확인했다.
+기존 공간2/결재1/피드백1은 자료 등록으로 바뀌지 않았다.
+
+전용 revision `jhworks-demo-75d5e8a98fb2-3c51785fafdb`에 기존 operator ID token으로 실제 HTTP7개를
+검증했다. 토큰/쿠키는 프로세스 메모리에만 사용하고 원문 응답/credential을 기록하지 않았다.
+configuration200/AI=false → demo start200 → policies200(3종/10조항/demo-1.0/정렬 content hash 일치)
+→ 2026-11 attendance overview200(COMPANY2개) → leave availability200(잔여15/READY,
+11월4일 합성 휴무 BLOCKED·선택 불가, 11월12일 타운홀 CAUTION·선택 가능)
+→ logout200 → policies401을 확인했다. 이 과정에서 새 공간1개를 추가했다.
+안전한 결과 파일은 Cloud Shell의 고정 rollout 폴더 `common-http-result.json`에 보관한다.
+
+최종 독립 SQL 재조회: 공간3/결재1/피드백1, 공통3/10/48, credential0, LOGIN2.
+private16테이블64행/head `f30c9a71b624`/데이터 fingerprint `788dd33280257ec9b390ce8d64b5f3da`
+모두 이전과 같다. fingerprint는 작은 합성 데이터의 행 변경 탐지이며 전체 DB/ACL/sequence 복구 증거가 아니다.
+로컬 증거 이미지는 `artifacts/cloud-run/demo-common-final-counts-20261023.png`와
+`demo-common-final-preservation-20261023.png`이며 Git에는 dump/원문 업무 행을 넣지 않는다.
+새 이미지 배포/유료 자원/IAM/credential 변경/실제 삭제/AI/공개 전환은 없었다.

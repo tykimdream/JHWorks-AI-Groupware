@@ -3,8 +3,8 @@ WITH clock AS (
   SELECT floor(extract(epoch FROM statement_timestamp()))::bigint AS now_epoch
 ), candidates AS (
   SELECT w.id, w.expires_at_epoch
-  FROM groupware_demo.demo_workspaces w
-  WHERE NOT w.is_active
+  FROM groupware_demo.demo_workspaces w CROSS JOIN clock
+  WHERE w.expires_at_epoch <= clock.now_epoch
     AND w.id ~ '^demo_[0-9a-f]{32}$'
     AND w.department_id = 'demo_dept_' || substring(w.id FROM 6)
     AND (SELECT count(*) FROM groupware_demo.employees e

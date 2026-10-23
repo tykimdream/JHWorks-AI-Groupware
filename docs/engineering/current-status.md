@@ -20,7 +20,10 @@
 추가 인증 사용 범위 승인 후 실제 demo dump/격리 restore1회도 성공했다.
 backup `20261023T015811Z-653f204f`, 55,567bytes/16테이블85행/schema·data·ACL·sequence·head 비교 통과,
 임시 컨테이너 제거와 파일 권한/해시·원본 private64행/demo3·1·1 보존을 독립 확인했다.
-다음은 [정리 리허설 계획](demo-retention-rehearsal.md)이다. 실제 삭제/추가 Job 실행/예약은 아직 하지 않았다.
+[정리 리허설](demo-retention-rehearsal.md)도 추가 승인 후 실제 완료했다. 고정 합성 공간1개의 시간 경계 주입,
+전용 Job3회(dry1/삭제1/재실행0), 대상6행 제거·나머지15테이블78행 fingerprint/private64행 보존 통과.
+현재 공간2/결재1/피드백1·공용3/10/48, 기본 Job dry-run/spec·비공개 revision/IAM/익명403·AI off·준비 HTML 유지.
+다음은 주기·실패/누락 알림의 offline 구성과 비용/권한 gate다. 예약/자동 삭제/알림은 아직 운영하지 않는다.
 
 아래 전용 신원 전환 미실행 설명은 credential 설정 직후 기록이다.
 

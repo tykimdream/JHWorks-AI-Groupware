@@ -74,7 +74,10 @@ PromQL은 project/location/job/monitored_resource를 모두 고정하고 두 정
 읽기 전용 조회로 기존 `jhworks-demo-maintenance`의 dry-run/batch5·task1/parallelism1·CPU1/512Mi·
 120초/retry0, 전용 demo runtime/DB/session v1을 확인했다. 고정 이미지 참조는
 `asia-northeast3-docker.pkg.dev/jhworks-staging-tykimdream/jhworks/api@sha256:f2c2a591add033bda6f5019977f5b52cccbfdd92b1bd00ed86109eb579c274f0`다.
-새 Job 적용 전에는 이 digest와 기존 execution의 child digest/source 관계도 다시 확인한다.
+추가 읽기 점검으로 registry index/manifest/config bytes를 각각SHA256 대조했다. 이 index의
+linux/amd64 child는 `sha256:dbb7df278f586b6ff32e32cd13e9218b72f10af57f490aab36e5b3437a87fb5f`로
+기존 리허설 execution과 일치했다. config의 source revision label은 없으므로 source SHA 증명으로
+확대 해석하지 않는다. 새 Job 적용 전에도 현재 image/runtime/command의 변동 여부를 다시 확인한다.
 Scheduler API 비활성, Monitoring/Logging 활성, 알림 채널0·정책0을 조회했다.
 기존 Job의24시간 완료 지표는 `result=succeeded`/합계5를 반환했다. 이것을 새로운 실행 증거로 표현하지 않는다.
 Secret payload·DB·새 실행·자원 변경에는 접근하지 않았다. 기존 access token은 메모리에서만 사용했다.

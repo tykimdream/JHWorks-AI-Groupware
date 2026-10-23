@@ -231,6 +231,17 @@ def test_common_fixtures_preserve_existing_rows_and_refuse_repeat_or_runtime(
     )) == "Existing department event"
     assert db.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"
 
+    db.exec_driver_sql("SET SESSION AUTHORIZATION jhworks_demo_runtime")
+    try:
+        assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 3
+        with db.begin_nested() as savepoint:
+            with pytest.raises(DBAPIError, match="approved operator"):
+                db.exec_driver_sql(COMMON_SQL)
+            savepoint.rollback()
+        denied(db, "SELECT * FROM groupware.private_sentinel")
+    finally:
+        db.exec_driver_sql("RESET SESSION AUTHORIZATION")
+
 
 @pytest.mark.parametrize("populated", [False, True])
 def test_retention_preflight_reports_actual_cleanup_order_without_changes(
@@ -303,16 +314,6 @@ def test_retention_preflight_reports_actual_cleanup_order_without_changes(
         assert report["candidate"]["workspace_id"] == "demo_" + "c" * 32
         assert report["candidate"]["cleanup_eligible"] is False
         assert report["next_eligible_at_epoch"] == now
-    db.exec_driver_sql("SET SESSION AUTHORIZATION jhworks_demo_runtime")
-    try:
-        assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 3
-        with db.begin_nested() as savepoint:
-            with pytest.raises(DBAPIError, match="approved operator"):
-                db.exec_driver_sql(COMMON_SQL)
-            savepoint.rollback()
-        denied(db, "SELECT * FROM groupware.private_sentinel")
-    finally:
-        db.exec_driver_sql("RESET SESSION AUTHORIZATION")
 
 
 def test_common_fixture_late_failure_rolls_back_inserted_policy_rows(

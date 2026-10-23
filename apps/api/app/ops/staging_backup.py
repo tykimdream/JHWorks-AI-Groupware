@@ -12,6 +12,7 @@ import subprocess
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlsplit
@@ -27,14 +28,47 @@ CA_SHA256 = "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7"
 ROW_LIMIT = 10_000
 
 
-def connection_parameters(database_url: str, ca_file: Path) -> dict[str, Any]:
+class BackupProfile(StrEnum):
+    STAGING = "staging"
+    DEMO = "demo"
+
+    @property
+    def schema(self) -> str:
+        return "groupware_demo" if self == self.DEMO else "groupware"
+
+    @property
+    def migration_role(self) -> str:
+        return "jhworks_demo_migrate" if self == self.DEMO else "jhworks_migrate"
+
+    @property
+    def runtime_role(self) -> str:
+        return "jhworks_demo_runtime" if self == self.DEMO else "jhworks_runtime"
+
+    @property
+    def database_user(self) -> str:
+        return self.migration_role + ".uztfgtfvxhpmavybldbh"
+
+    @property
+    def database_secret(self) -> str:
+        if self == self.DEMO:
+            return "jhworks-demo-migration-database"
+        return "jhworks-migration-database"
+
+    @property
+    def search_path(self) -> str:
+        return "groupware_demo,extensions" if self == self.DEMO else "groupware,extensions,public"
+
+
+def connection_parameters(
+    database_url: str, ca_file: Path, *, profile: BackupProfile = BackupProfile.STAGING,
+) -> dict[str, Any]:
     parsed = urlsplit(database_url)
     query = parse_qs(parsed.query)
     if (
         parsed.scheme != "postgresql+psycopg"
         or parsed.hostname != POOLER
         or parsed.port != 5432
-        or unquote(parsed.username or "") != DATABASE_USER
+        or unquote(parsed.username or "") != profile.database_user
         or parsed.path != "/postgres"
         or not parsed.password
         or query.get("sslmode") != ["verify-full"]
@@ -48,7 +82,7 @@ def connection_parameters(database_url: str, ca_file: Path) -> dict[str, Any]:
         "host": POOLER,
         "port": 5432,
         "dbname": "postgres",
-        "user": DATABASE_USER,
+        "user": profile.database_user,
         "password": unquote(parsed.password),
         "sslmode": "verify-full",
         "sslrootcert": str(ca_file),
@@ -100,15 +134,26 @@ CATALOG_QUERIES = {
 }
 
 
-def snapshot(query: Callable[[str], Any]) -> dict[str, Any]:
-    names = query("""SELECT coalesce(jsonb_agg(tablename ORDER BY tablename),'[]')
-        FROM pg_tables WHERE schemaname='groupware'""")
+def catalog_queries(profile: BackupProfile) -> dict[str, str]:
+    # Only two fixed profiles can select a namespace; no arbitrary schema/Secret
+    # CLI argument is accepted. Keep legacy staging query strings unchanged.
+    literal = sql.Literal(profile.schema).as_string()
+    return {name: statement.replace("'groupware'", literal)
+            for name, statement in CATALOG_QUERIES.items()}
+
+
+def snapshot(
+    query: Callable[[str], Any], *, profile: BackupProfile = BackupProfile.STAGING,
+) -> dict[str, Any]:
+    literal = sql.Literal(profile.schema).as_string()
+    names = query("SELECT coalesce(jsonb_agg(tablename ORDER BY tablename),'[]') "
+                  "FROM pg_tables WHERE schemaname=" + literal)
     if not names or "alembic_version" not in names:
-        raise ValueError("expected an initialized groupware schema")
-    result = {name: query(statement) for name, statement in CATALOG_QUERIES.items()}
+        raise ValueError("expected an initialized backup target schema")
+    result = {name: query(statement) for name, statement in catalog_queries(profile).items()}
     tables = {}
     for name in names:
-        identifier = sql.Identifier("groupware", name).as_string()
+        identifier = sql.Identifier(profile.schema, name).as_string()
         count = query(
             "SELECT to_jsonb(count(*)) FROM "
             f"(SELECT 1 FROM {identifier} LIMIT {ROW_LIMIT + 1}) bounded_rows"
@@ -121,30 +166,38 @@ def snapshot(query: Callable[[str], Any]) -> dict[str, Any]:
         )
         tables[name] = {"count": count, "sha256": rows_fingerprint(rows)}
     result["tables"] = tables
-    result["head"] = query("SELECT to_jsonb(version_num) FROM groupware.alembic_version")
-    sequences = query("""SELECT coalesce(jsonb_agg(sequencename ORDER BY sequencename),'[]')
-        FROM pg_sequences WHERE schemaname='groupware'""")
+    result["head"] = query("SELECT to_jsonb(version_num) FROM "
+                           + sql.Identifier(profile.schema, "alembic_version").as_string())
+    sequences = query("SELECT coalesce(jsonb_agg(sequencename ORDER BY sequencename),'[]') "
+                      "FROM pg_sequences WHERE schemaname=" + literal)
     result["sequences"] = {
         name: query(
             "SELECT jsonb_build_object('last_value',last_value,'is_called',is_called) FROM "
-            + sql.Identifier("groupware", name).as_string()
+            + sql.Identifier(profile.schema, name).as_string()
         )
         for name in sequences
     }
     return result
 
 
-def rehearse(image: str, ca_file: Path, output_root: Path) -> dict[str, Any]:
+def rehearse(
+    image: str, ca_file: Path, output_root: Path, *, profile: BackupProfile = BackupProfile.STAGING,
+) -> dict[str, Any]:
+    if not isinstance(profile, BackupProfile):
+        raise ValueError("use one of the fixed backup profiles")
     if not re.fullmatch(r"pgvector/pgvector@sha256:[a-f0-9]{64}", image):
         raise ValueError("use a verified pgvector image digest")
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     directory = output_root / stamp
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
-    archive = directory / "groupware.dump"
+    archive = directory / (profile.schema + ".dump")
     container = "jhworks-restore-" + uuid4().hex
     created = False
     stage = "preflight"
-    report: dict[str, Any] = {"generatedAt": stamp, "status": "preparing", "image": image}
+    report: dict[str, Any] = {
+        "generatedAt": stamp, "status": "preparing", "image": image,
+        "profile": profile.value, "schema": profile.schema,
+    }
     try:
         project = run(
             ["gcloud", "projects", "describe", PROJECT, "--format=value(projectNumber)"],
@@ -155,20 +208,28 @@ def rehearse(image: str, ca_file: Path, output_root: Path) -> dict[str, Any]:
             raise ValueError("unexpected project")
         url = run(
             ["gcloud", "secrets", "versions", "access", "1", "--secret",
-             "jhworks-migration-database", "--project", PROJECT],
+             profile.database_secret, "--project", PROJECT],
             capture_output=True,
             text=True,
         ).stdout.strip()
-        parameters = connection_parameters(url, ca_file)
+        parameters = connection_parameters(url, ca_file, profile=profile)
+        queries = catalog_queries(profile)
         stage = "dump"
         started = time.monotonic()
         with psycopg.connect(**parameters) as connection:
             connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-            connection.execute("SET LOCAL search_path TO groupware,extensions,public")
+            connection.execute("SET LOCAL search_path TO " + profile.search_path)
+            identity = connection.execute("SELECT current_user,current_schema()").fetchone()
+            if identity != (profile.migration_role, profile.schema):
+                raise ValueError("unexpected authenticated backup identity or schema")
+            if profile == BackupProfile.DEMO and connection.execute(
+                "SELECT has_schema_privilege(current_user,'groupware','USAGE')"
+            ).fetchone() != (False,):
+                raise ValueError("demo backup must not access the private schema")
 
             def source_query(statement: str) -> Any:
                 report["sourceQuery"] = next(
-                    (name for name, query in CATALOG_QUERIES.items() if query == statement),
+                    (name for name, query in queries.items() if query == statement),
                     "snapshot-or-table-data",
                 )
                 report["sourceQueryIndex"] = report.get("sourceQueryIndex", 0) + 1
@@ -178,7 +239,7 @@ def rehearse(image: str, ca_file: Path, output_root: Path) -> dict[str, Any]:
                 return row[0]
 
             exported = source_query("SELECT pg_export_snapshot()")
-            source = snapshot(source_query)
+            source = snapshot(source_query, profile=profile)
             environment = {
                 **os.environ, "PGHOST": parameters["host"], "PGPORT": "5432",
                 "PGDATABASE": "postgres", "PGUSER": parameters["user"],
@@ -193,7 +254,7 @@ def rehearse(image: str, ca_file: Path, output_root: Path) -> dict[str, Any]:
                     ["docker", "run", "--rm", "--network=host", "--mount",
                      f"type=bind,src={ca_file.resolve()},dst=/certs/supabase.crt,readonly",
                      *[item for name in env_names for item in ("--env", name)],
-                     image, "pg_dump", "--format=custom", "--schema=groupware",
+                     image, "pg_dump", "--format=custom", "--schema=" + profile.schema,
                      "--strict-names", "--no-password", "--lock-wait-timeout=10s",
                      f"--snapshot={exported}"], env=environment, stdout=destination,
                 )
@@ -222,8 +283,8 @@ def rehearse(image: str, ca_file: Path, output_root: Path) -> dict[str, Any]:
                 if attempt == 29:
                     raise
                 time.sleep(1)
-        run([*psql, "-c", "CREATE ROLE jhworks_migrate NOLOGIN NOINHERIT; "
-             "CREATE ROLE jhworks_runtime NOLOGIN NOINHERIT; "
+        run([*psql, "-c", f"CREATE ROLE {profile.migration_role} NOLOGIN NOINHERIT; "
+             f"CREATE ROLE {profile.runtime_role} NOLOGIN NOINHERIT; "
              "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; "
              "CREATE SCHEMA extensions; CREATE EXTENSION vector WITH SCHEMA extensions;"],
             capture_output=True)
@@ -232,15 +293,15 @@ def rehearse(image: str, ca_file: Path, output_root: Path) -> dict[str, Any]:
                  "--exit-on-error", "--single-transaction", "-h", "/tmp", "-U", "postgres",
                  "--dbname=postgres"], stdin=source_file, stdout=subprocess.PIPE)
         restored = snapshot(lambda q: json.loads(run(
-            [*psql, "-c", "SET search_path TO groupware,extensions,public; " + q],
+            [*psql, "-c", "SET search_path TO " + profile.search_path + "; " + q],
             capture_output=True, text=True,
-        ).stdout))
+        ).stdout), profile=profile)
         if source != restored:
             raise ValueError("restored schema/data/ACL fingerprint differs")
         report.update(
             status="passed", restoreSeconds=round(time.monotonic() - started, 2),
             head=source["head"], tables=source["tables"],
-            verified=[*CATALOG_QUERIES, "rows", "sequences", "head"],
+            verified=[*queries, "rows", "sequences", "head"],
             backupReference=f"cloud-shell:{stamp}:sha256:{report['dumpSha256']}:restore-verified",
         )
     except Exception as error:
@@ -265,8 +326,10 @@ def main() -> None:
     parser.add_argument("--image", required=True)
     parser.add_argument("--ca-file", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--profile", type=BackupProfile, choices=list(BackupProfile),
+                        default=BackupProfile.STAGING)
     args = parser.parse_args()
-    report = rehearse(args.image, args.ca_file, args.output_root)
+    report = rehearse(args.image, args.ca_file, args.output_root, profile=args.profile)
     print(json.dumps(report))
     raise SystemExit(0 if report["status"] == "passed" else 1)
 

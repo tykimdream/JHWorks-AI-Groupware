@@ -7,11 +7,17 @@
 전용 migration1회·HTTP20개·maintenance dry-run1회/삭제0 통과, private16테이블64행 fingerprint/head
 보존·staging spec 유지·익명403·domain 준비 HTML 유지 확인. 새 demo에는 방문 공간2/결재1/피드백1.
 서비스 이미지는 75d5e8a 그대로이며 새 도구 커밋으로 재빌드했다고 표현하지 않는다.
-합성 공용 규정/일정·실제 HMAC 상호 검증·backup/정리 운영·최종 브라우저/domain QA·공개는 남아 있다.
+합성 공용 자료의 실제 적용/HTTP 검증도 완료했다(아래). 실제 HMAC 상호 검증·demo backup/정리 운영·
+최종 브라우저/domain QA·공개는 남아 있다.
 
-다음 작은 단위는 [합성 공용 자료](demo-common-fixtures.md)다. 기존 원격 seed 차단을 유지하고
-전용 schema의 규정3/조항10/합성 회사 일정48개만 넣는 초기 SQL과 실제 PG 회귀를 준비한다.
-아직 원격 자료 등록은 하지 않았다. 실제 적용/검증 결과는 별도 기록한다.
+[합성 공용 자료](demo-common-fixtures.md)는 PR #52 exact-head CI 5개/자체 리뷰/병합 후 실제 적용했다.
+규정3/조항10/합성 COMPANY 일정48, password credential0, 실제 방문자 HTTP7개를 확인했다.
+11월 합성 휴무 BLOCKED/선택 불가, 타운홀 CAUTION/선택 가능이며 정책 content hash가 일치했다.
+최종 공간3/결재1/피드백1, private16테이블64행/head/fingerprint 불변이다. 이미지 재배포/AI/공개 전환 없음.
+
+다음 작은 단위는 [demo 백업 프로필](demo-backup-profile.md)이다. 기존 staging 동작을 유지하고
+새 demo migration Secret v1/전용 schema만 선택하는 도구와 회귀를 준비한다.
+실제 demo dump/격리 restore는 아직 실행하지 않았다. 인증정보의 운영 도구 사용 범위를 확인한 후 진행한다.
 
 아래 전용 신원 전환 미실행 설명은 credential 설정 직후 기록이다.
 

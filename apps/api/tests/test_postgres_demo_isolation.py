@@ -268,3 +268,28 @@ def test_common_fixture_refuses_private_access_leak(common_owner: Connection) ->
             db.exec_driver_sql(COMMON_SQL)
         savepoint.rollback()
     assert db.scalar(text("SELECT count(*) FROM groupware_demo.company_policies")) == 0
+
+
+def test_demo_backup_snapshot_captures_only_its_schema(common_owner: Connection) -> None:
+    from app.ops.staging_backup import BackupProfile, snapshot
+
+    db = common_owner
+    db.exec_driver_sql(COMMON_SQL)
+    statements: list[str] = []
+
+    def query(statement: str) -> Any:
+        statements.append(statement)
+        return db.exec_driver_sql(statement).scalar_one()
+
+    observed = snapshot(query, profile=BackupProfile.DEMO)
+    assert observed["head"] == "f30c9a71b624"
+    assert len(observed["tables"]) == 16
+    assert observed["tables"]["company_policies"]["count"] == 3
+    assert observed["tables"]["policy_sections"]["count"] == 10
+    assert observed["tables"]["work_calendar_events"]["count"] == 49
+    assert "private_sentinel" not in observed["tables"]
+    assert all('"groupware".' not in statement and "'groupware'" not in statement
+               for statement in statements)
+    assert "jhworks_demo_migrate" in str(observed["ownership_acl"])
+    assert "jhworks_demo_runtime" in str(observed["schema_acl"])
+    assert db.scalar(text("SELECT value FROM groupware.private_sentinel")) == "synthetic-private"

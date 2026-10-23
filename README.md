@@ -20,6 +20,28 @@ AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경
 
 스크린샷은 가상 데이터, 가짜 LLM/임베딩과 실제 API를 연결한 브라우저 테스트에서 촬영했다. 실제 모델 출력이나 운영 도입 증거가 아니다.
 
+## 2026-10-23 포트폴리오 업데이트
+
+[한영 케이스 스터디](https://pikan.dev/ko/projects/jhworks-ai-groupware) · [FDE 관점](https://pikan.dev/ko/fde/projects/jhworks-ai-groupware)
+
+| 영역 | 구현·검증한 내용 |
+| --- | --- |
+| 업무 AI | 정책 RAG와 인용 검증, Structured Output, 사용자 범위 Tool, 저장·제출 각각의 확인과 멱등 처리 |
+| 비공개 배포 | Cloud Run / Supabase PostgreSQL, GitHub Actions 수동 release, migration·smoke와 rollback 경로 |
+| 방문자 경계 | 별도 DB schema·실행 신원·세션 키, 공간별 접근·만료·쓰기 예산, DB 공유 로그인 요청 제한 |
+| 운영 증거 | 전용 demo HTTP 20개, 합성 정책·일정 검증, DB 백업과 네트워크 격리 복원의 schema/data/ACL/sequence/head 대조 |
+| 자동 검증 | PR #53 CI: API 447 passed / 27 skipped, 별도 PostgreSQL 27 passed, 브라우저 16 + 2 passed |
+
+**공개 상태:** 앱은 비공개 검증 환경이다. `groupware.pikan.dev`는 HTTPS 준비 화면이며 방문자 체험 앱은 아직 공개하지 않았다.
+배포 환경의 외부 AI 호출은 비활성화했다. 정리·알림의 예약 운영과 main 자동 배포는 준비 중이다.
+백업 증거는 1회 복원 리허설이며 예약 백업·운영 장애 복구 보장이나 실제 사용자 생산성 수치로 해석하지 않는다.
+
+근거: [전용 데모 검증](docs/engineering/demo-isolated-rehearsal.md),
+[합성 공용 자료](docs/engineering/demo-common-fixtures.md),
+[백업·복원과 CI 기록](docs/engineering/demo-backup-profile.md),
+[최신 진행 상태](docs/engineering/current-status.md), [남은 공개 단계](docs/engineering/roadmap.md).
+아래 Phase 11과 2026-10-15 결과는 당시 이력이며 위의 후속 검증과 구분한다.
+
 ## Current Status
 
 2026-10-21 로컬 재진단과 공개 배포 차단 요인은 [엔지니어링 진단](docs/engineering/assessment.md),

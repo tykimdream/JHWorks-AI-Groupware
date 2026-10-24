@@ -1,6 +1,8 @@
 from collections.abc import Callable
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
+from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
@@ -88,7 +90,7 @@ def test_follow_up_answers_are_sent_with_a_grounded_date(
         "복귀는 수요일이고 총 35만원이야",
         "하버랩 프로젝트 협의야",
     ]
-    assert provider_input.current_date == date.today()
+    assert provider_input.current_date == datetime.now(ZoneInfo("Asia/Seoul")).date()
     assert provider_input.timezone == "Asia/Seoul"
 
 
@@ -206,8 +208,11 @@ def test_expense_intent_is_not_silently_changed_to_a_trip(
     )
 
     assert response.status_code == 200, response.text
-    assert response.json()["status"] == "UNSUPPORTED"
-    assert "경비 결재" in response.json()["assistantMessage"]
+    assert response.json()["status"] == "NEEDS_INPUT"
+    assert response.json()["candidate"]["intent"] == "EXPENSE"
+    assert "details.expenseDate" in response.json()["missingFields"]
+    assert "details.destination" not in response.json()["missingFields"]
+    assert response.json()["preview"] is None
     assert approval_count(session_factory) == before
 
 
@@ -240,3 +245,19 @@ def test_approval_draft_eval_dataset_covers_core_intents() -> None:
     assert DraftIntent.EXPENSE in intents
     assert DraftIntent.LEAVE in intents
     assert DraftIntent.GENERAL in intents
+
+
+def test_relative_date_context_uses_seoul_day_at_utc_boundary(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    fake_draft_provider: FakeApprovalDraftProvider,
+) -> None:
+    login(client, "seojin.yoon@jhworks.test")
+    utc_instant = datetime(2026, 10, 23, 15, 1, tzinfo=UTC)
+    with patch("app.services.approval_draft.datetime") as clock:
+        clock.now.side_effect = lambda tz: utc_instant.astimezone(tz)
+        response = client.post(
+            "/api/v1/approval-draft-assistant/prepare", json={"request": "오늘 업무 협조 초안"}
+        )
+    assert response.status_code == 200, response.text
+    assert fake_draft_provider.inputs[-1].current_date == date(2026, 10, 24)

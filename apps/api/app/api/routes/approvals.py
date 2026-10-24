@@ -18,8 +18,10 @@ from app.schemas.approval import (
     ApprovalRead,
     ApprovalUpdate,
 )
+from app.schemas.expense_checks import ExpenseChecks, ExpenseInsights
 from app.services import approval as approval_service
 from app.services import approval_review as approval_review_service
+from app.services.expense_checks import check_expense, expense_insights
 from app.services.mappers import approval_read
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -42,6 +44,20 @@ def create_approval(
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
     return approval_read(approval_service.create_draft(db, current_employee, payload))
+
+
+@router.get("/expense-insights", response_model=ExpenseInsights)
+def get_expense_insights(db: DbSession, current_employee: CurrentEmployee) -> ExpenseInsights:
+    return expense_insights(db, current_employee)
+
+
+@router.get("/{approval_id}/expense-checks", response_model=ExpenseChecks)
+def get_expense_checks(
+    approval_id: str,
+    db: DbSession,
+    current_employee: CurrentEmployee,
+) -> ExpenseChecks:
+    return check_expense(db, current_employee, approval_id)
 
 
 @router.get("/{approval_id}", response_model=ApprovalRead)

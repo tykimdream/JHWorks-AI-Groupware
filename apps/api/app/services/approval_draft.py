@@ -2,8 +2,9 @@ import hashlib
 import hmac
 import json
 import logging
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -29,6 +30,7 @@ from app.schemas.approval import (
     ApprovalCreate,
     BusinessTripDetails,
     CostBreakdown,
+    ExpenseDetails,
     GeneralDetails,
 )
 from app.schemas.approval_draft_ai import (
@@ -46,6 +48,7 @@ from app.schemas.policy import (
 )
 from app.services import approval as approval_service
 from app.services import policy_retrieval
+from app.services.expense_validation import expense_validation_errors
 
 logger = logging.getLogger("jhworks.approval_draft")
 
@@ -57,12 +60,15 @@ QUESTION_PROMPTS = {
     "details.endDate": "출장 종료일은 언제인가요?",
     "details.clientName": "관련 고객사 또는 행사명은 무엇인가요?",
     "details.visitPurpose": "이번 출장에서 수행할 업무와 목적은 무엇인가요?",
-    "details.costBreakdown": (
-        "예상 비용을 교통비, 숙박비, 식비, 기타 비용으로 나눠 알려주세요."
-    ),
+    "details.costBreakdown": ("예상 비용을 교통비, 숙박비, 식비, 기타 비용으로 나눠 알려주세요."),
     "amount": "예상 비용 총액은 얼마인가요?",
     "amountConsistency": "예상 총액과 비용 항목의 합계가 다릅니다. 정확한 금액을 알려주세요.",
     "details.endDateOrder": "종료일이 시작일보다 빠릅니다. 출장 기간을 다시 알려주세요.",
+    "details.expenseDate": "실제로 지출한 날짜는 언제인가요? 미래 날짜는 정산할 수 없습니다.",
+    "details.merchant": "어느 사용처에 지출했나요? 상호 또는 결제 대상을 알려주세요.",
+    "details.category": "교통비·숙박비·식비·기타 중 어떤 지출인가요?",
+    "details.purpose": "어떤 업무를 위해 지출했나요?",
+    "expenseAmount": "실제로 지출한 금액을 0원보다 큰 원화 금액으로 알려주세요.",
 }
 
 
@@ -91,6 +97,9 @@ def _normalize_candidate(candidate: ApprovalDraftCandidate) -> ApprovalDraftCand
         "destination",
         "client_name",
         "visit_purpose",
+        "merchant",
+        "expense_purpose",
+        "receipt_reference",
     )
     updates: dict[str, object] = {
         field: _clean_text(getattr(candidate, field)) for field in text_fields
@@ -101,7 +110,11 @@ def _normalize_candidate(candidate: ApprovalDraftCandidate) -> ApprovalDraftCand
         candidate.meals,
         candidate.other,
     )
-    if candidate.amount is None and any(value is not None for value in breakdown):
+    if (
+        candidate.intent == DraftIntent.BUSINESS_TRIP
+        and candidate.amount is None
+        and any(value is not None for value in breakdown)
+    ):
         updates["amount"] = sum(value or 0 for value in breakdown)
     return candidate.model_copy(update=updates)
 
@@ -110,11 +123,28 @@ def _candidate_read(candidate: ApprovalDraftCandidate) -> ApprovalDraftCandidate
     return ApprovalDraftCandidateRead(**candidate.model_dump())
 
 
+def _expense_details(candidate: ApprovalDraftCandidate) -> ExpenseDetails:
+    return ExpenseDetails(
+        expense_date=candidate.expense_date,
+        merchant=candidate.merchant,
+        category=candidate.expense_category,
+        purpose=candidate.expense_purpose,
+        receipt_reference=candidate.receipt_reference,
+    )
+
+
 def _missing_fields(candidate: ApprovalDraftCandidate) -> list[str]:
     missing: list[str] = []
     for field in ("title", "content"):
         if getattr(candidate, field) is None:
             missing.append(field)
+
+    if candidate.intent == DraftIntent.EXPENSE:
+        errors = expense_validation_errors(
+            _expense_details(candidate).model_dump(mode="json", by_alias=True),
+            candidate.amount,
+        )
+        return missing + ["expenseAmount" if key == "amount" else key for key in errors]
 
     if candidate.intent != DraftIntent.BUSINESS_TRIP:
         return missing
@@ -163,6 +193,15 @@ def _preview(candidate: ApprovalDraftCandidate) -> ApprovalCreate:
             content=candidate.content,
             amount=candidate.amount,
             details=GeneralDetails(),
+            attachment_metadata=[],
+        )
+    if candidate.intent == DraftIntent.EXPENSE:
+        return ApprovalCreate(
+            type=ApprovalType.EXPENSE,
+            title=candidate.title,
+            content=candidate.content,
+            amount=candidate.amount,
+            details=_expense_details(candidate),
             attachment_metadata=[],
         )
     if candidate.intent != DraftIntent.BUSINESS_TRIP:
@@ -244,13 +283,8 @@ def _policy_context(
 
 
 def _unsupported_message(intent: DraftIntent) -> str:
-    if intent == DraftIntent.EXPENSE:
-        return "이미 사용한 비용의 정산 요청은 경비 결재 단계에서 지원할 예정입니다."
     if intent == DraftIntent.LEAVE:
-        return (
-            "휴가 요청은 일정과 프로젝트 제약을 함께 확인하는 휴가 추천 단계에서 "
-            "지원할 예정입니다."
-        )
+        return "휴가 요청은 근태·휴가 화면에서 일정과 연차를 확인한 뒤 준비할 수 있습니다."
     return "현재 요청을 일반 결재 또는 출장 신청으로 안전하게 분류하지 못했습니다."
 
 
@@ -264,7 +298,7 @@ def prepare_approval_draft(
     provider_input = ApprovalDraftProviderInput(
         request=payload.request.strip(),
         answers=[answer.strip() for answer in payload.answers if answer.strip()],
-        current_date=date.today(),
+        current_date=datetime.now(ZoneInfo("Asia/Seoul")).date(),
         timezone="Asia/Seoul",
     )
     safety_identifier = hashlib.sha256(actor.id.encode()).hexdigest()
@@ -286,7 +320,11 @@ def prepare_approval_draft(
     preview: ApprovalCreate | None = None
     confirmation_token: str | None = None
     policy_context = _not_applicable_policy_context()
-    if candidate.intent not in {DraftIntent.GENERAL, DraftIntent.BUSINESS_TRIP}:
+    if candidate.intent not in {
+        DraftIntent.GENERAL,
+        DraftIntent.BUSINESS_TRIP,
+        DraftIntent.EXPENSE,
+    }:
         status = ApprovalDraftAIStatus.UNSUPPORTED
         assistant_message = _unsupported_message(candidate.intent)
         missing = []
@@ -297,8 +335,7 @@ def prepare_approval_draft(
             "초안을 완성하려면 아래 정보를 알려주세요. 한 문장으로 함께 답해도 됩니다."
         )
         questions = [
-            ApprovalDraftQuestion(field=field, prompt=QUESTION_PROMPTS[field])
-            for field in missing
+            ApprovalDraftQuestion(field=field, prompt=QUESTION_PROMPTS[field]) for field in missing
         ]
     else:
         status = ApprovalDraftAIStatus.PREVIEW

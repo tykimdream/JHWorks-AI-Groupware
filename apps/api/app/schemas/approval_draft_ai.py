@@ -5,6 +5,7 @@ from pydantic import Field
 
 from app.ai.approval_draft import DraftIntent
 from app.core.schema import ApiSchema
+from app.models.enums import ExpenseCategory
 from app.schemas.approval import ApprovalCreate
 from app.schemas.policy import PolicySearchResponse
 
@@ -34,6 +35,11 @@ class ApprovalDraftCandidateRead(ApiSchema):
     other: int | None
     client_name: str | None
     visit_purpose: str | None
+    expense_date: date | None
+    merchant: str | None
+    expense_category: ExpenseCategory | None
+    expense_purpose: str | None
+    receipt_reference: str | None
 
 
 class ApprovalDraftQuestion(ApiSchema):

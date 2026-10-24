@@ -21,6 +21,13 @@ class ApprovalStatus(StrEnum):
     REJECTED = "REJECTED"
 
 
+class ExpenseCategory(StrEnum):
+    TRANSPORTATION = "TRANSPORTATION"
+    LODGING = "LODGING"
+    MEALS = "MEALS"
+    OTHER = "OTHER"
+
+
 class ApprovalLineStatus(StrEnum):
     WAITING = "WAITING"
     PENDING = "PENDING"

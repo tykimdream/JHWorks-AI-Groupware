@@ -43,6 +43,7 @@ from app.schemas.policy import (
 )
 from app.services import approval as approval_service
 from app.services import policy_retrieval
+from app.services.expense_validation import expense_validation_errors
 
 logger = logging.getLogger("jhworks.ai_review")
 
@@ -88,6 +89,27 @@ def deterministic_review(approval: Approval) -> list[AIReviewIssue]:
                 "결재 목적과 기대 결과를 작성하세요.",
             )
         )
+
+    if approval.type == ApprovalType.EXPENSE:
+        labels = {
+            "details.expenseDate": "실제 지출일을 확인하세요. 미래 날짜는 정산할 수 없습니다.",
+            "details.merchant": "지출 사용처를 입력하세요.",
+            "details.category": "지출 구분을 선택하세요.",
+            "details.purpose": "업무상 지출 목적을 입력하세요.",
+            "amount": "실제 지출 금액을 0원보다 크게 입력하세요.",
+        }
+        for field in expense_validation_errors(approval.details, approval.amount):
+            issues.append(
+                _issue(
+                    "EXPENSE_" + field.replace("details.", "").upper() + "_REQUIRED",
+                    ReviewSeverity.HIGH,
+                    ReviewCategory.COMPLETENESS,
+                    ReviewField(field),
+                    labels[field],
+                    "경비 정보를 수정한 뒤 다시 확인하세요.",
+                )
+            )
+        return issues
 
     if approval.type != ApprovalType.BUSINESS_TRIP:
         return issues

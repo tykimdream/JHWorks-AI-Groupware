@@ -69,6 +69,15 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - run: pnpm test:e2e:public-demo
+      - name: Build same-origin standalone app
+        run: pnpm build:web
+        env:
+          NEXT_PUBLIC_API_URL: /api/v1
+          API_PROXY_TARGET: http://127.0.0.1:8100
+      - name: Verify production CSP and expense workflow
+        run: pnpm exec playwright test --config=playwright.production.config.ts
+        env:
+          E2E_PRODUCTION: '1'
       - uses: actions/upload-artifact@v6
         if: always()
         with:

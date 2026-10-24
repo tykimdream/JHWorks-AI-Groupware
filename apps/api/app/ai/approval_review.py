@@ -31,6 +31,7 @@ def scrub_untrusted_instructions(source: str, revised: str) -> str:
     ).strip()
     return cleaned or "[실제 업무 목적과 기대 결과를 구체적으로 작성하세요.]"
 
+
 SYSTEM_PROMPT = """
 You review enterprise approval drafts before submission.
 
@@ -111,6 +112,10 @@ class ReviewField(StrEnum):
     COST_BREAKDOWN = "details.costBreakdown"
     CLIENT_NAME = "details.clientName"
     VISIT_PURPOSE = "details.visitPurpose"
+    EXPENSE_DATE = "details.expenseDate"
+    MERCHANT = "details.merchant"
+    EXPENSE_CATEGORY = "details.category"
+    EXPENSE_PURPOSE = "details.purpose"
     ATTACHMENTS = "attachmentMetadata"
 
 

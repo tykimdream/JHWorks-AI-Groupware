@@ -145,13 +145,25 @@ def approval_policy_query(approval: Approval) -> str:
         f"Content: {approval.content}",
     ]
     if approval.amount is not None:
-        parts.append(f"Estimated total amount: KRW {approval.amount}")
+        label = (
+            "Actual paid amount"
+            if approval.type == ApprovalType.EXPENSE
+            else "Estimated total amount"
+        )
+        parts.append(f"{label}: KRW {approval.amount}")
+    if approval.type == ApprovalType.EXPENSE:
+        parts.append("Expense settlement: receipt requirements and reimbursement policy")
     for key in (
         "destination",
         "startDate",
         "endDate",
         "clientName",
         "visitPurpose",
+        "expenseDate",
+        "merchant",
+        "category",
+        "purpose",
+        "receiptReference",
     ):
         value = details.get(key)
         if value is not None and str(value).strip():
@@ -177,8 +189,7 @@ def _is_current_index(
     return (
         section.embedding is not None
         and section.embedding_model == expected_model
-        and section.embedded_content_hash
-        == _search_text_hash(policy_search_text(policy, section))
+        and section.embedded_content_hash == _search_text_hash(policy_search_text(policy, section))
     )
 
 

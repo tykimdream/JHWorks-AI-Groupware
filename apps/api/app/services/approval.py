@@ -27,6 +27,7 @@ from app.models.enums import (
     AttendanceImpact,
 )
 from app.schemas.approval import ApprovalCreate, ApprovalDecision, ApprovalUpdate
+from app.services.expense_validation import expense_validation_errors
 from app.services.leave_calendar import calculate_leave_days, leave_calendar_fingerprint
 
 
@@ -179,6 +180,9 @@ def _validate_for_submit(db: Session, approval: Approval) -> None:
                 elif Decimal(str(details.get("requestedDays"))) != requested_days:
                     errors["details.requestedDays"] = "Requested days must match the work calendar"
 
+    if approval.type == ApprovalType.EXPENSE:
+        errors.update(expense_validation_errors(approval.details, approval.amount))
+
     if errors:
         raise DomainValidationError(
             "APPROVAL_NOT_READY",
@@ -245,15 +249,13 @@ def create_draft(
     return _get_approval(db, approval.id)
 
 
-def list_approvals(db: Session, actor: Employee, scope: str) -> list[Approval]:
-    query = _approval_query().order_by(Approval.updated_at.desc())
-    if scope == "mine":
-        query = query.where(Approval.author_id == actor.id)
-    elif scope == "assigned":
-        # EXISTS avoids comparing PostgreSQL JSON and duplicating approval rounds.
-        query = query.where(Approval.lines.any(ApprovalLine.approver_id == actor.id))
-    else:
-        raise DomainValidationError("INVALID_SCOPE", "scope must be 'mine' or 'assigned'")
+def visible_approval_query(actor: Employee) -> Select[tuple[Approval]]:
+    query = _approval_query().where(
+        or_(
+            Approval.author_id == actor.id,
+            Approval.lines.any(ApprovalLine.approver_id == actor.id),
+        )
+    )
     if actor.demo_workspace_id is not None:
         query = query.where(
             Approval.author.has(Employee.demo_workspace_id == actor.demo_workspace_id),
@@ -266,6 +268,17 @@ def list_approvals(db: Session, actor: Employee, scope: str) -> list[Approval]:
                 )
             ),
         )
+    return query
+
+
+def list_approvals(db: Session, actor: Employee, scope: str) -> list[Approval]:
+    query = visible_approval_query(actor).order_by(Approval.updated_at.desc())
+    if scope == "mine":
+        query = query.where(Approval.author_id == actor.id)
+    elif scope == "assigned":
+        query = query.where(Approval.lines.any(ApprovalLine.approver_id == actor.id))
+    else:
+        raise DomainValidationError("INVALID_SCOPE", "scope must be 'mine' or 'assigned'")
     return list(db.scalars(query).unique())
 
 

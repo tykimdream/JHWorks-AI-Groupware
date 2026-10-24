@@ -23,7 +23,9 @@
     "id": "multi-turn-business-trip-cost",
     "description": "후속 답변에서 비용 내역을 보충하는 출장 요청",
     "request": "출장지는 서울이고 행사명은 테크포럼이야. 2026년 9월 15일 참석 출장 결재를 작성해줘. 당일 복귀이고 목적은 파트너 발굴이야.",
-    "answers": ["교통비 6만원, 식비 3만원으로 총 9만원이야."],
+    "answers": [
+      "교통비 6만원, 식비 3만원으로 총 9만원이야."
+    ],
     "current_date": "2026-08-25",
     "expected_intent": "BUSINESS_TRIP",
     "expected_values": {
@@ -36,7 +38,9 @@
       "client_name": "테크포럼"
     },
     "expected_null_fields": [],
-    "expected_null_or_zero_fields": ["lodging"]
+    "expected_null_or_zero_fields": [
+      "lodging"
+    ]
   },
   {
     "id": "past-spend-is-expense",
@@ -45,8 +49,15 @@
     "answers": [],
     "current_date": "2026-08-25",
     "expected_intent": "EXPENSE",
-    "expected_values": {"amount": 500000},
-    "expected_null_fields": []
+    "expected_values": {
+      "amount": 500000
+    },
+    "expected_null_fields": [
+      "expense_date",
+      "merchant",
+      "expense_category",
+      "receipt_reference"
+    ]
   },
   {
     "id": "leave-intent",
@@ -66,6 +77,32 @@
     "current_date": "2026-08-25",
     "expected_intent": "GENERAL",
     "expected_values": {},
-    "expected_null_fields": ["destination", "start_date", "end_date"]
+    "expected_null_fields": [
+      "destination",
+      "start_date",
+      "end_date"
+    ]
+  },
+  {
+    "id": "multi-turn-ces-expense",
+    "description": "지출한 출장비를 경비로 유지하고 추가 답변의 실제 지출 정보만 추출",
+    "request": "이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.",
+    "answers": [
+      "2026-08-24 코레일 교통비야. 업무 목적은 CES 협력사 방문이고 증빙 참조는 RCP-CES-001이야."
+    ],
+    "current_date": "2026-08-25",
+    "expected_intent": "EXPENSE",
+    "expected_values": {
+      "amount": 170000,
+      "expense_date": "2026-08-24",
+      "merchant": "코레일",
+      "expense_category": "TRANSPORTATION",
+      "receipt_reference": "RCP-CES-001"
+    },
+    "expected_null_fields": [
+      "destination",
+      "start_date",
+      "end_date"
+    ]
   }
 ]

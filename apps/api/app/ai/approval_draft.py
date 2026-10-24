@@ -5,7 +5,9 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PROMPT_VERSION = "approval-draft-v3-related-party-mapping"
+from app.models.enums import ExpenseCategory
+
+PROMPT_VERSION = "approval-draft-v4-expense-settlement"
 
 SYSTEM_PROMPT = """
 You extract a JHWorks approval draft candidate from a Korean user's request and follow-up answers.
@@ -30,8 +32,12 @@ stated cost items can be summed, return that sum. The answers array contains lat
 combine every answer with the original request, and let a later answer supplement or correct an
 earlier fact. Do not omit cost or date facts merely because they appear in answers instead of the
 request. Do not ask questions and do not provide policy advice; the server handles both. Do not
-turn an EXPENSE or LEAVE request into another intent just because only GENERAL and BUSINESS_TRIP
-can currently be saved.
+turn an EXPENSE or LEAVE request into another intent. EXPENSE is a supported settlement form:
+extract expense_date (the actual payment date), merchant (the seller/payee), expense_category
+(TRANSPORTATION, LODGING, MEALS or OTHER), expense_purpose (business reason), and receipt_reference
+(an explicitly supplied document reference, never proof that a file was uploaded or verified).
+For a settlement do not invent the payment date from the trip dates or assume the category from
+the fact that it was a trip. Ask the server to handle missing fields by leaving them null.
 """.strip()
 
 
@@ -59,6 +65,11 @@ class ApprovalDraftCandidate(BaseModel):
     other: int | None = Field(default=None, ge=0)
     client_name: str | None = Field(default=None, max_length=200)
     visit_purpose: str | None = Field(default=None, max_length=1000)
+    expense_date: date | None = None
+    merchant: str | None = Field(default=None, max_length=200)
+    expense_category: ExpenseCategory | None = None
+    expense_purpose: str | None = Field(default=None, max_length=1000)
+    receipt_reference: str | None = Field(default=None, max_length=255)
 
 
 class ApprovalDraftProviderInput(BaseModel):

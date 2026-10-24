@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from pydantic import Field, model_validator
 
 from app.core.schema import ApiSchema
-from app.models.enums import ApprovalLineStatus, ApprovalStatus, ApprovalType
+from app.models.enums import ApprovalLineStatus, ApprovalStatus, ApprovalType, ExpenseCategory
 from app.schemas.employee import EmployeeSummary
 
 
@@ -35,6 +35,15 @@ class BusinessTripDetails(ApiSchema):
     visit_purpose: str | None = Field(default=None, max_length=1000)
 
 
+class ExpenseDetails(ApiSchema):
+    kind: Literal["EXPENSE"] = "EXPENSE"
+    expense_date: date | None = None
+    merchant: str | None = Field(default=None, max_length=200)
+    category: ExpenseCategory | None = None
+    purpose: str | None = Field(default=None, max_length=1000)
+    receipt_reference: str | None = Field(default=None, max_length=255)
+
+
 class LeaveDetails(ApiSchema):
     kind: Literal["LEAVE"] = "LEAVE"
     leave_type: Literal["ANNUAL"] = "ANNUAL"
@@ -47,7 +56,7 @@ class LeaveDetails(ApiSchema):
 
 
 ApprovalDetails = Annotated[
-    GeneralDetails | BusinessTripDetails | LeaveDetails,
+    GeneralDetails | BusinessTripDetails | ExpenseDetails | LeaveDetails,
     Field(discriminator="kind"),
 ]
 

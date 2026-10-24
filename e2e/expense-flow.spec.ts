@@ -43,8 +43,8 @@ test('CES actual expense → missing facts → policy preview → save → edit 
   await page.getByLabel('사용처', { exact: true }).fill('코레일 서울역');
   await page.getByRole('button', { name: 'Draft 저장', exact: true }).click();
   await expect(page.locator('.expense-summary')).toContainText('코레일 서울역');
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: '제출', exact: true }).click();
+  await page.getByRole('dialog', { name: '결재 제출 확인' }).getByRole('button', { name: '확인하고 제출' }).click();
   await expect(page.locator('.detail-title-row .status-badge')).toContainText('결재 대기');
   await page.getByRole('button', { name: '로그아웃', exact: true }).click();
   await page.getByRole('button', { name: /결재자 · 최도윤/ }).click();
@@ -52,8 +52,8 @@ test('CES actual expense → missing facts → policy preview → save → edit 
   await page.getByRole('link', { name: /내가 처리할 결재/ }).click();
   await page.locator('.approval-row').filter({ hasText: 'CES 출장 경비 정산' }).first().click();
   await expect(page.locator('.expense-summary')).toContainText('RCP-CES-001');
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: '승인', exact: true }).click();
+  await page.getByRole('dialog', { name: '결재 승인 확인' }).getByRole('button', { name: '확인하고 승인' }).click();
   await expect(page.locator('.detail-title-row .status-badge')).toContainText('승인');
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({

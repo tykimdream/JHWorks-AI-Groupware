@@ -2,10 +2,15 @@
 
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AppShell } from '@/components/app-shell';
 import { AIReviewPanel } from '@/components/ai-review-panel';
+import {
+  ApprovalCommandDialog,
+  type ApprovalCommandName,
+  type ApprovalCommandSnapshot,
+} from '@/components/approval-command-dialog';
 import { LeaveSubmitAgentPanel } from '@/components/leave-submit-agent-panel';
 import { StatusBadge } from '@/components/status-badge';
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
@@ -16,7 +21,7 @@ import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { ExpenseChecksPanel } from '@/components/expense-checks';
 
-type Command = 'submit' | 'approve' | 'reject' | 'revise';
+type Command = ApprovalCommandName;
 
 const lineStatusLabels = {
   WAITING: '대기 전',
@@ -47,6 +52,8 @@ export default function ApprovalDetailPage() {
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isActing, setIsActing] = useState(false);
+  const [confirmation, setConfirmation] = useState<ApprovalCommandSnapshot | null>(null);
+  const commandInFlight = useRef(false);
 
   const loadApproval = useCallback(() => {
     apiFetch<Approval>(`/approvals/${id}`)
@@ -65,33 +72,36 @@ export default function ApprovalDetailPage() {
   const isAuthor = employee?.id === approval?.author.id;
   const isApprover = employee?.id === pendingLine?.approver.id;
 
-  const runCommand = async (command: Command) => {
-    if (!approval) {
-      return;
-    }
+  const requestCommand = (command: Command) => {
+    if (!approval || commandInFlight.current) return;
     if (command === 'reject' && !comment.trim()) {
       setError('반려 사유를 입력해주세요.');
       return;
     }
+    setError(null);
+    setConfirmation({
+      command, id: approval.id, title: approval.title,
+      amount: approval.amount, version: approval.version, comment,
+    });
+  };
 
-    const labels: Record<Command, string> = {
-      submit: '이 Draft를 직속 관리자에게 제출할까요?',
-      approve: '이 결재를 승인할까요?',
-      reject: '입력한 사유로 이 결재를 반려할까요?',
-      revise: '반려 문서를 다시 수정 가능한 Draft로 전환할까요?',
-    };
-    if (!window.confirm(labels[command])) {
+  const runCommand = async () => {
+    if (!approval || !confirmation || commandInFlight.current) return;
+    if (approval.id !== confirmation.id || approval.version !== confirmation.version) {
+      setConfirmation(null);
+      setError('문서가 변경되었습니다. 최신 내용을 확인한 뒤 다시 시도해주세요.');
       return;
     }
-
+    commandInFlight.current = true;
     setIsActing(true);
     setError(null);
     try {
-      const updated = await apiFetch<Approval>(`/approvals/${approval.id}/${command}`, {
+      const updated = await apiFetch<Approval>(`/approvals/${confirmation.id}/${confirmation.command}`, {
         method: 'POST',
         body: JSON.stringify({
-          version: approval.version,
-          ...(command === 'approve' || command === 'reject' ? { comment } : {}),
+          version: confirmation.version,
+          ...(confirmation.command === 'approve' || confirmation.command === 'reject'
+            ? { comment: confirmation.comment } : {}),
         }),
       });
       setApproval(updated);
@@ -99,7 +109,9 @@ export default function ApprovalDetailPage() {
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '업무 상태를 변경하지 못했습니다.'));
     } finally {
+      commandInFlight.current = false;
       setIsActing(false);
+      setConfirmation(null);
     }
   };
 
@@ -116,6 +128,12 @@ export default function ApprovalDetailPage() {
 
   return (
     <AppShell>
+      <ApprovalCommandDialog
+        snapshot={confirmation}
+        busy={isActing}
+        onCancel={() => { if (!commandInFlight.current) setConfirmation(null); }}
+        onConfirm={runCommand}
+      />
       <header className="detail-header">
         <button className="text-button" onClick={() => router.push('/approvals')} type="button">
           ← 목록으로
@@ -165,7 +183,7 @@ export default function ApprovalDetailPage() {
               <button
                 className="primary-button"
                 disabled={isActing}
-                onClick={() => runCommand('revise')}
+                onClick={() => requestCommand('revise')}
                 type="button"
               >
                 다시 수정하기
@@ -188,7 +206,7 @@ export default function ApprovalDetailPage() {
                 <button
                   className="danger-button"
                   disabled={isActing}
-                  onClick={() => runCommand('reject')}
+                  onClick={() => requestCommand('reject')}
                   type="button"
                 >
                   반려
@@ -196,7 +214,7 @@ export default function ApprovalDetailPage() {
                 <button
                   className="primary-button"
                   disabled={isActing}
-                  onClick={() => runCommand('approve')}
+                  onClick={() => requestCommand('approve')}
                   type="button"
                 >
                   승인
@@ -266,7 +284,7 @@ export default function ApprovalDetailPage() {
                   <button
                     className="primary-button"
                     disabled={isActing}
-                    onClick={() => runCommand('submit')}
+                    onClick={() => requestCommand('submit')}
                     type="button"
                   >
                     제출

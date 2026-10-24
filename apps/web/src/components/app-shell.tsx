@@ -132,7 +132,7 @@ export const AppShell = ({ children }: AppShellProps) => {
           <div>
             <strong>{employee.name}</strong>
             <span>{employee.position}</span>
-            <span>{employee.department.name}</span>
+            <span>{configuration?.enabled ? '방문자 전용 공간' : employee.department.name}</span>
           </div>
           <button className="text-button" onClick={handleLogout} type="button">
             로그아웃

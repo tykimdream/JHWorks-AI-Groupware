@@ -10,11 +10,12 @@ from app.schemas.policy import PolicyRead, PolicySearchRequest, PolicySearchResp
 from app.services import policy_retrieval
 from app.services.mappers import policy_read
 
-router = APIRouter(prefix="/policies", tags=["policies"])
+router = APIRouter(prefix="/policies", tags=["정책"])
 
 
-@router.get("", response_model=list[PolicyRead])
+@router.get("", response_model=list[PolicyRead], summary="회사 정책 목록 조회")
 def list_policies(db: DbSession, _: CurrentEmployee) -> list[PolicyRead]:
+    """버전과 섹션으로 관리되는 가상 회사 정책을 조회합니다."""
     policies = db.scalars(
         select(CompanyPolicy)
         .options(selectinload(CompanyPolicy.sections))
@@ -24,13 +25,17 @@ def list_policies(db: DbSession, _: CurrentEmployee) -> list[PolicyRead]:
     return [policy_read(policy) for policy in policies]
 
 
-@router.post("/search", response_model=PolicySearchResponse)
+@router.post("/search", response_model=PolicySearchResponse, summary="관련 정책 검색")
 def search_policies(
     payload: PolicySearchRequest,
     db: DbSession,
     _: CurrentEmployee,
     provider: PolicyEmbeddingProviderDependency,
 ) -> PolicySearchResponse:
+    """
+    업무 요청과 관련된 정책 섹션을 검색하고 원문·버전·섹션 식별자를
+    반환합니다.
+    """
     settings = get_settings()
     return policy_retrieval.search_policy_sections(
         db=db,

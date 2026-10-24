@@ -1,4 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function verifyDesktopLayout(page: Page) {
+  for (const width of [1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const sidebar = await page.locator('.sidebar').boundingBox();
+    expect(Math.abs(sidebar!.y)).toBeLessThan(1);
+    expect(sidebar?.height).toBeCloseTo(900, 0);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByRole('link', { name: 'j. JHWorks', exact: true })).toBeVisible();
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+}
+
 
 test('real public visitor can switch roles, approve, and leave one private feedback', async ({ page }, testInfo) => {
   // Real API/domain/isolated SQLite. No routes are mocked and no paid AI is called.
@@ -14,7 +29,9 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await expect(page.getByRole('heading', { name: '직접 작성하고 결재 흐름을 체험하세요' })).toBeVisible();
   const original = await (await page.request.get('/api/v1/employees/me')).json();
   expect(original.id).toMatch(/^demo_author_/);
-  await page.screenshot({ path: `docs/portfolio/screenshots/public-home-${testInfo.project.name}.png`, fullPage: true, style: 'nextjs-portal { display: none; }' });
+  if (testInfo.project.name === 'desktop') await verifyDesktopLayout(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `docs/portfolio/screenshots/public-home-${testInfo.project.name}.png`, style: 'nextjs-portal { display: none; }' });
   await page.goto('/approvals/new');
   await page.getByLabel('결재 종류').selectOption('EXPENSE');
   const title = 'CES 출장 교통비 17만원 정산';
@@ -79,7 +96,9 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await approve.getByRole('button', { name: '확인하고 승인' }).click();
   await expect(badge).toHaveText('승인');
   expect((await (await page.request.get(path)).json()).status).toBe('APPROVED');
-  await page.screenshot({ path: `docs/portfolio/screenshots/public-expense-approved-${testInfo.project.name}.png`, fullPage: true, style: 'nextjs-portal { display: none; }' });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  if (testInfo.project.name === 'desktop') await verifyDesktopLayout(page);
+  await page.screenshot({ path: `docs/portfolio/screenshots/public-expense-approved-${testInfo.project.name}.png`, style: 'nextjs-portal { display: none; }' });
   await page.getByRole('button', { name: '작성자로 돌아가기' }).click();
   await expect(page.getByRole('button', { name: '결재자로 체험하기' })).toBeVisible();
   expect((await (await page.request.get('/api/v1/employees/me')).json()).id).toBe(original.id);
@@ -106,8 +125,14 @@ test('public Swagger renders the real schema with execution disabled', async ({ 
   expect(await response.text()).toContain('"supportedSubmitMethods": []');
   await page.goto('/api/v1/docs');
   await expect(page.locator('.swagger-ui .info .title')).toContainText('JHWorks API');
-  await expect(page.locator('.swagger-ui .opblock-tag').filter({ hasText: 'approvals' })).toBeVisible();
-  await page.locator('.swagger-ui .opblock-tag').filter({ hasText: 'approvals' }).click();
+  await expect(page.locator('.swagger-ui .opblock-tag').filter({ hasText: '전자결재' })).toBeVisible();
+  const domains = ['전자결재', '근태·휴가', '정책', '조직', '업무 도우미', '인증·체험', '운영'];
+  await expect(page.locator('.swagger-ui .opblock-tag')).toHaveCount(domains.length);
+  for (const domain of domains) {
+    await page.locator('.swagger-ui .opblock-tag').filter({ hasText: domain }).click();
+  }
+  await expect(page.locator('.swagger-ui .opblock')).toHaveCount(40);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.locator('.swagger-ui .opblock-summary').filter({ hasText: '/api/v1/approvals' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try it out', exact: true })).toHaveCount(0);
   await page.screenshot({ path: `artifacts/workspace-preview/swagger-public-${testInfo.project.name}.png`, fullPage: true, style: 'nextjs-portal { display: none; }' });

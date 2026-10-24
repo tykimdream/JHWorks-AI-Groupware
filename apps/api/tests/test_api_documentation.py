@@ -43,7 +43,25 @@ def test_swagger_paths_and_expense_contract_are_browsable_without_login(client: 
         for op in path.values()
         for tag in op.get("tags", [])
     }
-    assert used <= tags.keys()
+    assert list(tags) == [
+        "전자결재",
+        "근태·휴가",
+        "정책",
+        "조직",
+        "업무 도우미",
+        "인증·체험",
+        "운영",
+    ]
+    assert used == tags.keys()
+    for path in schema["paths"].values():
+        for operation in path.values():
+            assert len(operation["tags"]) == 1
+            assert operation["summary"] and operation.get("description")
+    assert schema["paths"]["/api/v1/approvals"]["post"]["tags"] == ["전자결재"]
+    assert schema["paths"]["/api/v1/approval-draft-assistant/prepare"]["post"]["tags"] == [
+        "전자결재"
+    ]
+    assert schema["paths"]["/api/v1/leave-agent/runs"]["post"]["tags"] == ["근태·휴가"]
     assert all(tags[tag] for tag in used)
     body_schema = schema["paths"]["/api/v1/approvals"]["post"]["requestBody"]["content"][
         "application/json"

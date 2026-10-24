@@ -33,6 +33,7 @@ def list_approvals(
     current_employee: CurrentEmployee,
     scope: Literal["mine", "assigned"] = Query(default="mine"),
 ) -> ApprovalListResponse:
+    """내 문서 또는 나에게 배정된 문서를 조회합니다. 서버 권한 필터 이후의 목록만 반환합니다."""
     items = approval_service.list_approvals(db, current_employee, scope)
     return ApprovalListResponse(items=[approval_read(item) for item in items], total=len(items))
 
@@ -43,11 +44,13 @@ def create_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """미완성 정보를 허용하는 DRAFT 저장입니다. 제출·결재선 생성은 별도 명령입니다."""
     return approval_read(approval_service.create_draft(db, current_employee, payload))
 
 
 @router.get("/expense-insights", response_model=ExpenseInsights)
 def get_expense_insights(db: DbSession, current_employee: CurrentEmployee) -> ExpenseInsights:
+    """내 최근 초안·결재 중 경비 10개를 점검해 누락·중복 후보가 있는 문서만 반환합니다."""
     return expense_insights(db, current_employee)
 
 
@@ -57,6 +60,10 @@ def get_expense_checks(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ExpenseChecks:
+    """조회 권한이 있는 경비의 필수 정보와 동일 지출 후보를 점검합니다.
+
+    원본 영수증 검증이 아닙니다.
+    """
     return check_expense(db, current_employee, approval_id)
 
 
@@ -66,6 +73,7 @@ def get_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """작성자/배정 결재자·체험 공간 범위를 검증한 뒤 문서를 조회합니다."""
     return approval_read(approval_service.get_approval(db, current_employee, approval_id))
 
 
@@ -76,6 +84,7 @@ def update_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """현재 버전의 초안을 수정합니다. 오래된 version 또는 수정 불가 상태는 거부합니다."""
     return approval_read(approval_service.update_draft(db, current_employee, approval_id, payload))
 
 
@@ -86,6 +95,7 @@ def submit_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """필수 정보·직속 관리자·version을 재검증하고 결재선을 생성해 PENDING으로 전환합니다."""
     return approval_read(
         approval_service.submit_approval(db, current_employee, approval_id, payload.version)
     )
@@ -98,6 +108,7 @@ def approve_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """현재 배정 결재자만 승인합니다. 휴가이면 연차 예약을 사용으로 확정합니다."""
     return approval_read(
         approval_service.decide_approval(
             db,
@@ -116,6 +127,7 @@ def reject_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """현재 배정 결재자가 사유와 함께 반려합니다. 휴가이면 예약 연차를 복원합니다."""
     return approval_read(
         approval_service.decide_approval(
             db,
@@ -134,6 +146,7 @@ def revise_approval(
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
+    """작성자가 반려 문서를 DRAFT로 되돌립니다. 이전 결재 회차 이력은 보존합니다."""
     return approval_read(
         approval_service.revise_approval(db, current_employee, approval_id, payload.version)
     )
@@ -148,6 +161,7 @@ def review_approval(
     provider: AIReviewProvider,
     embedding_provider: PolicyEmbeddingProviderDependency,
 ) -> AIReviewResponse:
+    """서버 규칙 검사와 정책 근거·모델 검토를 결합합니다. 공개 AI 비활성 시 사용할 수 없습니다."""
     return approval_review_service.review_approval(
         db,
         current_employee,

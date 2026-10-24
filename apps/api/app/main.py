@@ -5,8 +5,10 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
+from app.api.documentation import API_DESCRIPTION, TAGS
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.csrf import has_trusted_write_origin
@@ -19,7 +21,53 @@ logger = logging.getLogger("jhworks.api")
 PRIVATE_API_CACHE_CONTROL = "private, no-store"
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(
+    title=settings.app_name,
+    version="0.1.0",
+    description=API_DESCRIPTION,
+    openapi_tags=TAGS,
+    docs_url=None,
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json",
+    swagger_ui_parameters={
+        "docExpansion": "none",
+        "filter": True,
+        "displayRequestDuration": True,
+        "persistAuthorization": False,
+        **({"supportedSubmitMethods": []} if settings.public_demo_enabled else {}),
+    },
+)
+
+
+@app.get("/api/v1/docs", include_in_schema=False)
+def api_documentation() -> HTMLResponse:
+    response = get_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title=f"{settings.app_name} - Swagger UI",
+        swagger_ui_parameters=app.swagger_ui_parameters,
+    )
+    # Swagger's long domain tags otherwise squeeze mobile descriptions into one character columns.
+    style = """<style>
+    @media (max-width: 640px) {
+      .swagger-ui .opblock-tag { display: block; position: relative; padding-right: 44px; }
+      .swagger-ui .opblock-tag > a { display: block; overflow-wrap: anywhere; }
+      .swagger-ui .opblock-tag small { display: block; padding: 8px 0; }
+      .swagger-ui .opblock-tag .expand-operation { position: absolute; right: 8px; top: 16px; }
+    }
+    </style>"""
+    return HTMLResponse(bytes(response.body).decode().replace("</head>", style + "</head>"))
+
+
+@app.get("/docs", include_in_schema=False)
+def legacy_docs() -> RedirectResponse:
+    return RedirectResponse("/api/v1/docs")
+
+
+@app.get("/openapi.json", include_in_schema=False)
+def legacy_openapi() -> RedirectResponse:
+    return RedirectResponse("/api/v1/openapi.json")
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],
@@ -34,9 +82,7 @@ app.add_middleware(
 async def request_context(request: Request, call_next):  # type: ignore[no-untyped-def]
     supplied_request_id = request.headers.get("X-Request-ID", "")
     request_id = (
-        supplied_request_id
-        if REQUEST_ID_PATTERN.fullmatch(supplied_request_id)
-        else str(uuid4())
+        supplied_request_id if REQUEST_ID_PATTERN.fullmatch(supplied_request_id) else str(uuid4())
     )
     request.state.request_id = request_id
     context_token = set_request_id(request_id)

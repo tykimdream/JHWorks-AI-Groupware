@@ -127,8 +127,10 @@ export function WorkHome() {
           </span>
           <span className="ai-card-note">제출은 언제나 내가 확인한 후에</span>
         </div>
-        <h2 id="home-ai-title">어떤 업무를 도와드릴까요?</h2>
-        <p>필요한 일을 말해 주세요. 빠진 정보를 함께 확인하고 결재 초안을 준비할게요.</p>
+        <h2 id="home-ai-title">{configuration?.enabled ? '직접 작성하고 결재 흐름을 체험하세요' : '어떤 업무를 도와드릴까요?'}</h2>
+        <p>{configuration?.enabled
+          ? '공개 체험에서는 AI 호출이 꺼져 있습니다. 경비를 직접 작성한 뒤 사전 확인·제출·승인을 경험해 보세요.'
+          : '필요한 일을 말해 주세요. 빠진 정보를 함께 확인하고 결재 초안을 준비할게요.'}</p>
         <form onSubmit={startDraft} className="home-composer">
           <label className="sr-only" htmlFor="home-request">
             AI 업무 요청
@@ -285,7 +287,7 @@ export function WorkHome() {
             <div className="home-empty">
               <WorkspaceIcon name="document" size={28} />
               <strong>첫 번째 업무를 시작해 볼까요?</strong>
-              <p>AI로 초안을 준비하거나 직접 결재를 작성해 보세요.</p>
+              <p>{configuration?.enabled ? '경비·출장·일반·휴가 결재를 직접 작성해 보세요.' : 'AI로 초안을 준비하거나 직접 결재를 작성해 보세요.'}</p>
               <Link href="/approvals/new">새 결재 작성 →</Link>
             </div>
           )}
@@ -327,7 +329,7 @@ export function WorkHome() {
                       ? '시작한 업무를 마무리해요'
                       : '업무를 시작할 준비가 됐어요'}
               </span>
-              <h3>{nextDocument?.title ?? '복잡한 결재, 한 문장으로 시작하세요.'}</h3>
+              <h3>{nextDocument?.title ?? (configuration?.enabled ? '첫 경비 정산을 작성해 보세요.' : '복잡한 결재, 한 문장으로 시작하세요.')}</h3>
               <p>
                 {pending.length
                   ? '내용과 첨부 자료를 검토하고 승인 또는 반려할 수 있습니다.'
@@ -335,7 +337,9 @@ export function WorkHome() {
                     ? '반려 사유를 확인하고 내용을 보완해 다시 제출하세요.'
                     : drafts.length
                       ? '저장한 초안을 검토하고 필요한 정보를 채워 제출하세요.'
-                      : '출장 목적과 일정을 알려주시면 회사 양식에 맞는 초안을 준비합니다.'}
+                      : configuration?.enabled
+                        ? '지출일·사용처·금액을 입력하고 제출 전 누락과 중복 후보를 확인하세요.'
+                        : '출장 목적과 일정을 알려주시면 회사 양식에 맞는 초안을 준비합니다.'}
               </p>
               <Link
                 className="next-action-link"
@@ -359,8 +363,9 @@ export function WorkHome() {
           <div className="home-tip">
             <span className="tip-symbol">↳</span>
             <p>
-              <strong>알고 계셨나요?</strong>AI 초안은 확인 후 저장되며, 저장만으로 결재가
-              제출되지는 않습니다.
+              <strong>알고 계셨나요?</strong>{configuration?.enabled
+                ? '초안 저장과 제출은 별도 단계입니다. 제출 후 결재자로 역할을 전환해 승인할 수 있습니다.'
+                : 'AI 초안은 확인 후 저장되며, 저장만으로 결재가 제출되지는 않습니다.'}
             </p>
           </div>
         </aside>

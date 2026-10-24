@@ -4,21 +4,38 @@ AI-powered groupware and approval platform for the completely fictional company 
 
 JHWorks AI Groupware는 과거 회사의 제품이나 자산을 재현하지 않고, 일반적인 Enterprise workflow 문제를 바탕으로 처음부터 설계한 독립 프로젝트다. 모든 인물, 조직, 정책, 계정과 업무 데이터는 synthetic data다.
 
-## 핵심 사용자 시나리오
+## 바로 보기
 
-> 다음 주에 이틀 휴가를 가고 싶은데, 우리 팀 업무 일정과 겹치지 않는 날짜를 찾고 휴가 결재 초안도 만들어 줘.
+[라이브 데모](https://groupware.pikan.dev) · [Swagger API 문서](https://groupware.pikan.dev/api/v1/docs) · [API 구성·인증·예시](docs/api/README.md) · [전체 아키텍처](docs/architecture/README.md) · [포트폴리오](https://pikan.dev/ko/projects/jhworks-ai-groupware)
 
-`자연어 요청 → 기간과 일수 구조화 → 서버의 연차/일정 계산 → 날짜 선택 → 초안 미리보기 → 명시적 저장 → DRAFT 상세`
+대표 경험은 **CES 출장 경비 17만원 정산**이다. 직접 작성 → 누락·중복 후보 확인 → 제출 → 결재자 역할 전환 → 승인을 체험할 수 있다.
+AI 요청 구조화·후속 질문·정책 근거·저장 전 미리보기도 구현했으며, 공개 환경의 유료 AI는 비용 보호를 위해 꺼져 있다.
 
-AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경을 검증한다. 초안 저장과 제출은 서로 다른 확인이며,
-사용자의 확인 없이 결재 문서를 만들거나 제출하지 않는다. AI 장애 시 같은 화면의 수동 후보 탐색에서 기존 양식으로 이동한다.
-기업 업무 화면을 개발한 경험을 바탕으로 API와 DB의 도메인 규칙, AI의 권한 경계를 직접 탐구한 개인 프로젝트다.
+```mermaid
+flowchart LR
+    Browser["방문자"] --> Hosting["Firebase Hosting"]
+    Hosting --> Web["Cloud Run / Next.js"]
+    Web -->|"동일 출처 /api/v1"| API["FastAPI sidecar"]
+    API --> DB["Supabase PostgreSQL + pgvector"]
+    API -.->|"구현됨 / 공개 OFF"| AI["OpenAI adapters"]
+```
 
-[실제 UI 스크린샷](docs/portfolio/screenshots/) | [아키텍처와 통제 근거](docs/portfolio/architecture-and-controls.md) | [작업 비교 실험 절차](docs/portfolio/task-study.md) | [이번 개선 기록](docs/portfolio/verification-2026-10-15.md)
+세션·권한·날짜·금액·상태 전이는 서버가 결정한다. 저장과 제출은 별도 확인이며 AI가 자율 승인하지 않는다.
+화면의 색상·간격·타이포·모션은 공통 토큰으로 관리한다.
+[배포·모듈·데이터·대표 업무 흐름 그림](docs/architecture/README.md)에서 전체 구조와 설계 선택을 확인할 수 있다.
 
-![실제 UI의 저장 전 휴가 초안](docs/portfolio/screenshots/leave-preview-desktop.png)
+![업무 홈 실제 UI](docs/portfolio/screenshots/workspace-home-desktop.png)
 
-스크린샷은 가상 데이터, 가짜 LLM/임베딩과 실제 API를 연결한 브라우저 테스트에서 촬영했다. 실제 모델 출력이나 운영 도입 증거가 아니다.
+스크린샷은 합성 AI와 실제 UI/API를 연결한 테스트 환경이다. 공개 모델 출력의 증거가 아니다.
+실제 모델은 고정 합성 경비 사례 2건을 별도 확인했다. [모델 검증 범위](docs/engineering/expense-model-smoke.md).
+
+## 2026-10-24 공개 상태
+
+- 공개 체험 앱과 포트폴리오 라이브 링크 연결 완료. 일반·출장·경비·휴가 작성과 역할 전환을 제공한다.
+- 공개 AI OFF. 세션 15분·하루 시작 20회·보관 30공간. 자동 정리 OFF이므로 보관 상한에 닿으면 새 체험이 중단된다.
+- 프로젝트 Cloud Run 월 5천원 spend cap, 프로젝트 전체 월 1만원 알림. 집계 지연과 다른 서비스 비용으로 총액 절대 상한은 아니다.
+- 실제 도메인 HTTP 검증 21개 통과. 브라우저 초안 저장 확인과 HTTP 승인 검증을 구분한다.
+- 자동 CD·예약 백업·실사용 생산성 평가는 아직 완료하지 않았다.
 
 ## 2026-10-23 포트폴리오 업데이트
 
@@ -32,7 +49,7 @@ AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경
 | 운영 증거 | 전용 demo HTTP 20개, 합성 정책·일정 검증, DB 백업과 네트워크 격리 복원의 schema/data/ACL/sequence/head 대조 |
 | 자동 검증 | PR #53 CI: API 447 passed / 27 skipped, 별도 PostgreSQL 27 passed, 브라우저 16 + 2 passed |
 
-**공개 상태:** 앱은 비공개 검증 환경이다. `groupware.pikan.dev`는 HTTPS 준비 화면이며 방문자 체험 앱은 아직 공개하지 않았다.
+**당시 공개 상태(2026-10-23):** 앱은 비공개 검증 환경이었다. `groupware.pikan.dev`는 HTTPS 준비 화면이며 방문자 체험 앱은 아직 공개하지 않았다.
 배포 환경의 외부 AI 호출은 비활성화했다. 정리·알림의 예약 운영과 main 자동 배포는 준비 중이다.
 백업 증거는 1회 복원 리허설이며 예약 백업·운영 장애 복구 보장이나 실제 사용자 생산성 수치로 해석하지 않는다.
 
@@ -52,7 +69,7 @@ AI는 의도를 정리하고 서버가 가능 여부, 권한과 데이터 변경
 
 - demo 계정 로그인과 HttpOnly session cookie
 - 직원, 부서, 직속 관리자 조회
-- GENERAL/BUSINESS_TRIP/LEAVE 결재 Draft 작성·수정
+- GENERAL/BUSINESS_TRIP/EXPENSE/LEAVE 결재 Draft 작성·수정
 - 작성자 제출, 직속 관리자 승인·반려
 - 반려 문서 재작성과 제출 회차 이력
 - 서버 Authorization, 상태 전이, optimistic concurrency

@@ -296,3 +296,11 @@ PR #28은 CI 4개·직접 리뷰·라벨링 후 병합했다. 별도 PR #29에�
 Domain continuation: PR #34 cache boundary merged at 569ad5f; hosting preflight branch prepares only a static page and offline validator. Firebase addition/Blaze/site creation and subdomain DNS are awaiting explicit approval; private Cloud Run is unchanged. See pikan-domain-release.md.
 
 2026-10-22 live domain milestone: explicit Firebase/Blaze and CNAME approvals received. Static Holding release 1792645703936000 is live on jhworks-staging-tykimdream.web.app; groupware CNAME is authoritative/public. Firebase ownership and host are active; certificate is validating (05:10 UTC), so custom HTTPS is not yet complete. Root portfolio HTTP 200 and private Cloud Run HTTP 403 were verified. Interactive demo remains gated.
+
+## 2026-10-24 후속 실제 모델·제품 배포
+
+UI #65, 보안 키 입력 #66, 라이브 라우팅/CSP 준비 #67을 자체 리뷰·CI 통과 후 병합했다.
+포트폴리오 별도 저장소 #35도 KO/EN 사례와 화면을 갱신해 검증·병합했다. 라이브 링크는 아직 없다.
+제품 main 508bada의 비공개 staging 배포와 기본 smoke4개가 성공했다.
+기존 키로 경비 합성 요청 2건의 실제 모델 추출을 확인했으며 자세한 범위는
+[제한된 모델 점검](expense-model-smoke.md)을 따른다. 공개 AI 활성화나 전체 정확도 검증 완료를 뜻하지 않는다.

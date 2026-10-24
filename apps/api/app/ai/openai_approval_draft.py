@@ -15,11 +15,13 @@ from app.ai.approval_draft import (
 
 
 class OpenAIApprovalDraftProvider:
-    def __init__(self, api_key: str, model: str, timeout_seconds: float) -> None:
+    def __init__(
+        self, api_key: str, model: str, timeout_seconds: float, *, max_retries: int = 1
+    ) -> None:
         self._client = OpenAI(
             api_key=api_key,
             timeout=timeout_seconds,
-            max_retries=1,
+            max_retries=max_retries,
         )
         self._model = model
 

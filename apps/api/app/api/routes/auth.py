@@ -12,11 +12,15 @@ from app.services.demo_workspace import require_demo_workspace
 from app.services.login_budget import reserve_login_attempt
 from app.services.mappers import current_employee_read
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["인증·체험"])
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse, summary="계정 로그인")
 def login(payload: LoginRequest, response: Response, db: DbSession) -> LoginResponse:
+    """
+    로컬·비공개 환경의 계정으로 로그인하고 세션 쿠키를 발급합니다. 공개
+    데모에서는 체험 시작 API를 사용합니다.
+    """
     settings = get_settings()
     if settings.public_demo_enabled:
         raise AuthenticationError("Password login is unavailable in the public demo")
@@ -51,8 +55,12 @@ def login(payload: LoginRequest, response: Response, db: DbSession) -> LoginResp
     return LoginResponse(employee=current_employee_read(employee))
 
 
-@router.post("/logout", response_model=LogoutResponse)
+@router.post("/logout", response_model=LogoutResponse, summary="로그아웃")
 def logout(response: Response) -> LogoutResponse:
+    """
+    브라우저의 세션 쿠키를 삭제합니다. 체험 공간이나 결재 문서를
+    삭제하지는 않습니다.
+    """
     settings = get_settings()
     response.delete_cookie(settings.session_cookie_name, path="/")
     return LogoutResponse(success=True)

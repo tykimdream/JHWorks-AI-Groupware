@@ -24,91 +24,114 @@ from app.services import approval_review as approval_review_service
 from app.services.expense_checks import check_expense, expense_insights
 from app.services.mappers import approval_read
 
-router = APIRouter(prefix="/approvals", tags=["approvals"])
+router = APIRouter(prefix="/approvals", tags=["전자결재"])
 
 
-@router.get("", response_model=ApprovalListResponse)
+@router.get("", response_model=ApprovalListResponse, summary="결재 목록 조회")
 def list_approvals(
     db: DbSession,
     current_employee: CurrentEmployee,
     scope: Literal["mine", "assigned"] = Query(default="mine"),
 ) -> ApprovalListResponse:
-    """내 문서 또는 나에게 배정된 문서를 조회합니다. 서버 권한 필터 이후의 목록만 반환합니다."""
+    """내가 작성한 문서 또는 나에게 결재가 배정된 문서를 조회합니다."""
     items = approval_service.list_approvals(db, current_employee, scope)
     return ApprovalListResponse(items=[approval_read(item) for item in items], total=len(items))
 
 
-@router.post("", response_model=ApprovalRead, status_code=201)
+@router.post("", response_model=ApprovalRead, status_code=201, summary="결재 초안 저장")
 def create_approval(
     payload: ApprovalCreate,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """미완성 정보를 허용하는 DRAFT 저장입니다. 제출·결재선 생성은 별도 명령입니다."""
+    """
+    일반·출장·경비·휴가 양식의 초안을 저장합니다. 일부 항목이 비어
+    있어도 저장할 수 있으며, 제출은 별도로 실행합니다.
+    """
     return approval_read(approval_service.create_draft(db, current_employee, payload))
 
 
-@router.get("/expense-insights", response_model=ExpenseInsights)
+@router.get("/expense-insights", response_model=ExpenseInsights, summary="보완이 필요한 경비 조회")
 def get_expense_insights(db: DbSession, current_employee: CurrentEmployee) -> ExpenseInsights:
-    """내 최근 초안·결재 중 경비 10개를 점검해 누락·중복 후보가 있는 문서만 반환합니다."""
+    """
+    내 초안·결재 중인 경비를 최근 10개까지 점검하고, 누락 정보나
+    중복 후보가 있는 문서를 반환합니다.
+    """
     return expense_insights(db, current_employee)
 
 
-@router.get("/{approval_id}/expense-checks", response_model=ExpenseChecks)
+@router.get(
+    "/{approval_id}/expense-checks",
+    response_model=ExpenseChecks,
+    summary="경비 누락·중복 후보 확인",
+)
 def get_expense_checks(
     approval_id: str,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ExpenseChecks:
-    """조회 권한이 있는 경비의 필수 정보와 동일 지출 후보를 점검합니다.
-
-    원본 영수증 검증이 아닙니다.
+    """
+    열람 가능한 경비 문서의 필수 항목과 같은 지출일·사용처·금액의
+    문서를 확인합니다. 영수증 원본이나 실제 중복 지출을 판정하지는
+    않습니다.
     """
     return check_expense(db, current_employee, approval_id)
 
 
-@router.get("/{approval_id}", response_model=ApprovalRead)
+@router.get("/{approval_id}", response_model=ApprovalRead, summary="결재 상세 조회")
 def get_approval(
     approval_id: str,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """작성자/배정 결재자·체험 공간 범위를 검증한 뒤 문서를 조회합니다."""
+    """
+    문서 내용, 현재 상태, 버전과 결재 이력을 조회합니다. 작성자 또는
+    지정 결재자만 열람할 수 있습니다.
+    """
     return approval_read(approval_service.get_approval(db, current_employee, approval_id))
 
 
-@router.patch("/{approval_id}", response_model=ApprovalRead)
+@router.patch("/{approval_id}", response_model=ApprovalRead, summary="결재 초안 수정")
 def update_approval(
     approval_id: str,
     payload: ApprovalUpdate,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """현재 버전의 초안을 수정합니다. 오래된 version 또는 수정 불가 상태는 거부합니다."""
+    """
+    작성자가 초안을 수정합니다. 요청의 version이 현재 버전과
+    다르면 변경하지 않습니다.
+    """
     return approval_read(approval_service.update_draft(db, current_employee, approval_id, payload))
 
 
-@router.post("/{approval_id}/submit", response_model=ApprovalRead)
+@router.post("/{approval_id}/submit", response_model=ApprovalRead, summary="결재 제출")
 def submit_approval(
     approval_id: str,
     payload: ApprovalCommand,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """필수 정보·직속 관리자·version을 재검증하고 결재선을 생성해 PENDING으로 전환합니다."""
+    """
+    필수 항목과 현재 직속 관리자를 확인한 뒤 초안을 결재 대기 상태로
+    전환합니다. 작성자만 실행할 수 있습니다.
+    """
     return approval_read(
         approval_service.submit_approval(db, current_employee, approval_id, payload.version)
     )
 
 
-@router.post("/{approval_id}/approve", response_model=ApprovalRead)
+@router.post("/{approval_id}/approve", response_model=ApprovalRead, summary="결재 승인")
 def approve_approval(
     approval_id: str,
     payload: ApprovalDecision,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """현재 배정 결재자만 승인합니다. 휴가이면 연차 예약을 사용으로 확정합니다."""
+    """
+    현재 지정된 결재자가 대기 중인 문서를 승인합니다. 휴가 문서는
+    예약된 연차를 사용 처리합니다.
+    """
     return approval_read(
         approval_service.decide_approval(
             db,
@@ -120,14 +143,17 @@ def approve_approval(
     )
 
 
-@router.post("/{approval_id}/reject", response_model=ApprovalRead)
+@router.post("/{approval_id}/reject", response_model=ApprovalRead, summary="결재 반려")
 def reject_approval(
     approval_id: str,
     payload: ApprovalDecision,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """현재 배정 결재자가 사유와 함께 반려합니다. 휴가이면 예약 연차를 복원합니다."""
+    """
+    현재 지정된 결재자가 사유를 입력해 문서를 반려합니다. 휴가 문서는
+    예약된 연차를 돌려줍니다.
+    """
     return approval_read(
         approval_service.decide_approval(
             db,
@@ -139,20 +165,25 @@ def reject_approval(
     )
 
 
-@router.post("/{approval_id}/revise", response_model=ApprovalRead)
+@router.post("/{approval_id}/revise", response_model=ApprovalRead, summary="반려 문서 재작성")
 def revise_approval(
     approval_id: str,
     payload: ApprovalCommand,
     db: DbSession,
     current_employee: CurrentEmployee,
 ) -> ApprovalRead:
-    """작성자가 반려 문서를 DRAFT로 되돌립니다. 이전 결재 회차 이력은 보존합니다."""
+    """
+    작성자가 반려 문서를 수정 가능한 초안으로 전환합니다. 이전 결재
+    회차와 의견은 보존합니다.
+    """
     return approval_read(
         approval_service.revise_approval(db, current_employee, approval_id, payload.version)
     )
 
 
-@router.post("/{approval_id}/ai-review", response_model=AIReviewResponse)
+@router.post(
+    "/{approval_id}/ai-review", response_model=AIReviewResponse, summary="AI로 결재 문서 검토"
+)
 def review_approval(
     approval_id: str,
     payload: AIReviewRequest,
@@ -161,7 +192,11 @@ def review_approval(
     provider: AIReviewProvider,
     embedding_provider: PolicyEmbeddingProviderDependency,
 ) -> AIReviewResponse:
-    """서버 규칙 검사와 정책 근거·모델 검토를 결합합니다. 공개 AI 비활성 시 사용할 수 없습니다."""
+    """
+    문서의 누락 정보와 정책 근거를 검토합니다. 문서를 자동 수정하거나
+    제출하지 않습니다. 공개 데모에서는 AI 호출이 비활성화되어
+    있습니다.
+    """
     return approval_review_service.review_approval(
         db,
         current_employee,

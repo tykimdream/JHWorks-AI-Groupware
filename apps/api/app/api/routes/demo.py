@@ -13,7 +13,7 @@ from app.schemas.demo import DemoConfiguration, DemoRoleRequest, DemoVisitRead
 from app.services.demo_visitor import start_visit_safely, switch_role
 from app.services.mappers import current_employee_read
 
-router = APIRouter(prefix="/demo", tags=["demo"])
+router = APIRouter(prefix="/demo", tags=["인증·체험"])
 
 
 def _require_enabled() -> None:
@@ -40,28 +40,41 @@ def _visit_response(db: DbSession, response: Response, actor: Employee) -> DemoV
     )
 
 
-@router.get("/configuration", response_model=DemoConfiguration)
+@router.get("/configuration", response_model=DemoConfiguration, summary="체험 설정 조회")
 def configuration() -> DemoConfiguration:
+    """
+    공개 체험 활성화 여부와 이용 시간·공간별 쓰기·보호 요청 제한을
+    조회합니다.
+    """
     settings = get_settings()
     return DemoConfiguration(
         enabled=settings.public_demo_enabled, duration_minutes=settings.demo_ttl_minutes
     )
 
 
-@router.post("/start", response_model=DemoVisitRead)
+@router.post("/start", response_model=DemoVisitRead, summary="체험 시작")
 def start(
     db: DbSession,
     response: Response,
     session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
 ) -> DemoVisitRead:
+    """
+    합성 조직과 직원이 있는 방문자 전용 공간을 만들고 작성자 세션을
+    발급합니다. 유효한 체험 세션이 있으면 해당 공간을 이어서
+    사용합니다.
+    """
     _require_enabled()
     actor = start_visit_safely(db, get_settings(), session_token)
     return _visit_response(db, response, actor)
 
 
-@router.post("/role", response_model=DemoVisitRead)
+@router.post("/role", response_model=DemoVisitRead, summary="체험 역할 전환")
 def role(
     payload: DemoRoleRequest, db: DbSession, response: Response, actor: CurrentEmployee
 ) -> DemoVisitRead:
+    """
+    같은 체험 공간에서 작성자와 결재자 역할을 전환합니다. 다른 방문자의
+    공간에는 접근할 수 없습니다.
+    """
     _require_enabled()
     return _visit_response(db, response, switch_role(db, actor, payload.role))

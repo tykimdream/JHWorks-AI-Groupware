@@ -2,6 +2,20 @@
 
 [프로젝트 소개](../README.md) · [API 가이드](api/README.md)
 
+## 환경 변수 관리
+
+`.env.example`은 필요한 변수 이름과 로컬 예시값을 공유하는 템플릿으로 Git에 포함합니다.
+실제 API 키·운영 DB 비밀번호·세션 서명 키는 넣지 않습니다.
+로컬 설정은 `.env` 또는 `apps/api/.env`에 저장하고, 배포 비밀값은 Secret Manager로 전달합니다.
+`.env`와 `.env.*`는 Git에서 제외하며 `.env.example`·`.env.local.example` 같은 예시 템플릿만 예외입니다.
+예시의 `jhworks-local` 비밀번호는 로컬 Compose DB 전용이고, JWT 값은 교체용 문구입니다.
+
+```bash
+cp .env.example .env
+```
+
+[참고: 예시 파일과 비밀 설정 분리](https://github.com/laravel/docs/blob/13.x/configuration.md#environment-configuration)
+
 ## 로컬 테스트 계정
 
 공통 비밀번호: `demo1234`

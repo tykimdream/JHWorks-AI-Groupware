@@ -10,25 +10,21 @@ API 경로·입력·응답 스키마의 원본은 [라우터](../../apps/api/app
 - 로컬 API: `pnpm dev:api` → http://127.0.0.1:8000/api/v1/docs
 - `/docs`와 `/openapi.json`은 새 경로로 이동한다. ReDoc은 `/api/v1/redoc`이다.
 
-Swagger에는 태그별 설명·필터·요청/응답 모델과 합성 경비 요청 예시가 표시된다.
+Swagger는 위 7개 업무 도메인으로 분류한다. 같은 API를 여러 그룹에 중복 표시하지 않으며, 각 항목에는 한글 제목·동작 설명·요청/응답 모델을 제공한다. 검색창은 도메인 이름을 필터링한다. 상세 endpoint는 도메인을 펼치거나 브라우저 찾기(Ctrl/Cmd+F)로 찾는다.
 공개 모드는 `Try it out`을 비활성화한다. 이는 문서 UI 설정이며 API 접근 통제는 세션·출처·권한 검증이 담당한다.
 로컬 실행 버튼은 실제 API를 호출하고 데이터를 변경할 수 있다. 실제 개인정보나 회사 자료는 넣지 않는다.
 
 ## 도메인 지도
 
-| 그룹 | 주요 경로 (`/api/v1` 생략) | 책임 |
+| 도메인 | 주요 경로 (`/api/v1` 생략) | 찾을 수 있는 기능 |
 | --- | --- | --- |
-| health | `/health/live`, `/health/ready` | 프로세스 생존 / DB 준비 상태 분리 |
-| demo / auth | `/demo/start`, `/demo/role`, `/auth/login`, `/auth/logout` | 격리 공간·세션·역할 전환. 공개 모드 비밀번호 로그인 거부 |
-| organization | `/employees/me` 및 조직 조회 | 현재 직원·부서·관리자, 서버 범위 제한 |
-| approvals | `/approvals`, `/{id}/submit`, `/{id}/approve`, `/{id}/reject` | 초안과 제출 분리, 결재 상태 전이·버전 검증 |
-| expense checks | `/approvals/expense-insights`, `/{id}/expense-checks` | 내 최근 경비 점검·조회 가능한 중복 후보. 영수증 원본 검증 아님 |
-| attendance | `/attendance/overview`, `/attendance/leave-availability` | 권한 범위 일정·연차·휴가 가능일의 결정적 계산 |
-| policies | `/policies` 및 정책 상세·검색 | 버전·섹션이 있는 가상 정책과 검색 근거 |
-| draft assistant | `/approval-draft-assistant/prepare`, `/confirm` | 의도 추출·질문·정확한 미리보기·확인 후 초안 저장 |
-| leave assistant / agent | `/leave-assistant`, `/leave-draft-tool`, `/leave-agent/runs` 아래 경로 | 휴가 상담·서명 확인·중단 후 이어지는 업무 상태 |
-| work assistant | `/work-assistant` 아래 경로 | 제한된 읽기 Tool 호출과 실행 기록 |
-| feedback | `/demo/feedback` | 비공개 의견 접수. 공개 목록 조회 없음 |
+| 전자결재 | `/approvals`, `/approval-draft-assistant` | 초안·제출·승인·반려, 경비 점검, AI 초안·검토 |
+| 근태·휴가 | `/attendance`, `/leave-assistant`, `/leave-draft-tool`, `/leave-agent/runs` | 일정·연차·가능일, AI 상담, 단계별 저장·제출 확인 |
+| 정책 | `/policies`, `/policies/search` | 정책 목록과 관련 섹션 검색 |
+| 조직 | `/employees/me`, `/departments` | 현재 직원·직속 관리자와 부서 |
+| 업무 도우미 | `/work-assistant/query` | 내 업무 조회와 도구 실행 기록 |
+| 인증·체험 | `/auth`, `/demo` | 로그인·로그아웃, 체험 시작·역할 전환·의견 접수 |
+| 운영 | `/health`, `/health/live`, `/health/ready` | 프로세스와 DB 연결 상태 |
 
 세부 하위 경로·허용 메서드·요청 모델은 Swagger를 따른다. 표의 그룹 경로가 모두 직접 호출 가능한 endpoint는 아니다.
 

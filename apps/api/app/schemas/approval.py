@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from app.core.schema import ApiSchema
 from app.models.enums import ApprovalLineStatus, ApprovalStatus, ApprovalType, ExpenseCategory
@@ -77,7 +77,27 @@ class ApprovalDraftFields(ApiSchema):
 
 
 class ApprovalCreate(ApprovalDraftFields):
-    pass
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "type": "EXPENSE",
+                    "title": "CES 출장 경비 정산 (합성 예시)",
+                    "content": "가상 업무 경비이며 실제 영수증을 첨부하지 않았습니다.",
+                    "amount": 170000,
+                    "details": {
+                        "kind": "EXPENSE",
+                        "expenseDate": "2026-01-10",
+                        "merchant": "가상 CES 사용처",
+                        "category": "OTHER",
+                        "purpose": "CES 업무 출장 경비",
+                        "receiptReference": "SYNTHETIC-REFERENCE",
+                    },
+                    "attachmentMetadata": [],
+                }
+            ]
+        }
+    )
 
 
 class ApprovalUpdate(ApprovalDraftFields):

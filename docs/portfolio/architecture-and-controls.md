@@ -1,5 +1,9 @@
 # JHWorks AI Groupware — Architecture and Control Evidence
 
+> 최신 공개 배포·경비 흐름·현재 제약은 [전체 아키텍처](../architecture/README.md)와
+> [API 안내](../api/README.md)를 먼저 읽는다. 아래 설계·평가·통제 기록은 각 기준일의 증거이며
+> 현재 공개 AI 활성화나 예약 운영 완료를 의미하지 않는다.
+
 ## Portfolio Summary
 
 JHWorks는 synthetic 조직·정책·업무 데이터로 만든 AI 전자결재 포트폴리오다. 핵심 설계 질문은 “LLM이 편리한

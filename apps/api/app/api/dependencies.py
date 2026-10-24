@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import Cookie, Depends, Request
+from fastapi import Depends, Request
+from fastapi.security import APIKeyCookie
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -22,6 +23,12 @@ from app.models.employee import Employee
 from app.services.demo_workspace import require_demo_workspace
 
 DbSession = Annotated[Session, Depends(get_db)]
+session_cookie = APIKeyCookie(
+    name=get_settings().session_cookie_name,
+    scheme_name="SessionCookie",
+    description="Login/demo start sets this HttpOnly cookie; existing authorization checks apply.",
+    auto_error=False,
+)
 
 
 def _session_employee(db: Session, session_token: str | None) -> Employee:
@@ -46,7 +53,7 @@ def _session_employee(db: Session, session_token: str | None) -> Employee:
 def get_current_employee(
     request: Request,
     db: DbSession,
-    session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
+    session_token: Annotated[str | None, Depends(session_cookie)] = None,
 ) -> Employee:
     employee = _session_employee(db, session_token)
     require_demo_workspace(db, employee, write=request.method not in {"GET", "HEAD", "OPTIONS"})
@@ -55,7 +62,7 @@ def get_current_employee(
 
 def get_feedback_employee(
     db: DbSession,
-    session_token: Annotated[str | None, Cookie(alias=get_settings().session_cookie_name)] = None,
+    session_token: Annotated[str | None, Depends(session_cookie)] = None,
 ) -> Employee:
     employee = _session_employee(db, session_token)
     if employee.demo_workspace_id is None:

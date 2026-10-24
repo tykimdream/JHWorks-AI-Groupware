@@ -26,7 +26,7 @@ export const DemoEntry = ({ durationMinutes }: { durationMinutes: number }) => {
       <p className="eyebrow">JHWORKS · INTERACTIVE DEMO</p>
       <h1>나만의 업무 공간에서 체험하세요</h1>
       <p>가입 없이 합성 데이터로 결재를 작성하고, 결재자 역할로 전환해 승인해볼 수 있습니다.</p>
-      <ol><li>일반·휴가 결재 작성 및 제출</li><li>결재자 역할로 전환 후 승인·반려</li><li>사용해본 의견 남기기</li></ol>
+      <ol><li>경비·출장·일반·휴가 결재 작성 및 제출</li><li>결재자 역할로 전환 후 승인·반려</li><li>사용해본 의견 남기기</li></ol>
       <p>체험은 {durationMinutes}분 동안 유지됩니다. 공간당 저장 시도 20회·보호 요청 100회까지 사용할 수 있습니다.</p>
       <p className="subtle">실제 개인정보·회사 자료는 입력하지 마세요. AI 기능은 비용 보호를 위해 꺼져 있습니다.</p>
       {error && <p role="alert" className="error-banner">{error}</p>}

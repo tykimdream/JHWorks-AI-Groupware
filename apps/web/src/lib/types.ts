@@ -1,5 +1,5 @@
 export type EmployeeRole = 'EMPLOYEE' | 'MANAGER' | 'POLICY_OWNER';
-export type ApprovalType = 'GENERAL' | 'BUSINESS_TRIP' | 'LEAVE';
+export type ApprovalType = 'GENERAL' | 'BUSINESS_TRIP' | 'EXPENSE' | 'LEAVE';
 export type ApprovalStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type ApprovalLineStatus = 'WAITING' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -66,7 +66,16 @@ export interface LeaveDetails {
   handoverNote: string | null;
 }
 
-export type ApprovalDetails = GeneralDetails | BusinessTripDetails | LeaveDetails;
+export type ExpenseCategory = 'TRANSPORTATION' | 'LODGING' | 'MEALS' | 'OTHER';
+export interface ExpenseDetails {
+  kind: 'EXPENSE';
+  expenseDate: string | null;
+  merchant: string | null;
+  category: ExpenseCategory | null;
+  purpose: string | null;
+  receiptReference: string | null;
+}
+export type ApprovalDetails = GeneralDetails | BusinessTripDetails | ExpenseDetails | LeaveDetails;
 
 export interface ApprovalLine {
   id: string;
@@ -128,6 +137,10 @@ export type ReviewField =
   | 'details.costBreakdown'
   | 'details.clientName'
   | 'details.visitPurpose'
+  | 'details.expenseDate'
+  | 'details.merchant'
+  | 'details.category'
+  | 'details.purpose'
   | 'details.leaveType'
   | 'details.leaveUnit'
   | 'details.requestedDays'
@@ -205,12 +218,7 @@ export interface AIReview {
   reviewedAt: string;
 }
 
-export type ApprovalDraftIntent =
-  | 'GENERAL'
-  | 'BUSINESS_TRIP'
-  | 'EXPENSE'
-  | 'LEAVE'
-  | 'UNSUPPORTED';
+export type ApprovalDraftIntent = 'GENERAL' | 'BUSINESS_TRIP' | 'EXPENSE' | 'LEAVE' | 'UNSUPPORTED';
 export type ApprovalDraftAIStatus = 'NEEDS_INPUT' | 'PREVIEW' | 'UNSUPPORTED';
 
 export interface ApprovalDraftCandidate {
@@ -227,6 +235,11 @@ export interface ApprovalDraftCandidate {
   other: number | null;
   clientName: string | null;
   visitPurpose: string | null;
+  expenseDate: string | null;
+  merchant: string | null;
+  expenseCategory: ExpenseCategory | null;
+  expensePurpose: string | null;
+  receiptReference: string | null;
 }
 
 export interface ApprovalDraftQuestion {
@@ -467,15 +480,21 @@ export interface LeaveSubmitResumeResult {
   approval: Approval;
 }
 
-
 export interface AttendanceOverview {
   leaveBalances: LeaveBalance[];
   calendarEvents: {
-    id: string; title: string; startDate: string; endDate: string;
-    impact: AttendanceImpact; status: string;
+    id: string;
+    title: string;
+    startDate: string;
+    endDate: string;
+    impact: AttendanceImpact;
+    status: string;
   }[];
   teamLeaves: {
-    id: string; employee: { id: string; name: string }; startDate: string;
-    endDate: string; status: string;
+    id: string;
+    employee: { id: string; name: string };
+    startDate: string;
+    endDate: string;
+    status: string;
   }[];
 }

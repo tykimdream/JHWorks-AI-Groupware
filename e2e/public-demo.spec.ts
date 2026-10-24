@@ -6,7 +6,10 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await expect(page.getByRole('button', { name: '체험 시작하기' })).toBeVisible();
   await expect(page.getByLabel('비밀번호')).toHaveCount(0);
   await page.getByRole('button', { name: '체험 시작하기' }).click();
-  await expect(page).toHaveURL(/\/approvals$/);
+  await expect(page).toHaveURL('http://localhost:3100/');
+  await expect(page.getByRole('textbox', { name: 'AI 업무 요청' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'AI 초안 작성으로 이동' })).toBeDisabled();
+  await expect(page.getByRole('link', { name: 'AI 초안 작성', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '결재자로 체험하기' })).toBeVisible();
   const original = await (await page.request.get('/api/v1/employees/me')).json();
   expect(original.id).toMatch(/^demo_author_/);

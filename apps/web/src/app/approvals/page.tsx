@@ -1,36 +1,42 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 import { AppShell } from '@/components/app-shell';
 import { StatusBadge } from '@/components/status-badge';
 import { ApiError, apiFetch } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { ApprovalListResponse, ApprovalType } from '@/lib/types';
+import type { ApprovalListResponse } from '@/lib/types';
+import { approvalTypeLabels } from '@/lib/approval-labels';
 
 type Scope = 'mine' | 'assigned';
 
-const approvalTypeLabels: Record<ApprovalType, string> = {
-  GENERAL: '일반 결재',
-  BUSINESS_TRIP: '출장 신청',
-  LEAVE: '휴가 신청',
-};
-
-export default function ApprovalListPage() {
-  const [scope, setScope] = useState<Scope>('mine');
+function ApprovalListContent() {
+  const searchParams = useSearchParams();
+  const [scope, setScope] = useState<Scope>(
+    searchParams.get('scope') === 'assigned' ? 'assigned' : 'mine',
+  );
   const [data, setData] = useState<ApprovalListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    apiFetch<ApprovalListResponse>(`/approvals?scope=${scope}`)
-      .then(setData)
+    const controller = new AbortController();
+    apiFetch<ApprovalListResponse>(`/approvals?scope=${scope}`, { signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) setData(result);
+      })
       .catch((caught: unknown) => {
+        if (controller.signal.aborted) return;
         setError(caught instanceof ApiError ? caught.message : '결재 목록을 불러오지 못했습니다.');
       });
-  }, [scope]);
+    return () => controller.abort();
+  }, [scope, attempt]);
 
   const changeScope = (nextScope: Scope) => {
+    if (nextScope === scope) return;
     setScope(nextScope);
     setData(null);
     setError(null);
@@ -67,12 +73,31 @@ export default function ApprovalListPage() {
         </button>
       </div>
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && (
+        <div className="error-banner" role="alert">
+          {error}{' '}
+          <button
+            className="text-button"
+            onClick={() => {
+              setError(null);
+              setAttempt((value) => value + 1);
+            }}
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
       {!data && !error && <div className="empty-card">결재 문서를 불러오는 중입니다.</div>}
       {data?.total === 0 && (
         <div className="empty-card">
-          <strong>{scope === 'mine' ? '작성한 결재가 없습니다.' : '배정된 결재가 없습니다.'}</strong>
-          <span>{scope === 'mine' ? '첫 Draft를 작성해 업무 흐름을 시작해보세요.' : '새 요청이 오면 이곳에 표시됩니다.'}</span>
+          <strong>
+            {scope === 'mine' ? '작성한 결재가 없습니다.' : '배정된 결재가 없습니다.'}
+          </strong>
+          <span>
+            {scope === 'mine'
+              ? '첫 Draft를 작성해 업무 흐름을 시작해보세요.'
+              : '새 요청이 오면 이곳에 표시됩니다.'}
+          </span>
         </div>
       )}
       {data && data.total > 0 && (
@@ -95,12 +120,24 @@ export default function ApprovalListPage() {
                     ? `${approval.details.requestedDays ?? '-'}일`
                     : formatCurrency(approval.amount)}
                 </strong>
-                <span>{scope === 'mine' ? `결재선 ${approval.lines.length}건` : `작성자 ${approval.author.name}`}</span>
+                <span>
+                  {scope === 'mine'
+                    ? `결재선 ${approval.lines.length}건`
+                    : `작성자 ${approval.author.name}`}
+                </span>
               </div>
             </Link>
           ))}
         </div>
       )}
     </AppShell>
+  );
+}
+
+export default function ApprovalListPage() {
+  return (
+    <Suspense fallback={<main className="centered-state">결재 목록을 준비하고 있습니다.</main>}>
+      <ApprovalListContent />
+    </Suspense>
   );
 }

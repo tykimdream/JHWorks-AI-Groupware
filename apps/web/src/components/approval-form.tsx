@@ -11,7 +11,10 @@ import type {
   BusinessTripDetails,
   LeaveDetails,
   LeaveUnit,
+  ExpenseDetails,
+  ExpenseCategory,
 } from '@/lib/types';
+import { expenseCategoryLabels } from '@/lib/approval-labels';
 
 interface ApprovalFormProps {
   initial?: Approval;
@@ -55,7 +58,8 @@ const numberOrNull = (value: string): number | null => (value === '' ? null : Nu
 
 export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
   const router = useRouter();
-  const initialTrip = initial?.details.kind === 'BUSINESS_TRIP' ? initial.details : blankTripDetails;
+  const initialTrip =
+    initial?.details.kind === 'BUSINESS_TRIP' ? initial.details : blankTripDetails;
   const initialLeave =
     initial?.details.kind === 'LEAVE'
       ? initial.details
@@ -66,12 +70,23 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
           leaveUnit: preset?.leaveUnit ?? 'FULL_DAY',
         };
   const [type, setType] = useState<ApprovalType>(initial?.type ?? preset?.type ?? 'BUSINESS_TRIP');
+  const [expense, setExpense] = useState<ExpenseDetails>(
+    initial?.details.kind === 'EXPENSE'
+      ? initial.details
+      : {
+          kind: 'EXPENSE',
+          expenseDate: '',
+          merchant: '',
+          category: null,
+          purpose: '',
+          receiptReference: '',
+        },
+  );
   const [title, setTitle] = useState(
     initial?.title ?? (preset ? `${preset.startDate} 휴가 신청` : ''),
   );
   const [content, setContent] = useState(
-    initial?.content ??
-      (preset ? '업무 일정과 인수인계를 확인한 후 연차 사용을 신청합니다.' : ''),
+    initial?.content ?? (preset ? '업무 일정과 인수인계를 확인한 후 연차 사용을 신청합니다.' : ''),
   );
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? '');
   const [destination, setDestination] = useState(initialTrip.destination ?? '');
@@ -94,7 +109,8 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
   const [isSaving, setIsSaving] = useState(false);
 
   const breakdownTotal = useMemo(
-    () => [transportation, lodging, meals, other].reduce((sum, value) => sum + Number(value || 0), 0),
+    () =>
+      [transportation, lodging, meals, other].reduce((sum, value) => sum + Number(value || 0), 0),
     [transportation, lodging, meals, other],
   );
 
@@ -127,6 +143,8 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
     let details: ApprovalDraftInput['details'];
     if (type === 'GENERAL') {
       details = { kind: 'GENERAL' };
+    } else if (type === 'EXPENSE') {
+      details = { ...expense, expenseDate: expense.expenseDate || null };
     } else if (type === 'LEAVE') {
       details = {
         kind: 'LEAVE',
@@ -140,19 +158,19 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
       };
     } else {
       details = {
-            kind: 'BUSINESS_TRIP',
-            destination: destination || null,
-            startDate: tripStartDate || null,
-            endDate: tripEndDate || null,
-            clientName: clientName || null,
-            visitPurpose: visitPurpose || null,
-            costBreakdown: {
-              transportation: numberOrNull(transportation),
-              lodging: numberOrNull(lodging),
-              meals: numberOrNull(meals),
-              other: numberOrNull(other),
-            },
-          };
+        kind: 'BUSINESS_TRIP',
+        destination: destination || null,
+        startDate: tripStartDate || null,
+        endDate: tripEndDate || null,
+        clientName: clientName || null,
+        visitPurpose: visitPurpose || null,
+        costBreakdown: {
+          transportation: numberOrNull(transportation),
+          lodging: numberOrNull(lodging),
+          meals: numberOrNull(meals),
+          other: numberOrNull(other),
+        },
+      };
     }
 
     const payload: ApprovalDraftInput = {
@@ -166,10 +184,13 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
     };
 
     try {
-      const approval = await apiFetch<Approval>(initial ? `/approvals/${initial.id}` : '/approvals', {
-        method: initial ? 'PATCH' : 'POST',
-        body: JSON.stringify(payload),
-      });
+      const approval = await apiFetch<Approval>(
+        initial ? `/approvals/${initial.id}` : '/approvals',
+        {
+          method: initial ? 'PATCH' : 'POST',
+          body: JSON.stringify(payload),
+        },
+      );
       router.push(`/approvals/${approval.id}`);
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, 'Draft를 저장하지 못했습니다.'));
@@ -185,14 +206,20 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
           <span>결재 종류</span>
           <select value={type} onChange={(event) => setType(event.target.value as ApprovalType)}>
             <option value="BUSINESS_TRIP">출장 신청</option>
+            <option value="EXPENSE">경비 정산</option>
             <option value="LEAVE">휴가 신청</option>
             <option value="GENERAL">일반 결재</option>
           </select>
         </label>
         {type !== 'LEAVE' && (
           <label>
-            <span>예상 금액 (원)</span>
-            <input min="0" onChange={(event) => setAmount(event.target.value)} type="number" value={amount} />
+            <span>{type === 'EXPENSE' ? '실제 지출 금액 (원)' : '예상 금액 (원)'}</span>
+            <input
+              min="0"
+              onChange={(event) => setAmount(event.target.value)}
+              type="number"
+              value={amount}
+            />
           </label>
         )}
       </div>
@@ -200,7 +227,12 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
       <div className="form-section">
         <label>
           <span>제목</span>
-          <input maxLength={120} onChange={(event) => setTitle(event.target.value)} required value={title} />
+          <input
+            maxLength={120}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+            value={title}
+          />
         </label>
         <label>
           <span>업무 내용</span>
@@ -213,6 +245,80 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
           />
         </label>
       </div>
+
+      {type === 'EXPENSE' && (
+        <section className="form-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">EXPENSE SETTLEMENT</p>
+              <h2>경비 정산 정보</h2>
+            </div>
+            <span className="subtle">이미 지출한 비용을 기록합니다.</span>
+          </div>
+          <div className="form-grid-two">
+            <label>
+              <span>실제 지출일</span>
+              <input
+                type="date"
+                value={expense.expenseDate ?? ''}
+                onChange={(event) => setExpense({ ...expense, expenseDate: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>사용처</span>
+              <input
+                maxLength={200}
+                placeholder="예: 코레일"
+                value={expense.merchant ?? ''}
+                onChange={(event) => setExpense({ ...expense, merchant: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>비용 구분</span>
+              <select
+                value={expense.category ?? ''}
+                onChange={(event) =>
+                  setExpense({
+                    ...expense,
+                    category: event.target.value ? (event.target.value as ExpenseCategory) : null,
+                  })
+                }
+              >
+                <option value="">선택해 주세요</option>
+                {Object.entries(expenseCategoryLabels).map(([value, label]) => (
+                  <option value={value} key={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>증빙 참조 (선택)</span>
+              <input
+                maxLength={255}
+                placeholder="예: 사내 문서번호 RCP-CES-001"
+                value={expense.receiptReference ?? ''}
+                onChange={(event) =>
+                  setExpense({ ...expense, receiptReference: event.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label>
+            <span>업무상 지출 목적</span>
+            <textarea
+              rows={3}
+              maxLength={1000}
+              value={expense.purpose ?? ''}
+              onChange={(event) => setExpense({ ...expense, purpose: event.target.value })}
+            />
+          </label>
+          <p className="expense-evidence-note">
+            증빙 참조만 기록하며 파일을 업로드하지 않습니다. 영수증 원본은 결재자가 별도로 확인해야
+            합니다.
+          </p>
+        </section>
+      )}
 
       {type === 'BUSINESS_TRIP' && (
         <div className="form-section">
@@ -234,16 +340,28 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
             </label>
             <label>
               <span>시작일</span>
-              <input onChange={(event) => setTripStartDate(event.target.value)} type="date" value={tripStartDate} />
+              <input
+                onChange={(event) => setTripStartDate(event.target.value)}
+                type="date"
+                value={tripStartDate}
+              />
             </label>
             <label>
               <span>종료일</span>
-              <input onChange={(event) => setTripEndDate(event.target.value)} type="date" value={tripEndDate} />
+              <input
+                onChange={(event) => setTripEndDate(event.target.value)}
+                type="date"
+                value={tripEndDate}
+              />
             </label>
           </div>
           <label>
             <span>방문 목적</span>
-            <textarea onChange={(event) => setVisitPurpose(event.target.value)} rows={3} value={visitPurpose} />
+            <textarea
+              onChange={(event) => setVisitPurpose(event.target.value)}
+              rows={3}
+              value={visitPurpose}
+            />
           </label>
           <div className="cost-grid">
             {[
@@ -263,7 +381,9 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
               </label>
             ))}
           </div>
-          <p className="calculated-total">세부 비용 합계: {breakdownTotal.toLocaleString('ko-KR')}원</p>
+          <p className="calculated-total">
+            세부 비용 합계: {breakdownTotal.toLocaleString('ko-KR')}원
+          </p>
         </div>
       )}
 
@@ -293,7 +413,9 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
               <input
                 aria-label="예상 차감 일수"
                 readOnly
-                value={estimatedLeaveDays === null ? '날짜를 선택해주세요' : `${estimatedLeaveDays}일`}
+                value={
+                  estimatedLeaveDays === null ? '날짜를 선택해주세요' : `${estimatedLeaveDays}일`
+                }
               />
             </label>
             <label>

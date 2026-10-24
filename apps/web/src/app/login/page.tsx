@@ -43,7 +43,7 @@ export default function LoginPage() {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      router.replace('/approvals');
+      router.replace('/');
     } catch (caught: unknown) {
       setError(caught instanceof ApiError ? caught.message : '로그인하지 못했습니다.');
     } finally {

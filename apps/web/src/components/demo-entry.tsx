@@ -15,7 +15,7 @@ export const DemoEntry = ({ durationMinutes }: { durationMinutes: number }) => {
     pending.current = true; setBusy(true); setError(null);
     try {
       await apiFetch('/demo/start', { method: 'POST' });
-      router.replace('/approvals');
+      router.replace('/');
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '체험 공간을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.'));
       pending.current = false; setBusy(false);

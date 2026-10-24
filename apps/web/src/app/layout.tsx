@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { connection } from 'next/server';
 
 import './globals.css';
 import './workspace.css';
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
   description: 'A synthetic enterprise workflow and approval platform',
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // Every HTML response must render with its own CSP nonce.
+  await connection();
   return (
     <html lang="ko">
       <body>{children}</body>

@@ -1,6 +1,7 @@
-import { redirect } from 'next/navigation';
+import { AppShell } from '@/components/app-shell';
+import { WorkHome } from '@/components/work-home';
 
 export default function Home() {
-  redirect('/approvals');
+  return <AppShell><WorkHome /></AppShell>;
 }
 

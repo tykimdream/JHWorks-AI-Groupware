@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 const login = async (page: Page) => {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Demo 로그인' }).click();
-  await expect(page).toHaveURL(/\/approvals$/);
+  await expect(page).toHaveURL('http://localhost:3100/');
   await page.getByRole('link', { name: '근태·휴가' }).click();
   await expect(page.getByRole('heading', { name: '자연어로 휴가 상담' })).toBeVisible();
 };
@@ -36,7 +36,7 @@ test('request → select → inspect → explicitly save one DRAFT', async ({ pa
   await page.getByRole('button', { name: '내용을 확인했고 Draft로 저장' }).focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/approvals\/.+\?leaveRunId=/);
-  await expect(page.locator('.status-badge')).toContainText('임시저장');
+  await expect(page.locator('.detail-title-row .status-badge')).toContainText('임시저장');
   expect(saves).toBe(1);
   await page.locator('.detail-title-row').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `docs/portfolio/screenshots/leave-draft-${testInfo.project.name}.png` });

@@ -11,7 +11,10 @@ import { StatusBadge } from '@/components/status-badge';
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { Approval, ApprovalType, BusinessTripDetails, LeaveDetails } from '@/lib/types';
+import type { Approval, BusinessTripDetails, LeaveDetails } from '@/lib/types';
+import { approvalTypeLabels } from '@/lib/approval-labels';
+import { ExpenseSummary } from '@/components/expense-summary';
+import { ExpenseChecksPanel } from '@/components/expense-checks';
 
 type Command = 'submit' | 'approve' | 'reject' | 'revise';
 
@@ -28,12 +31,6 @@ const costLabels = {
   meals: '식비',
   other: '기타',
 } as const;
-
-const approvalTypeLabels: Record<ApprovalType, string> = {
-  GENERAL: '일반 결재',
-  BUSINESS_TRIP: '출장 신청',
-  LEAVE: '휴가 신청',
-};
 
 const leaveUnitLabels = {
   FULL_DAY: '종일 연차',
@@ -145,7 +142,17 @@ export default function ApprovalDetailPage() {
           </section>
 
           {trip && <TripDetails trip={trip} amount={approval.amount} />}
+          {approval.details.kind === 'EXPENSE' && (
+            <ExpenseSummary expense={approval.details} amount={approval.amount} />
+          )}
           {leave && <LeaveRequestDetails leave={leave} />}
+          {approval.type === 'EXPENSE' && (
+            <ExpenseChecksPanel
+              key={`${approval.id}-${approval.version}`}
+              approvalId={approval.id}
+              version={approval.version}
+            />
+          )}
 
           {error && <p className="error-banner">{error}</p>}
 
@@ -208,9 +215,18 @@ export default function ApprovalDetailPage() {
           <section className="context-card">
             <p className="eyebrow">TIMELINE</p>
             <dl>
-              <div><dt>작성</dt><dd>{formatDate(approval.createdAt)}</dd></div>
-              <div><dt>제출</dt><dd>{formatDate(approval.submittedAt)}</dd></div>
-              <div><dt>결정</dt><dd>{formatDate(approval.decidedAt)}</dd></div>
+              <div>
+                <dt>작성</dt>
+                <dd>{formatDate(approval.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>제출</dt>
+                <dd>{formatDate(approval.submittedAt)}</dd>
+              </div>
+              <div>
+                <dt>결정</dt>
+                <dd>{formatDate(approval.decidedAt)}</dd>
+              </div>
             </dl>
           </section>
           <section className="context-card">
@@ -218,7 +234,9 @@ export default function ApprovalDetailPage() {
             {approval.lines.length === 0 && <span>아직 제출되지 않았습니다.</span>}
             {approval.lines.map((line) => (
               <div className="history-item" key={line.id}>
-                <strong>{line.round}회차 · {line.approver.name}</strong>
+                <strong>
+                  {line.round}회차 · {line.approver.name}
+                </strong>
                 <span>{lineStatusLabels[line.status]}</span>
                 {line.comment && <p>{line.comment}</p>}
               </div>
@@ -228,11 +246,7 @@ export default function ApprovalDetailPage() {
 
         {isAuthor && approval.status === 'DRAFT' && (
           <section className="draft-review-flow">
-            <AIReviewPanel
-              approval={approval}
-              canReview
-              onApprovalUpdated={setApproval}
-            />
+            <AIReviewPanel approval={approval} canReview onApprovalUpdated={setApproval} />
             {leave && leaveRunId ? (
               <LeaveSubmitAgentPanel
                 approval={approval}
@@ -281,15 +295,34 @@ const TripDetails = ({ trip, amount }: { trip: BusinessTripDetails; amount: numb
     <p className="eyebrow">BUSINESS TRIP</p>
     <h2>출장 정보</h2>
     <dl className="detail-grid">
-      <div><dt>출장지</dt><dd>{trip.destination || '-'}</dd></div>
-      <div><dt>고객사</dt><dd>{trip.clientName || '-'}</dd></div>
-      <div><dt>기간</dt><dd>{trip.startDate || '-'} → {trip.endDate || '-'}</dd></div>
-      <div><dt>예상 금액</dt><dd>{formatCurrency(amount)}</dd></div>
-      <div className="wide"><dt>방문 목적</dt><dd>{trip.visitPurpose || '-'}</dd></div>
+      <div>
+        <dt>출장지</dt>
+        <dd>{trip.destination || '-'}</dd>
+      </div>
+      <div>
+        <dt>고객사</dt>
+        <dd>{trip.clientName || '-'}</dd>
+      </div>
+      <div>
+        <dt>기간</dt>
+        <dd>
+          {trip.startDate || '-'} → {trip.endDate || '-'}
+        </dd>
+      </div>
+      <div>
+        <dt>예상 금액</dt>
+        <dd>{formatCurrency(amount)}</dd>
+      </div>
+      <div className="wide">
+        <dt>방문 목적</dt>
+        <dd>{trip.visitPurpose || '-'}</dd>
+      </div>
     </dl>
     <div className="cost-summary">
       {Object.entries(trip.costBreakdown ?? {}).map(([key, value]) => (
-        <span key={key}>{costLabels[key as keyof typeof costLabels]} <strong>{formatCurrency(value)}</strong></span>
+        <span key={key}>
+          {costLabels[key as keyof typeof costLabels]} <strong>{formatCurrency(value)}</strong>
+        </span>
       ))}
     </div>
   </section>
@@ -300,11 +333,28 @@ const LeaveRequestDetails = ({ leave }: { leave: LeaveDetails }) => (
     <p className="eyebrow">LEAVE REQUEST</p>
     <h2>휴가 정보</h2>
     <dl className="detail-grid">
-      <div><dt>휴가 단위</dt><dd>{leaveUnitLabels[leave.leaveUnit]}</dd></div>
-      <div><dt>차감 일수</dt><dd>{leave.requestedDays ? `${leave.requestedDays}일` : '-'}</dd></div>
-      <div><dt>기간</dt><dd>{leave.startDate || '-'} → {leave.endDate || '-'}</dd></div>
-      <div className="wide"><dt>휴가 사유</dt><dd>{leave.reason || '-'}</dd></div>
-      <div className="wide"><dt>인수인계</dt><dd>{leave.handoverNote || '-'}</dd></div>
+      <div>
+        <dt>휴가 단위</dt>
+        <dd>{leaveUnitLabels[leave.leaveUnit]}</dd>
+      </div>
+      <div>
+        <dt>차감 일수</dt>
+        <dd>{leave.requestedDays ? `${leave.requestedDays}일` : '-'}</dd>
+      </div>
+      <div>
+        <dt>기간</dt>
+        <dd>
+          {leave.startDate || '-'} → {leave.endDate || '-'}
+        </dd>
+      </div>
+      <div className="wide">
+        <dt>휴가 사유</dt>
+        <dd>{leave.reason || '-'}</dd>
+      </div>
+      <div className="wide">
+        <dt>인수인계</dt>
+        <dd>{leave.handoverNote || '-'}</dd>
+      </div>
     </dl>
   </section>
 );

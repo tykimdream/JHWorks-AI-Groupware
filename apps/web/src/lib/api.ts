@@ -31,7 +31,7 @@ const errorMessages: Record<string, string> = {
   DEMO_FEEDBACK_CAPACITY: '현재 피드백 접수 한도에 도달했습니다. 나중에 다시 시도해주세요.',
   DEMO_FEEDBACK_UNAVAILABLE: '지금 의견을 접수하지 못했습니다. 입력은 유지되니 잠시 후 다시 시도해주세요.',
   APPROVAL_NOT_READY: '제출에 필요한 정보를 모두 입력해주세요.',
-  AI_DRAFT_UNAVAILABLE: 'AI 초안 작성을 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
+  AI_DRAFT_UNAVAILABLE: 'AI 초안을 준비하지 못했습니다. 다시 시도하거나 직접 작성해 주세요.',
   AI_REVIEW_UNAVAILABLE: 'AI 검토를 사용할 수 없습니다. API 키와 네트워크 상태를 확인해주세요.',
   AUTHENTICATION_REQUIRED: '로그인이 필요합니다.',
   COMMENT_REQUIRED: '반려 사유를 입력해주세요.',

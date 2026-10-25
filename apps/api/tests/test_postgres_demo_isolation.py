@@ -102,7 +102,7 @@ def test_full_history_and_runtime_grants_do_not_cross_private_boundary(owner: Co
     config.set_main_option("script_location", str(ROOT / "apps/api/alembic"))
     config.attributes["connection"] = owner
     command.upgrade(config, "head")
-    assert owner.scalar(text("SELECT version_num FROM alembic_version")) == "f30c9a71b624"
+    assert owner.scalar(text("SELECT version_num FROM alembic_version")) == "a14c7e2d903f"
     denied(owner, "SELECT * FROM groupware.private_sentinel")
     owner.exec_driver_sql(
         "CREATE TABLE future_sequence_probe (id bigserial PRIMARY KEY, value text)"
@@ -122,6 +122,13 @@ def test_full_history_and_runtime_grants_do_not_cross_private_boundary(owner: Co
     assert owner.scalar(text(
         "INSERT INTO future_sequence_probe (value) VALUES ('synthetic') RETURNING id"
     )) == 1
+    # New tables inherit only the dedicated runtime grants after full-history migration.
+    owner.exec_driver_sql(
+        "INSERT INTO ai_budget_counters "
+        "(key,reserved_micro_usd,spent_micro_usd,admissions,active_requests,"
+        "last_observed_epoch,is_frozen) VALUES ('global',0,0,0,0,0,false)"
+    )
+    assert owner.scalar(text("SELECT count(*) FROM ai_budget_counters")) == 1
     denied(owner, "SELECT * FROM groupware.private_sentinel")
     denied(owner, "UPDATE groupware.private_sentinel SET value='changed'")
     denied(owner, "CREATE TABLE forbidden_ddl (id int)")
@@ -164,7 +171,9 @@ def common_owner(owner: Connection) -> Connection:
     config = Config(str(ROOT / "apps/api/alembic.ini"))
     config.set_main_option("script_location", str(ROOT / "apps/api/alembic"))
     config.attributes["connection"] = owner
-    command.upgrade(config, "head")
+    # Historical operator SQL/preflights intentionally target the deployed revision.
+    # The separate full-history test above exercises new head under restricted roles.
+    command.upgrade(config, "f30c9a71b624")
     owner.exec_driver_sql("RESET ROLE")
     owner.exec_driver_sql(
         "INSERT INTO groupware_demo.departments (id,name,is_active) "

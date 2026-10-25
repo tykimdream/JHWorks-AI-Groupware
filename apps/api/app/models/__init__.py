@@ -1,3 +1,4 @@
+from app.models.ai_budget import AIBudgetCounter, AIBudgetReservation
 from app.models.approval import Approval, ApprovalLine
 from app.models.attendance import LeaveAccount, WorkCalendarEvent
 from app.models.demo_feedback import DemoFeedback, DemoFeedbackGate
@@ -9,6 +10,8 @@ from app.models.login_budget import LoginBudget
 from app.models.policy import CompanyPolicy, PolicySection
 
 __all__ = [
+    "AIBudgetCounter",
+    "AIBudgetReservation",
     "DemoFeedback",
     "DemoFeedbackGate",
     "Approval",

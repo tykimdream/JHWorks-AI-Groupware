@@ -125,3 +125,9 @@ pnpm --filter @jhworks/pattern pack --pack-destination ./artifacts/pattern
 토큰 생성물 일치, 주요 텍스트 색상 쌍의 4.5:1 대비와 패키지 계약은 `pnpm validate`에 포함됩니다.
 전체 UI의 접근성 인증을 의미하지는 않습니다. npm 게시 전에는 이름·소유권·라이선스·안정 API를 확정합니다.
 [원칙·출처·검증 범위](design/ux-principles.md)를 참고합니다.
+
+## Tailwind와 컴포넌트 문서
+
+앱은 Tailwind 4의 `tw:` 유틸리티와 JHW 토큰 bridge를 사용합니다. Preflight는 제외하며,
+사이드바부터 전환하고 기존 CSS는 영역별로 이전합니다. 공통 패키지는 CSS 진입점도 계속 제공합니다.
+[스타일 도구의 역할·적용 범위·Storybook 도입 기준](design/styling.md)을 참고하세요.

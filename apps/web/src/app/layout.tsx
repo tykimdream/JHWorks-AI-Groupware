@@ -4,6 +4,7 @@ import { connection } from 'next/server';
 
 import '@jhworks/pattern/tokens.css';
 import '@jhworks/pattern/legacy.css';
+import './tailwind.css';
 import './globals.css';
 import './workspace.css';
 import '@jhworks/pattern/components.css';

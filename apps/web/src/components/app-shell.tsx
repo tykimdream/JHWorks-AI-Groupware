@@ -62,14 +62,17 @@ export const AppShell = ({ children }: AppShellProps) => {
 
   return (
     <div className="app-frame">
-      <aside className="sidebar">
+      <aside className="sidebar tw:sticky tw:top-0 tw:flex tw:h-dvh tw:min-h-0 tw:flex-col tw:overflow-hidden tw:border-0 tw:border-r tw:border-solid tw:border-jhw-border tw:bg-jhw-surface tw:px-4 tw:pt-7 tw:pb-4 tw:text-jhw-text tw:max-[900px]:static tw:max-[900px]:h-auto tw:max-[900px]:gap-4 tw:max-[900px]:border-r-0 tw:max-[900px]:border-b tw:max-[900px]:p-4">
         <div>
           <Link className="brand" href="/">
             <span className="brand-mark">j.</span> JHWorks
           </Link>
           <p className="workspace-label">우리의 일, 더 가볍게.</p>
         </div>
-        <nav className="nav-list" aria-label="주 메뉴">
+        <nav
+          className="nav-list tw:min-h-0 tw:flex-1 tw:content-start tw:overflow-y-auto tw:overscroll-contain tw:max-[900px]:flex-none"
+          aria-label="주 메뉴"
+        >
           <span className="nav-caption">WORKSPACE</span>
           {navigation.map(({ href, label, icon }) => (
             <Link
@@ -108,37 +111,54 @@ export const AppShell = ({ children }: AppShellProps) => {
             <WorkspaceIcon name="plus" />새 결재 작성
           </Link>
           <span className="nav-caption nav-caption-support">도움말</span>
-          <Link href="/pattern"><WorkspaceIcon name="document" />JHW Pattern</Link>
+          <Link href="/pattern">
+            <WorkspaceIcon name="document" />
+            JHW Pattern
+          </Link>
           <Link href="/feedback">
             <WorkspaceIcon name="message" />
             의견 남기기
           </Link>
         </nav>
-        <div className="sidebar-note">
-          <span className="online-dot" />
-          합성 데이터 체험 공간
-          <p>
-            직접 작성하고, 검토하고,
-            <br />
-            업무의 흐름을 경험해 보세요.
-          </p>
-        </div>
-        {configuration?.enabled && (
-          <DemoRoleSwitcher key={employee.id} currentRole={employee.role} />
-        )}
-        <div className="profile-card">
-          <div className="avatar" aria-hidden="true">
-            {employee.name.slice(0, 1)}
+        <footer className="sidebar-footer tw:mt-4 tw:grid tw:shrink-0 tw:gap-4 tw:border-0 tw:border-t tw:border-solid tw:border-jhw-border tw:pt-4 tw:max-[900px]:mt-0 tw:max-[900px]:grid-cols-[minmax(0,1fr)_auto] tw:max-[900px]:items-center tw:max-[900px]:gap-3">
+          {configuration?.enabled && (
+            <>
+              <p className="tw:m-0 tw:flex tw:items-center tw:gap-2 tw:text-xs tw:leading-5 tw:text-jhw-muted tw:max-[900px]:hidden">
+                <span
+                  className="tw:size-1.5 tw:shrink-0 tw:rounded-full tw:bg-jhw-success"
+                  aria-hidden="true"
+                />
+                방문자 전용 체험 공간
+              </p>
+              <DemoRoleSwitcher key={employee.id} currentRole={employee.role} fullWidth />
+            </>
+          )}
+          <div className="profile-card tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:max-[900px]:col-start-1 tw:max-[900px]:row-start-1">
+            <div
+              className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-jhw-primary-subtle tw:text-sm tw:font-semibold tw:text-jhw-primary"
+              aria-hidden="true"
+            >
+              {employee.name.slice(0, 1)}
+            </div>
+            <div className="tw:grid tw:min-w-0 tw:flex-1 tw:gap-0.5">
+              <strong className="tw:truncate tw:text-sm">{employee.name}</strong>
+              <span className="tw:text-xs tw:leading-4 tw:text-jhw-muted">{employee.position}</span>
+              {!configuration?.enabled && (
+                <span className="tw:break-words tw:text-xs tw:leading-4 tw:text-jhw-muted tw:max-[900px]:hidden">
+                  {employee.department.name}
+                </span>
+              )}
+            </div>
+            <button
+              className="tw:min-h-9 tw:shrink-0 tw:cursor-pointer tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-1.5 tw:text-xs tw:text-jhw-muted tw:hover:bg-jhw-canvas tw:hover:text-jhw-text tw:disabled:cursor-wait tw:disabled:opacity-50"
+              disabled={isLoggingOut}
+              onClick={handleLogout}
+              type="button"
+            >
+              {isLoggingOut ? '종료 중…' : '로그아웃'}
+            </button>
           </div>
-          <div>
-            <strong>{employee.name}</strong>
-            <span>{employee.position}</span>
-            <span>{configuration?.enabled ? '방문자 전용 공간' : employee.department.name}</span>
-          </div>
-          <button className="text-button" onClick={handleLogout} type="button">
-            로그아웃
-          </button>
-        </div>
+        </footer>
       </aside>
       <main className="workspace">
         <div className="workspace-topbar">

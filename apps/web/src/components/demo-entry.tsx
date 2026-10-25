@@ -72,9 +72,11 @@ export const DemoEntry = ({ durationMinutes }: { durationMinutes: number }) => {
 export const DemoRoleSwitcher = ({
   currentRole,
   label,
+  fullWidth = false,
 }: {
   currentRole: string;
   label?: string;
+  fullWidth?: boolean;
 }) => {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -96,7 +98,12 @@ export const DemoRoleSwitcher = ({
   };
   return (
     <div>
-      <button className="secondary-button" type="button" onClick={change} disabled={busy}>
+      <button
+        className={`secondary-button${fullWidth ? ' tw:w-full' : ''}`}
+        type="button"
+        onClick={change}
+        disabled={busy}
+      >
         {busy
           ? '역할 변경 중…'
           : (label ?? (role === 'manager' ? '결재자로 체험하기' : '작성자로 돌아가기'))}

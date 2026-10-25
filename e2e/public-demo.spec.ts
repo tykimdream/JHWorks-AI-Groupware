@@ -11,6 +11,23 @@ async function verifyDesktopLayout(page: Page) {
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect(page.getByRole('link', { name: 'j. JHWorks', exact: true })).toBeVisible();
   }
+  // A short laptop viewport must keep account actions visible while only the menu scrolls.
+  for (const height of [600, 720, 900]) {
+    await page.setViewportSize({ width: 1280, height });
+    const sidebar = page.locator('.sidebar');
+    const footer = sidebar.locator('.sidebar-footer');
+    const footerBox = await footer.boundingBox();
+    const navBox = await sidebar.getByRole('navigation', { name: '주 메뉴' }).boundingBox();
+    const profile = await footer.locator('.profile-card').boundingBox();
+    const role = await footer.getByRole('button', { name: /결재자로 체험하기|작성자로 돌아가기/ }).boundingBox();
+    expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(height - 15);
+    expect(navBox!.y + navBox!.height).toBeLessThanOrEqual(footerBox!.y);
+    expect(role!.y + role!.height + 15).toBeLessThanOrEqual(profile!.y);
+    expect(await sidebar.evaluate((node) => getComputedStyle(node).borderTopWidth)).toBe('0px');
+    expect(await footer.evaluate((node) => getComputedStyle(node).borderLeftWidth)).toBe('0px');
+    await expect(footer.getByRole('button', { name: '로그아웃', exact: true })).toBeInViewport();
+    if (height === 600) await page.screenshot({ path: `artifacts/workspace-preview/sidebar-short-${new URL(page.url()).pathname === '/' ? 'home' : 'detail'}.png`, style: 'nextjs-portal { display: none; }' });
+  }
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 
@@ -31,6 +48,10 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   const original = await (await page.request.get('/api/v1/employees/me')).json();
   expect(original.id).toMatch(/^demo_author_/);
   if (testInfo.project.name === 'desktop') await verifyDesktopLayout(page);
+  else {
+    await expect(page.locator('.nav-caption').first()).toBeHidden();
+    expect((await page.getByRole('navigation', { name: '주 메뉴' }).boundingBox())!.height).toBeLessThan(60);
+  }
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `docs/portfolio/screenshots/public-home-${testInfo.project.name}.png`, style: 'nextjs-portal { display: none; }' });
   await page.goto('/approvals/new');

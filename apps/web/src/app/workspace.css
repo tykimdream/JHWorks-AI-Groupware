@@ -89,13 +89,7 @@
 .expense-summary dd {
   overflow-wrap: anywhere;
 }
-@media (min-width: 901px) {
-  .sidebar {
-    align-self: start;
-    overflow-y: auto;
-    scrollbar-width: thin;
-  }
-}
+
 @media (max-width: 640px) {
   .expense-summary .detail-grid {
     grid-template-columns: 1fr;
@@ -137,12 +131,7 @@ textarea:focus {
 .app-frame {
   grid-template-columns: 224px minmax(0, 1fr);
 }
-.sidebar {
-  padding: 30px 18px var(--space-6);
-  color: var(--ink);
-  background: #fff;
-  border-right: 1px solid var(--line);
-}
+
 .brand {
   display: flex;
   align-items: center;
@@ -200,17 +189,7 @@ textarea:focus {
   background: var(--accent-soft);
   font-weight: 650;
 }
-.sidebar-note {
-  margin: auto 10px var(--space-6);
-  padding-top: var(--space-8);
-  color: #6e7486;
-  font-size: var(--font-caption);
-}
-.sidebar-note p {
-  margin: 10px 0 0;
-  color: #999eab;
-  line-height: 1.8;
-}
+
 .online-dot {
   display: inline-block;
   width: 6px;
@@ -219,27 +198,7 @@ textarea:focus {
   border-radius: 50%;
   background: #64a98d;
 }
-.profile-card {
-  margin-top: 0;
-  padding: var(--space-5) 10px 0;
-  border-color: var(--line);
-  align-items: center;
-}
-.profile-card > div:nth-child(2) {
-  min-width: 0;
-}
-.profile-card strong,
-.profile-card span {
-  overflow-wrap: anywhere;
-}
-.profile-card strong {
-  font-size: var(--font-body);
-}
-.profile-card span,
-.profile-card .text-button {
-  color: #9297a5;
-  font-size: var(--font-caption);
-}
+
 .avatar {
   color: #6554a8;
   background: #ebe7f9;
@@ -906,16 +865,9 @@ textarea:focus {
   .app-frame {
     grid-template-columns: 1fr;
   }
-  .sidebar {
-    position: static;
-    height: auto;
-    padding: var(--space-4) 22px;
-    grid-template-columns: 1fr auto;
-    border-bottom: 1px solid var(--line);
-  }
+
   .workspace-label,
-  .nav-caption,
-  .sidebar-note {
+  .nav-caption {
     display: none;
   }
   .brand {
@@ -936,13 +888,7 @@ textarea:focus {
   .nav-list svg {
     width: 16px;
   }
-  .profile-card {
-    padding: 0;
-    border: 0;
-  }
-  .profile-card .text-button {
-    font-size: var(--font-caption);
-  }
+
   .workspace {
     padding-inline: var(--space-7);
   }
@@ -955,10 +901,7 @@ textarea:focus {
   }
 }
 @media (max-width: 640px) {
-  .sidebar {
-    gap: var(--space-3);
-    padding: 14px var(--space-4);
-  }
+
   .brand {
     font-size: 20px;
   }
@@ -966,17 +909,7 @@ textarea:focus {
     width: 28px;
     height: 28px;
   }
-  .profile-card {
-    grid-template-columns: 28px 1fr;
-    gap: 6px;
-  }
-  .profile-card .avatar {
-    width: 28px;
-    height: 28px;
-  }
-  .profile-card span {
-    display: none;
-  }
+
   .workspace {
     padding: 0 18px var(--space-6);
   }
@@ -1095,7 +1028,6 @@ textarea:focus {
     scroll-behavior: auto !important;
   }
 }
-
 
 .approval-command-dialog {
   width: min(520px, calc(100vw - 32px));

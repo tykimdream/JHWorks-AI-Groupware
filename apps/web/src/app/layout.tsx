@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { connection } from 'next/server';
 import { sharedMetadata } from '@/lib/site-metadata';
 import { SessionDataProvider } from '@/components/session-data-provider';
+import { NavigationGuardProvider } from '@/components/navigation-guard';
 
 import '@jhworks/pattern/tokens.css';
 import '@jhworks/pattern/legacy.css';
@@ -17,7 +18,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await connection();
   return (
     <html lang="ko">
-      <body><SessionDataProvider>{children}</SessionDataProvider></body>
+      <body><SessionDataProvider><NavigationGuardProvider>{children}</NavigationGuardProvider></SessionDataProvider></body>
     </html>
   );
 }

@@ -12,6 +12,7 @@ import {
   SESSION_EXPIRED_EVENT,
 } from '@/lib/session-events';
 import { clearManualDraft } from '@/lib/manual-draft-handoff';
+import { clearEmployeeFormRecovery } from '@/lib/approval-form-recovery';
 import type { CurrentEmployee } from '@/lib/types';
 
 interface SessionScope {
@@ -58,7 +59,7 @@ function createSessionCache() {
     }),
   });
   return { client, clearIdentity: () => {
-    if (employeeId) clearManualDraft(employeeId);
+    if (employeeId) { clearManualDraft(employeeId); clearEmployeeFormRecovery(employeeId); }
     fingerprint = null;
     employeeId = null;
   } };

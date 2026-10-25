@@ -1,4 +1,6 @@
-import Link from 'next/link';
+'use client';
+
+import { GuardedLink as Link } from '@/components/navigation-guard';
 
 import { BrandMark, BrandWordmark } from '@/components/brand-mark';
 

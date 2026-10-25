@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@jhworks/pattern/react';
-import { useEffect, useId, useRef } from 'react';
+import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { formatCurrency } from '@/lib/format';
 
 export type ApprovalCommandName = 'submit' | 'approve' | 'reject' | 'revise';
@@ -48,48 +47,17 @@ export function ApprovalCommandDialog({
   onCancel: () => void;
   onConfirm: () => Promise<void>;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const cancel = useRef<HTMLButtonElement>(null);
-  const confirm = useRef<HTMLButtonElement>(null);
-  const titleId = useId();
-  const descriptionId = useId();
-  const open = snapshot !== null;
-  useEffect(() => {
-    const element = dialog.current;
-    if (!element) return;
-    if (open && !element.open) {
-      element.showModal();
-      cancel.current?.focus();
-    } else if (!open && element.open) {
-      element.close();
-    }
-  }, [open]);
   const copy = snapshot ? labels[snapshot.command] : labels.submit;
   return (
-    <dialog
-      ref={dialog}
-      className="approval-command-dialog"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-      aria-busy={busy}
-      onKeyDown={(event) => {
-        if (event.key !== 'Tab' || busy) return;
-        if (event.shiftKey && event.target === cancel.current) {
-          event.preventDefault();
-          confirm.current?.focus();
-        } else if (!event.shiftKey && event.target === confirm.current) {
-          event.preventDefault();
-          cancel.current?.focus();
-        }
-      }}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!busy) onCancel();
-      }}
+    <ConfirmationDialog
+      open={snapshot !== null}
+      title={copy.title}
+      description={copy.note}
+      confirmLabel={copy.action}
+      busy={busy}
+      onCancel={onCancel}
+      onConfirm={() => void onConfirm()}
     >
-      <p className="eyebrow">REVIEW & CONFIRM</p>
-      <h2 id={titleId}>{copy.title}</h2>
-      <p id={descriptionId}>{copy.note}</p>
       {snapshot && (
         <dl className="command-preview">
           <div>
@@ -114,14 +82,6 @@ export function ApprovalCommandDialog({
           )}
         </dl>
       )}
-      <div className="button-row">
-        <Button ref={cancel} variant="secondary" type="button" disabled={busy} onClick={onCancel}>
-          취소
-        </Button>
-        <Button ref={confirm} type="button" disabled={busy} onClick={() => void onConfirm()}>
-          {busy ? '처리 중…' : copy.action}
-        </Button>
-      </div>
-    </dialog>
+    </ConfirmationDialog>
   );
 }

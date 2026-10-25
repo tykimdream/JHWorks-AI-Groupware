@@ -21,10 +21,11 @@
     "smoke:deployment": "cd apps/api && uv run python -m app.ops.deployment_smoke",
     "type-check:api": "cd apps/api && uv run mypy app tests",
     "type-check:web": "pnpm --filter @jhworks/web type-check",
-    "validate": "pnpm check:pattern && pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web",
+    "validate": "pnpm check:pattern && pnpm eval:expense:offline && pnpm lint:api && pnpm type-check:api && pnpm test:api && pnpm lint:web && pnpm type-check:web && pnpm build:web",
     "test:e2e": "playwright test",
     "test:e2e:public-demo": "playwright test --config=playwright.public-demo.config.ts",
-    "check:pattern": "pnpm --filter @jhworks/pattern check"
+    "check:pattern": "pnpm --filter @jhworks/pattern check",
+    "eval:expense:offline": "cd apps/api && uv run python -m app.evals.draft_contract"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {

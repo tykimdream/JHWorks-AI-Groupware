@@ -8,7 +8,7 @@ from typing import Any
 from app.ai.approval_draft import ApprovalDraftProviderError, ApprovalDraftProviderInput
 from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
 from app.core.config import get_settings
-from app.evals.approval_draft import load_cases
+from app.evals.draft_contract import grade_candidate, load_cases
 
 CASE_IDS = ("past-spend-is-expense", "multi-turn-ces-expense")
 MODEL = "gpt-5.4-mini"
@@ -51,15 +51,7 @@ def run(*, execute: bool) -> dict[str, Any]:
         except (ApprovalDraftProviderError, ValueError):
             # Never print SDK diagnostics, exceptions, credentials or provider output.
             return {**report, "status": "provider-failed", "results": results}
-        values = result.candidate.model_dump(mode="json")
-        passed = (
-            result.candidate.intent == case.expected_intent
-            and all(
-                values.get(field) == expected for field, expected in case.expected_values.items()
-            )
-            and all(values.get(field) is None for field in case.expected_null_fields)
-            and all(values.get(field) in {None, 0} for field in case.expected_null_or_zero_fields)
-        )
+        passed = grade_candidate(case, result.candidate).passed
         results.append(
             {
                 "case": case.id,

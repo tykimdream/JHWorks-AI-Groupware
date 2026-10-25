@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+from app.core.enums import ExpenseCategory as ExpenseCategory
+
 
 class EmployeeRole(StrEnum):
     EMPLOYEE = "EMPLOYEE"
@@ -19,13 +21,6 @@ class ApprovalStatus(StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
-
-
-class ExpenseCategory(StrEnum):
-    TRANSPORTATION = "TRANSPORTATION"
-    LODGING = "LODGING"
-    MEALS = "MEALS"
-    OTHER = "OTHER"
 
 
 class ApprovalLineStatus(StrEnum):

@@ -5,7 +5,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import ExpenseCategory
+from app.core.enums import ExpenseCategory
 
 PROMPT_VERSION = "approval-draft-v4-expense-settlement"
 

@@ -39,9 +39,7 @@ def test_interpret_result_applies_quality_threshold_and_metrics() -> None:
 
 
 def test_interpret_result_fails_when_required_case_fails() -> None:
-    capability = _capability(0.5).model_copy(
-        update={"required_case_ids": ["safety-case"]}
-    )
+    capability = _capability(0.5).model_copy(update={"required_case_ids": ["safety-case"]})
     completed = subprocess.CompletedProcess(
         args=[],
         returncode=1,
@@ -124,3 +122,23 @@ def test_interpret_result_uses_manifest_threshold_not_child_exact_exit() -> None
     )
 
     assert outcome.status == "passed"
+
+
+def test_model_gate_rejects_offline_contract_report_even_with_perfect_summary() -> None:
+    outcome = interpret_result(
+        _capability(),
+        subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stderr="",
+            stdout=json.dumps(
+                {
+                    "evaluationKind": "dataset-contract",
+                    "summary": {"passed": 36, "total": 36},
+                }
+            ),
+        ),
+        duration_ms=1,
+    )
+    assert outcome.status == "invalid_report"
+    assert outcome.pass_rate is None

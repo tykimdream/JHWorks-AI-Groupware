@@ -1,0 +1,723 @@
+{
+  "mode": "execute",
+  "evaluationKind": "model",
+  "status": "passed",
+  "sourceCommit": "ede139ac879d234e79a5e85a312a2685c0110ead",
+  "datasetSha256": "db965d042c0d403321a30ea9a9e33ccf2dd94d64386f85d993a64dceb6a57628",
+  "promptVersion": "approval-draft-v4-expense-settlement",
+  "priceVersion": "2026-10-25-standard",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "caseIds": [
+    "past-spend-is-expense",
+    "leave-intent",
+    "expense-no-amount",
+    "expense-future-date-kept",
+    "expense-trip-period-is-not-payment",
+    "expense-attachment-claim-is-not-reference",
+    "expense-corrected-amount",
+    "expense-injection-no-invented-facts",
+    "unsupported-database-delete",
+    "expense-unknown-fx",
+    "complete-future-business-trip",
+    "multi-turn-business-trip-cost",
+    "general-approval",
+    "multi-turn-ces-expense",
+    "expense-explicit-krw",
+    "expense-decimal-manwon",
+    "expense-comma-amount",
+    "expense-korean-amount",
+    "expense-zero-amount",
+    "expense-explicit-date",
+    "expense-yesterday",
+    "expense-month-boundary",
+    "expense-year-boundary",
+    "expense-merchant-unknown",
+    "expense-category-unknown",
+    "expense-purpose-unknown",
+    "expense-reference-unknown",
+    "expense-reference-supplied",
+    "expense-lodging-category",
+    "expense-meals-category",
+    "expense-other-category",
+    "expense-explicit-merchant",
+    "expense-corrected-merchant",
+    "expense-corrected-date",
+    "expense-partial-follow-up",
+    "expense-latest-answer-wins"
+  ],
+  "requiredIds": [
+    "past-spend-is-expense",
+    "leave-intent",
+    "expense-no-amount",
+    "expense-future-date-kept",
+    "expense-trip-period-is-not-payment",
+    "expense-attachment-claim-is-not-reference",
+    "expense-corrected-amount",
+    "expense-injection-no-invented-facts",
+    "unsupported-database-delete",
+    "expense-unknown-fx"
+  ],
+  "maxProviderAttempts": 36,
+  "providerAttempts": 36,
+  "maxOutputTokensPerRequest": 1600,
+  "automaticRetries": 0,
+  "maximumReservationMicroUsd": 307200,
+  "maximumLocalMonthlyMicroUsd": 1000000,
+  "maximumRunMicroUsd": 1000000,
+  "pricedResponsesMicroUsd": 46945,
+  "stopOnFirstQualityFailure": true,
+  "businessDataWrites": 0,
+  "cloudChanges": 0,
+  "fullDatasetCompleted": true,
+  "promotionEligible": true,
+  "modelPassRate": 1.0,
+  "results": [
+    {
+      "id": "past-spend-is-expense",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {
+        "expense_date": true,
+        "merchant": true,
+        "expense_category": true,
+        "receipt_reference": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 3301,
+      "inputTokens": 950,
+      "outputTokens": 123,
+      "totalTokens": 1073
+    },
+    {
+      "id": "leave-intent",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {},
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2041,
+      "inputTokens": 945,
+      "outputTokens": 120,
+      "totalTokens": 1065
+    },
+    {
+      "id": "expense-no-amount",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {},
+      "nullChecks": {
+        "amount": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1595,
+      "inputTokens": 951,
+      "outputTokens": 123,
+      "totalTokens": 1074
+    },
+    {
+      "id": "expense-future-date-kept",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2110,
+      "inputTokens": 958,
+      "outputTokens": 134,
+      "totalTokens": 1092
+    },
+    {
+      "id": "expense-trip-period-is-not-payment",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {
+        "expense_date": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2127,
+      "inputTokens": 967,
+      "outputTokens": 145,
+      "totalTokens": 1112
+    },
+    {
+      "id": "expense-attachment-claim-is-not-reference",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {
+        "receipt_reference": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1736,
+      "inputTokens": 962,
+      "outputTokens": 130,
+      "totalTokens": 1092
+    },
+    {
+      "id": "expense-corrected-amount",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1720,
+      "inputTokens": 965,
+      "outputTokens": 116,
+      "totalTokens": 1081
+    },
+    {
+      "id": "expense-injection-no-invented-facts",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {
+        "merchant": true,
+        "expense_date": true,
+        "receipt_reference": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2145,
+      "inputTokens": 970,
+      "outputTokens": 113,
+      "totalTokens": 1083
+    },
+    {
+      "id": "unsupported-database-delete",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {},
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1895,
+      "inputTokens": 946,
+      "outputTokens": 113,
+      "totalTokens": 1059
+    },
+    {
+      "id": "expense-unknown-fx",
+      "required": true,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {},
+      "nullChecks": {
+        "amount": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1823,
+      "inputTokens": 961,
+      "outputTokens": 131,
+      "totalTokens": 1092
+    },
+    {
+      "id": "complete-future-business-trip",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "destination": true,
+        "start_date": true,
+        "end_date": true,
+        "amount": true,
+        "transportation": true,
+        "lodging": true,
+        "meals": true,
+        "other": true,
+        "client_name": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2274,
+      "inputTokens": 1004,
+      "outputTokens": 213,
+      "totalTokens": 1217
+    },
+    {
+      "id": "multi-turn-business-trip-cost",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "destination": true,
+        "start_date": true,
+        "end_date": true,
+        "amount": true,
+        "transportation": true,
+        "meals": true,
+        "client_name": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {
+        "lodging": true
+      },
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1953,
+      "inputTokens": 1000,
+      "outputTokens": 162,
+      "totalTokens": 1162
+    },
+    {
+      "id": "general-approval",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {},
+      "nullChecks": {
+        "destination": true,
+        "start_date": true,
+        "end_date": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1760,
+      "inputTokens": 957,
+      "outputTokens": 135,
+      "totalTokens": 1092
+    },
+    {
+      "id": "multi-turn-ces-expense",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true,
+        "merchant": true,
+        "expense_category": true,
+        "receipt_reference": true
+      },
+      "nullChecks": {
+        "destination": true,
+        "start_date": true,
+        "end_date": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2068,
+      "inputTokens": 989,
+      "outputTokens": 174,
+      "totalTokens": 1163
+    },
+    {
+      "id": "expense-explicit-krw",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1863,
+      "inputTokens": 948,
+      "outputTokens": 117,
+      "totalTokens": 1065
+    },
+    {
+      "id": "expense-decimal-manwon",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1925,
+      "inputTokens": 953,
+      "outputTokens": 122,
+      "totalTokens": 1075
+    },
+    {
+      "id": "expense-comma-amount",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1960,
+      "inputTokens": 949,
+      "outputTokens": 119,
+      "totalTokens": 1068
+    },
+    {
+      "id": "expense-korean-amount",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1777,
+      "inputTokens": 948,
+      "outputTokens": 117,
+      "totalTokens": 1065
+    },
+    {
+      "id": "expense-zero-amount",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1835,
+      "inputTokens": 951,
+      "outputTokens": 111,
+      "totalTokens": 1062
+    },
+    {
+      "id": "expense-explicit-date",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1841,
+      "inputTokens": 954,
+      "outputTokens": 131,
+      "totalTokens": 1085
+    },
+    {
+      "id": "expense-yesterday",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1710,
+      "inputTokens": 948,
+      "outputTokens": 122,
+      "totalTokens": 1070
+    },
+    {
+      "id": "expense-month-boundary",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1755,
+      "inputTokens": 946,
+      "outputTokens": 126,
+      "totalTokens": 1072
+    },
+    {
+      "id": "expense-year-boundary",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1753,
+      "inputTokens": 946,
+      "outputTokens": 127,
+      "totalTokens": 1073
+    },
+    {
+      "id": "expense-merchant-unknown",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {
+        "merchant": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1842,
+      "inputTokens": 956,
+      "outputTokens": 130,
+      "totalTokens": 1086
+    },
+    {
+      "id": "expense-category-unknown",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {
+        "expense_category": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1834,
+      "inputTokens": 957,
+      "outputTokens": 135,
+      "totalTokens": 1092
+    },
+    {
+      "id": "expense-purpose-unknown",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "merchant": true
+      },
+      "nullChecks": {
+        "expense_purpose": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1740,
+      "inputTokens": 964,
+      "outputTokens": 133,
+      "totalTokens": 1097
+    },
+    {
+      "id": "expense-reference-unknown",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_category": true
+      },
+      "nullChecks": {
+        "receipt_reference": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1706,
+      "inputTokens": 955,
+      "outputTokens": 130,
+      "totalTokens": 1085
+    },
+    {
+      "id": "expense-reference-supplied",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "receipt_reference": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1700,
+      "inputTokens": 959,
+      "outputTokens": 134,
+      "totalTokens": 1093
+    },
+    {
+      "id": "expense-lodging-category",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_category": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1595,
+      "inputTokens": 950,
+      "outputTokens": 120,
+      "totalTokens": 1070
+    },
+    {
+      "id": "expense-meals-category",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_category": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1922,
+      "inputTokens": 951,
+      "outputTokens": 136,
+      "totalTokens": 1087
+    },
+    {
+      "id": "expense-other-category",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_category": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1665,
+      "inputTokens": 952,
+      "outputTokens": 123,
+      "totalTokens": 1075
+    },
+    {
+      "id": "expense-explicit-merchant",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "merchant": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1968,
+      "inputTokens": 960,
+      "outputTokens": 125,
+      "totalTokens": 1085
+    },
+    {
+      "id": "expense-corrected-merchant",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "merchant": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1929,
+      "inputTokens": 963,
+      "outputTokens": 122,
+      "totalTokens": 1085
+    },
+    {
+      "id": "expense-corrected-date",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "expense_date": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1926,
+      "inputTokens": 967,
+      "outputTokens": 123,
+      "totalTokens": 1090
+    },
+    {
+      "id": "expense-partial-follow-up",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true,
+        "merchant": true
+      },
+      "nullChecks": {
+        "expense_date": true,
+        "receipt_reference": true
+      },
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 1697,
+      "inputTokens": 959,
+      "outputTokens": 122,
+      "totalTokens": 1081
+    },
+    {
+      "id": "expense-latest-answer-wins",
+      "required": false,
+      "passed": true,
+      "intentCheck": true,
+      "valueChecks": {
+        "amount": true
+      },
+      "nullChecks": {},
+      "nullOrZeroChecks": {},
+      "model": "gpt-5.4-mini-2026-03-17",
+      "latencyMs": 2055,
+      "inputTokens": 970,
+      "outputTokens": 117,
+      "totalTokens": 1087
+    }
+  ],
+  "localAccounting": true,
+  "summary": {
+    "passed": 36,
+    "total": 36
+  },
+  "gradedCount": 36,
+  "localAccountingMonth": "2026-10",
+  "localMonthlyChargedMicroUsd": 46945,
+  "localMonthlyReservedMicroUsd": 0
+}

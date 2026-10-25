@@ -1,0 +1,89 @@
+.jhw-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jhw-space-2);
+  min-height: 44px;
+  padding: 0 var(--jhw-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--jhw-radius-sm);
+  font: inherit;
+  font-size: var(--jhw-font-body);
+  font-weight: 650;
+  line-height: 1.4;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background var(--jhw-motion-fast),
+    border-color var(--jhw-motion-fast);
+}
+.jhw-button--primary {
+  color: #fff;
+  background: var(--jhw-color-primary);
+}
+.jhw-button--primary:hover {
+  background: var(--jhw-color-primary-hover);
+}
+.jhw-button--secondary {
+  color: var(--jhw-color-text);
+  background: var(--jhw-color-surface);
+  border-color: var(--jhw-color-border);
+}
+.jhw-button--secondary:hover {
+  background: var(--jhw-color-canvas);
+}
+.jhw-button--danger {
+  color: #fff;
+  background: var(--jhw-color-danger);
+}
+.jhw-button--ghost {
+  color: var(--jhw-color-text-muted);
+  background: transparent;
+}
+.jhw-button--ghost:hover {
+  background: var(--jhw-color-primary-subtle);
+  color: var(--jhw-color-primary);
+}
+.jhw-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.jhw-button:focus-visible {
+  outline: 3px solid var(--jhw-color-primary);
+  outline-offset: 3px;
+}
+.jhw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jhw-space-1);
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: var(--jhw-font-small);
+  font-weight: 650;
+  line-height: 1.5;
+}
+.jhw-badge--neutral {
+  color: var(--jhw-color-text-muted);
+  background: var(--jhw-color-canvas);
+}
+.jhw-badge--info {
+  color: var(--jhw-color-info);
+  background: var(--jhw-color-info-subtle);
+}
+.jhw-badge--success {
+  color: var(--jhw-color-success);
+  background: var(--jhw-color-success-subtle);
+}
+.jhw-badge--danger {
+  color: var(--jhw-color-danger);
+  background: var(--jhw-color-danger-subtle);
+}
+.jhw-badge--warning {
+  color: var(--jhw-color-warning);
+  background: var(--jhw-color-warning-subtle);
+}
+@media (prefers-reduced-motion: reduce) {
+  .jhw-button {
+    transition: none;
+  }
+}

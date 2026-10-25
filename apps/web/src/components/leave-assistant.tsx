@@ -191,7 +191,7 @@ export const LeaveAssistant = () => {
       setAgentRun(confirmed.run);
       router.push(`/approvals/${confirmed.approval.id}?leaveRunId=${confirmed.run.id}`);
     } catch (caught: unknown) {
-      setDraftError(getUserErrorMessage(caught, '휴가 Draft를 저장하지 못했습니다.'));
+      setDraftError(getUserErrorMessage(caught, '휴가 초안을 저장하지 못했습니다.'));
     } finally {
       busy.current = false;
       setIsConfirmingDraft(false);
@@ -376,7 +376,7 @@ const LeaveDraftPreview = ({
       <div className="leave-assistant-actions">
         <button className="ghost-button" disabled={isConfirming} onClick={onCancel} type="button">취소</button>
         <button className="primary-button" disabled={isConfirming} onClick={onConfirm} type="button">
-          {isConfirming ? '재검증 후 저장 중…' : '내용을 확인했고 Draft로 저장'}
+          {isConfirming ? '재검증 후 저장 중…' : '내용을 확인했고 초안으로 저장'}
         </button>
       </div>
     </section>

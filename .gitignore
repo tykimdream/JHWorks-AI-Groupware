@@ -35,3 +35,5 @@ artifacts/smoke/*.json
 playwright-report/
 playwright-public-demo-report/
 test-results/
+
+artifacts/pattern/

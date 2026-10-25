@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { buttonClass } from '@jhworks/pattern';
+import { WelcomeGuide } from '@/components/welcome-guide';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
@@ -32,7 +34,7 @@ const examples = [
 export function WorkHome() {
   const employee = useWorkspaceEmployee();
   const router = useRouter();
-  const { configuration } = useDemoConfiguration();
+  const { configuration, error: configurationError } = useDemoConfiguration();
   const [request, setRequest] = useState('');
   const [handoffError, setHandoffError] = useState(false);
   const [data, setData] = useState<{
@@ -91,7 +93,8 @@ export function WorkHome() {
   const recent = [...(data?.mine.items ?? [])]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 4);
-  const nextDocument = pending[0] ?? rejected[0] ?? drafts[0];
+  const waiting = data?.mine.items.filter((item) => item.status === 'PENDING') ?? [];
+  const nextDocument = pending[0] ?? rejected[0] ?? drafts[0] ?? waiting[0];
   const date = new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',
     month: 'long',
@@ -111,93 +114,153 @@ export function WorkHome() {
           </h1>
           <p>반복되는 일은 가볍게, 중요한 일에 더 집중하세요.</p>
         </div>
-        <Link className="secondary-button" href="/approvals/new">
-          <WorkspaceIcon name="plus" size={17} />
-          직접 작성
-        </Link>
+        {!configuration?.enabled && (
+          <Link className="secondary-button" href="/approvals/new">
+            <WorkspaceIcon name="plus" size={17} />
+            직접 작성
+          </Link>
+        )}
       </header>
 
-      <section className="home-ai-card" aria-labelledby="home-ai-title">
-        <div className="ai-card-intro">
-          <span className="ai-symbol">
-            <WorkspaceIcon name="sparkles" size={23} />
-          </span>
-          <span>
-            JHWorks AI <span className="small-pill">업무 도우미</span>
-          </span>
-          <span className="ai-card-note">제출은 언제나 내가 확인한 후에</span>
-        </div>
-        <h2 id="home-ai-title">{configuration?.enabled ? '직접 작성하고 결재 흐름을 체험하세요' : '어떤 업무를 도와드릴까요?'}</h2>
-        <p>{configuration?.enabled
-          ? '공개 체험에서는 AI 호출이 꺼져 있습니다. 경비를 직접 작성한 뒤 사전 확인·제출·승인을 경험해 보세요.'
-          : '필요한 일을 말해 주세요. 빠진 정보를 함께 확인하고 결재 초안을 준비할게요.'}</p>
-        <form onSubmit={startDraft} className="home-composer">
-          <label className="sr-only" htmlFor="home-request">
-            AI 업무 요청
-          </label>
-          <textarea
-            id="home-request"
-            ref={input}
-            value={request}
-            onChange={(event) => setRequest(event.target.value)}
-            maxLength={2000}
-            rows={2}
-            disabled={!aiAvailable}
-            placeholder={
-              configuration?.enabled
-                ? '현재 공개 체험에서는 AI 호출이 비활성화되어 있습니다.'
-                : '예: 다음 주 부산 고객사 미팅 출장 결재를 준비해줘. 교통비는 17만 원이야.'
-            }
-            onKeyDown={(event) => {
-              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }
-            }}
-          />
-          <div className="composer-footer">
-            <span>
-              <WorkspaceIcon name="document" size={15} />
-              출장 신청 · 경비 정산 · 일반 결재{' '}
-              <span className="composer-shortcut">⌘ / Ctrl + Enter</span>
-            </span>
-            <button
-              type="submit"
-              className="composer-send"
-              aria-label="AI 초안 작성으로 이동"
-              disabled={!aiAvailable || !request.trim()}
-            >
-              <WorkspaceIcon name="arrow" size={20} />
-            </button>
-          </div>
-        </form>
-        {handoffError && (
-          <p className="error-banner" role="alert">
-            요청을 전달하지 못했습니다. 입력 내용은 유지됩니다. 내용을 복사한 뒤{' '}
-            <Link href="/approvals/ai-draft">초안 화면에서 직접 입력해 주세요.</Link>
+      {!configuration ? (
+        <section className="home-start-card" aria-busy={!configurationError}>
+          <h2>
+            {configurationError ? '직접 작성으로 시작할 수 있어요' : '업무 공간을 준비하고 있어요'}
+          </h2>
+          <p role={configurationError ? 'alert' : 'status'}>
+            {configurationError
+              ? '이용 설정을 불러오지 못했습니다. 직접 작성하거나 페이지를 새로고침해 다시 확인해 주세요.'
+              : '사용할 수 있는 기능을 확인하고 있습니다.'}
           </p>
-        )}
-        <div className="home-examples">
-          <span>이렇게 시작해 보세요</span>
-          {examples.map((example) => (
-            <button
-              key={example.label}
-              type="button"
+          {configurationError && (
+            <Link className={buttonClass()} href="/approvals/new">
+              직접 작성
+            </Link>
+          )}
+        </section>
+      ) : configuration.enabled ? (
+        <section className="home-start-card" aria-labelledby="home-start-title">
+          <div className="home-start-heading">
+            <span className="small-pill">15분 체험 · 방문자 전용 공간</span>
+            <WelcomeGuide />
+          </div>
+          <p className="eyebrow">첫 번째 업무</p>
+          <h2 id="home-start-title">경비 정산부터 시작해 보세요</h2>
+          <p>사용한 비용을 초안으로 저장하고, 결재자가 되어 직접 승인해 볼 수 있어요.</p>
+          <ol className="start-steps">
+            <li>
+              <strong>1. 경비 작성</strong>
+              <span>지출 내용을 입력해요</span>
+            </li>
+            <li>
+              <strong>2. 확인하고 제출</strong>
+              <span>누락 정보를 보완해요</span>
+            </li>
+            <li>
+              <strong>3. 역할을 바꿔 승인</strong>
+              <span>결재 결과를 확인해요</span>
+            </li>
+          </ol>
+          <div className="home-start-actions">
+            <Link className={buttonClass()} href="/approvals/new?type=EXPENSE">
+              경비 정산 시작
+            </Link>
+            <Link href="/attendance">휴가 일정 살펴보기 →</Link>
+          </div>
+          <p className="public-ai-note">
+            이 체험에서는 AI 호출을 제공하지 않아요. 직접 작성·사전 점검·결재 기능은 모두 이용할 수
+            있습니다.
+          </p>
+        </section>
+      ) : (
+        <section className="home-ai-card" aria-labelledby="home-ai-title">
+          <div className="ai-card-intro">
+            <span className="ai-symbol">
+              <WorkspaceIcon name="sparkles" size={23} />
+            </span>
+            <span>
+              JHWorks AI <span className="small-pill">업무 도우미</span>
+            </span>
+            <span className="ai-card-note">제출은 언제나 내가 확인한 후에</span>
+          </div>
+          <h2 id="home-ai-title">
+            {configuration?.enabled
+              ? '직접 작성하고 결재 흐름을 체험하세요'
+              : '어떤 업무를 도와드릴까요?'}
+          </h2>
+          <p>
+            {configuration?.enabled
+              ? '공개 체험에서는 AI 호출이 꺼져 있습니다. 경비를 직접 작성한 뒤 사전 확인·제출·승인을 경험해 보세요.'
+              : '필요한 일을 말해 주세요. 빠진 정보를 함께 확인하고 결재 초안을 준비할게요.'}
+          </p>
+          <form onSubmit={startDraft} className="home-composer">
+            <label className="sr-only" htmlFor="home-request">
+              AI 업무 요청
+            </label>
+            <textarea
+              id="home-request"
+              ref={input}
+              value={request}
+              onChange={(event) => setRequest(event.target.value)}
+              maxLength={2000}
+              rows={2}
               disabled={!aiAvailable}
-              onClick={() => {
-                setRequest(example.request);
-                input.current?.focus();
+              placeholder={
+                configuration?.enabled
+                  ? '현재 공개 체험에서는 AI 호출이 비활성화되어 있습니다.'
+                  : '예: 다음 주 부산 고객사 미팅 출장 결재를 준비해줘. 교통비는 17만 원이야.'
+              }
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
               }}
-            >
-              <WorkspaceIcon name="plus" size={13} />
-              {example.label}
-            </button>
-          ))}
-          <Link href="/attendance">
-            휴가 날짜 찾기 <span aria-hidden="true">↗</span>
-          </Link>
-        </div>
-      </section>
+            />
+            <div className="composer-footer">
+              <span>
+                <WorkspaceIcon name="document" size={15} />
+                출장 신청 · 경비 정산 · 일반 결재{' '}
+                <span className="composer-shortcut">⌘ / Ctrl + Enter</span>
+              </span>
+              <button
+                type="submit"
+                className="composer-send"
+                aria-label="AI 초안 작성으로 이동"
+                disabled={!aiAvailable || !request.trim()}
+              >
+                <WorkspaceIcon name="arrow" size={20} />
+              </button>
+            </div>
+          </form>
+          {handoffError && (
+            <p className="error-banner" role="alert">
+              요청을 전달하지 못했습니다. 입력 내용은 유지됩니다. 내용을 복사한 뒤{' '}
+              <Link href="/approvals/ai-draft">초안 화면에서 직접 입력해 주세요.</Link>
+            </p>
+          )}
+          <div className="home-examples">
+            <span>이렇게 시작해 보세요</span>
+            {examples.map((example) => (
+              <button
+                key={example.label}
+                type="button"
+                disabled={!aiAvailable}
+                onClick={() => {
+                  setRequest(example.request);
+                  input.current?.focus();
+                }}
+              >
+                <WorkspaceIcon name="plus" size={13} />
+                {example.label}
+              </button>
+            ))}
+            <Link href="/attendance">
+              휴가 날짜 찾기 <span aria-hidden="true">↗</span>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {error && (
         <div className="home-error" role="alert">
@@ -287,7 +350,11 @@ export function WorkHome() {
             <div className="home-empty">
               <WorkspaceIcon name="document" size={28} />
               <strong>첫 번째 업무를 시작해 볼까요?</strong>
-              <p>{configuration?.enabled ? '경비·출장·일반·휴가 결재를 직접 작성해 보세요.' : 'AI로 초안을 준비하거나 직접 결재를 작성해 보세요.'}</p>
+              <p>
+                {configuration?.enabled
+                  ? '경비·출장·일반·휴가 결재를 직접 작성해 보세요.'
+                  : 'AI로 초안을 준비하거나 직접 결재를 작성해 보세요.'}
+              </p>
               <Link href="/approvals/new">새 결재 작성 →</Link>
             </div>
           )}
@@ -327,9 +394,16 @@ export function WorkHome() {
                     ? '수정이 필요한 문서가 있어요'
                     : drafts.length
                       ? '시작한 업무를 마무리해요'
-                      : '업무를 시작할 준비가 됐어요'}
+                      : waiting.length
+                        ? '결재를 기다리는 문서가 있어요'
+                        : '업무를 시작할 준비가 됐어요'}
               </span>
-              <h3>{nextDocument?.title ?? (configuration?.enabled ? '첫 경비 정산을 작성해 보세요.' : '복잡한 결재, 한 문장으로 시작하세요.')}</h3>
+              <h3>
+                {nextDocument?.title ??
+                  (configuration?.enabled
+                    ? '첫 경비 정산을 작성해 보세요.'
+                    : '복잡한 결재, 한 문장으로 시작하세요.')}
+              </h3>
               <p>
                 {pending.length
                   ? '내용과 첨부 자료를 검토하고 승인 또는 반려할 수 있습니다.'
@@ -337,9 +411,13 @@ export function WorkHome() {
                     ? '반려 사유를 확인하고 내용을 보완해 다시 제출하세요.'
                     : drafts.length
                       ? '저장한 초안을 검토하고 필요한 정보를 채워 제출하세요.'
-                      : configuration?.enabled
-                        ? '지출일·사용처·금액을 입력하고 제출 전 누락과 중복 후보를 확인하세요.'
-                        : '출장 목적과 일정을 알려주시면 회사 양식에 맞는 초안을 준비합니다.'}
+                      : waiting.length
+                        ? configuration?.enabled
+                          ? '문서를 제출했습니다. 결재자로 역할을 바꾸면 승인 과정을 이어서 체험할 수 있어요.'
+                          : '지정 결재자가 문서를 검토하고 있습니다. 문서에서 진행 상태를 확인하세요.'
+                        : configuration?.enabled
+                          ? '지출일·사용처·금액을 입력하고 제출 전 누락과 중복 후보를 확인하세요.'
+                          : '출장 목적과 일정을 알려주시면 회사 양식에 맞는 초안을 준비합니다.'}
               </p>
               <Link
                 className="next-action-link"
@@ -363,7 +441,8 @@ export function WorkHome() {
           <div className="home-tip">
             <span className="tip-symbol">↳</span>
             <p>
-              <strong>알고 계셨나요?</strong>{configuration?.enabled
+              <strong>알고 계셨나요?</strong>
+              {configuration?.enabled
                 ? '초안 저장과 제출은 별도 단계입니다. 제출 후 결재자로 역할을 전환해 승인할 수 있습니다.'
                 : 'AI 초안은 확인 후 저장되며, 저장만으로 결재가 제출되지는 않습니다.'}
             </p>

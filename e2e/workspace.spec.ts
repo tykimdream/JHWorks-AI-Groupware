@@ -45,9 +45,9 @@ test('home → request → missing information → policy preview → explicit s
     path: `artifacts/workspace-preview/draft-${testInfo.project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole('button', { name: '확인하고 Draft로 저장', exact: true }).click();
+  await page.getByRole('button', { name: '확인하고 초안으로 저장', exact: true }).click();
   await expect(page).toHaveURL(/\/approvals\/[^/?]+$/);
-  await expect(page.locator('.detail-title-row .status-badge')).toContainText('임시저장');
+  await expect(page.locator('.detail-title-row .status-badge')).toContainText('초안');
   expect(saves).toBe(1);
   await page.getByRole('link', { name: '업무 홈', exact: true }).click();
   await expect(

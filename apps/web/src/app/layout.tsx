@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { connection } from 'next/server';
 
+import '@jhworks/pattern/tokens.css';
+import '@jhworks/pattern/legacy.css';
 import './globals.css';
 import './workspace.css';
+import '@jhworks/pattern/components.css';
 
 export const metadata: Metadata = {
   title: 'JHWorks AI Groupware',

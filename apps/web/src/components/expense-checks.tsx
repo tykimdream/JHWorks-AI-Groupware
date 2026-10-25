@@ -71,9 +71,11 @@ function Findings({ checks }: { checks: ExpenseChecks }) {
 export function ExpenseChecksPanel({
   approvalId,
   version,
+  status = 'DRAFT',
 }: {
   approvalId: string;
   version: number;
+  status?: ApprovalStatus;
 }) {
   const [checks, setChecks] = useState<ExpenseChecks | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export function ExpenseChecksPanel({
     <section className="expense-check-panel" aria-label="경비 사전 확인">
       <div className="expense-check-heading">
         <WorkspaceIcon name="search" size={18} />
-        <h2>제출 전에 한 번 더 확인하세요</h2>
+        <h2>{status === 'DRAFT' ? '제출 전에 한 번 더 확인하세요' : '경비 확인 결과'}</h2>
         <span className="small-pill">문서 데이터 기준</span>
       </div>
       {error ? (

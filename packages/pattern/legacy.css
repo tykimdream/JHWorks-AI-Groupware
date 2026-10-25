@@ -1,0 +1,40 @@
+/* Optional JHWorks compatibility aliases. */
+:root {
+  --ink: var(--jhw-color-text);
+  --muted: var(--jhw-color-text-muted);
+  --line: var(--jhw-color-border);
+  --canvas: var(--jhw-color-canvas);
+  --surface: var(--jhw-color-surface);
+  --accent: var(--jhw-color-primary);
+  --accent-dark: var(--jhw-color-primary-hover);
+  --accent-soft: var(--jhw-color-primary-subtle);
+  --danger: var(--jhw-color-danger);
+  --danger-soft: var(--jhw-color-danger-subtle);
+  --warning: var(--jhw-color-warning);
+  --radius: var(--jhw-radius-md);
+  --shadow: var(--jhw-shadow);
+  --motion-fast: var(--jhw-motion-fast);
+  --color-text: var(--jhw-color-text);
+  --color-text-secondary: var(--jhw-color-text-muted);
+  --color-border: var(--jhw-color-border);
+  --color-background: var(--jhw-color-canvas);
+  --color-primary: var(--jhw-color-primary);
+  --color-primary-hover: var(--jhw-color-primary-hover);
+  --color-primary-subtle: var(--jhw-color-primary-subtle);
+  --space-1: var(--jhw-space-1);
+  --space-2: var(--jhw-space-2);
+  --space-3: var(--jhw-space-3);
+  --space-4: var(--jhw-space-4);
+  --space-5: var(--jhw-space-5);
+  --space-6: var(--jhw-space-6);
+  --space-7: var(--jhw-space-7);
+  --space-8: var(--jhw-space-8);
+  --space-12: var(--jhw-space-12);
+  --space-16: var(--jhw-space-16);
+  --font-caption: var(--jhw-font-caption);
+  --font-small: var(--jhw-font-small);
+  --font-body: var(--jhw-font-body);
+  --radius-sm: var(--jhw-radius-sm);
+  --radius-md: var(--jhw-radius-md);
+  --radius-lg: var(--jhw-radius-lg);
+}

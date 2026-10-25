@@ -17,6 +17,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@jhworks/pattern':
+        specifier: workspace:*
+        version: link:../../packages/pattern
       next:
         specifier: 16.4.1
         version: 16.4.1(@babel/core@7.29.7)(@playwright/test@1.58.2)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -45,6 +48,12 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+
+  packages/pattern:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
 
 packages:
 

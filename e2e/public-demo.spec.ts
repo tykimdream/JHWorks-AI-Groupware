@@ -22,11 +22,12 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await expect(page.getByLabel('비밀번호')).toHaveCount(0);
   await page.getByRole('button', { name: '체험 시작하기' }).click();
   await expect(page).toHaveURL('http://localhost:3100/');
-  await expect(page.getByRole('textbox', { name: 'AI 업무 요청' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'AI 초안 작성으로 이동' })).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: 'AI 업무 요청' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'AI 초안 작성으로 이동' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'AI 초안 작성', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '결재자로 체험하기' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '직접 작성하고 결재 흐름을 체험하세요' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '경비 정산부터 시작해 보세요' })).toBeVisible();
+  await page.getByRole('button', { name: '사용 가이드 닫기', exact: true }).click();
   const original = await (await page.request.get('/api/v1/employees/me')).json();
   expect(original.id).toMatch(/^demo_author_/);
   if (testInfo.project.name === 'desktop') await verifyDesktopLayout(page);
@@ -43,13 +44,13 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await page.getByLabel('비용 구분').selectOption('TRANSPORTATION');
   await page.getByLabel('업무상 지출 목적').fill('CES 고객 미팅 참석을 위한 이동');
   await page.getByLabel('증빙 참조 (선택)').fill('RCP-CES-001');
-  await page.getByRole('button', { name: 'Draft 저장', exact: true }).click();
+  await page.getByRole('button', { name: '초안 저장', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/approvals\/apr_[^/]+$/);
   const id = new URL(page.url()).pathname.split('/').at(-1);
   const path = '/api/v1/approvals/' + id;
   const badge = page.locator('.detail-title-row .status-badge');
-  await expect(badge).toHaveText('임시저장');
+  await expect(badge).toHaveText('초안');
   await expect(page.getByText('공개 체험에서는 AI 검토를 제공하지 않습니다.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'AI로 검토하기', exact: true })).toHaveCount(0);
   let submitRequests = 0;
@@ -71,7 +72,7 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await page.keyboard.press('Enter');
   await expect(confirmation).not.toBeVisible();
   await expect(submit).toBeFocused();
-  await expect(badge).toHaveText('임시저장');
+  await expect(badge).toHaveText('초안');
   expect(submitRequests).toBe(0);
   await submit.click();
   await page.keyboard.press('Escape');
@@ -82,7 +83,12 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await confirmation.getByRole('button', { name: '확인하고 제출' }).click();
   await expect(badge).toHaveText('결재 대기');
   expect(submitRequests).toBe(1);
-  await page.getByRole('button', { name: '결재자로 체험하기' }).click();
+  await page.getByRole('link', { name: '업무 홈', exact: true }).click();
+  const nextAction = page.getByRole('complementary').filter({ hasText: '다음 할 일' });
+  await expect(nextAction).toContainText(title);
+  await expect(nextAction).toContainText('결재를 기다리는 문서가 있어요');
+  await nextAction.getByRole('link', { name: '문서 확인하기' }).click();
+  await page.getByRole('region', { name: '체험 다음 단계' }).getByRole('button', { name: '결재자로 전환해 계속하기' }).click();
   await expect(page.getByRole('button', { name: '작성자로 돌아가기' })).toBeVisible();
   const manager = await (await page.request.get('/api/v1/employees/me')).json();
   expect(manager.id).toBe(original.manager.id);
@@ -136,4 +142,67 @@ test('public Swagger renders the real schema with execution disabled', async ({ 
   await expect(page.locator('.swagger-ui .opblock-summary').filter({ hasText: '/api/v1/approvals' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try it out', exact: true })).toHaveCount(0);
   await page.screenshot({ path: `artifacts/workspace-preview/swagger-public-${testInfo.project.name}.png`, fullPage: true, style: 'nextjs-portal { display: none; }' });
+});
+
+
+test('first visitor guide can be dismissed, remembered and reopened without creating a document', async ({ page }, testInfo) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: '체험 시작하기', exact: true }).click();
+  const guide = page.getByRole('dialog', { name: '경비를 초안으로 저장해요' });
+  await expect(guide).toBeVisible();
+  await page.screenshot({ path: `artifacts/workspace-preview/welcome-guide-${testInfo.project.name}.png`, style: 'nextjs-portal { display: none; }' });
+  await guide.getByRole('button', { name: '나중에 볼게요' }).click();
+  await expect(guide).not.toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '경비 정산부터 시작해 보세요' })).toBeVisible();
+  await expect(page.locator('.guide-card')).toHaveCount(0);
+  await page.getByRole('button', { name: '사용 가이드', exact: true }).click();
+  await expect(page.getByRole('button', { name: '사용 가이드 닫기' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.guide-card')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '사용 가이드', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: '사용 가이드', exact: true }).click();
+  await page.locator('.guide-card').getByRole('button', { name: '다음', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '내용을 확인하고 제출해요' })).toBeVisible();
+  await page.locator('.guide-card').getByRole('button', { name: '다음', exact: true }).click();
+  let writes = 0;
+  page.on('request', request => { if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/v1/approvals') writes += 1; });
+  await page.locator('.guide-card').getByRole('link', { name: '경비 정산 시작' }).click();
+  await expect(page.getByLabel('결재 종류')).toHaveValue('EXPENSE');
+  expect(writes).toBe(0);
+});
+
+test('first visitor can dismiss the guide even when browser storage is unavailable', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new Error('Storage disabled for regression'); } }); });
+  await page.goto('/login');
+  await page.getByRole('button', { name: '체험 시작하기', exact: true }).click();
+  await page.getByRole('button', { name: '사용 가이드 닫기' }).click();
+  await expect(page.locator('.guide-card')).toHaveCount(0);
+  await page.getByRole('button', { name: '사용 가이드', exact: true }).click();
+  await expect(page.locator('.guide-card')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.guide-card')).toHaveCount(0);
+  await page.getByRole('link', { name: '경비 정산 시작', exact: true }).click();
+  await expect(page.getByLabel('결재 종류')).toHaveValue('EXPENSE');
+});
+
+test('JHW Pattern is public, searchable and uses keyboard-accessible help', async ({ page }, testInfo) => {
+  await page.goto('/pattern');
+  await expect(page.getByRole('heading', { name: /좋은 업무 흐름을 만드는/ })).toBeVisible();
+  await page.getByLabel('패턴 검색').fill('--jhw-color-primary');
+  await expect(page.getByRole('status').filter({ hasText: '토큰 3개' })).toBeVisible();
+  await page.getByLabel('패턴 검색').fill('');
+  await page.getByRole('button', { name: '초안 저장', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: '업무 데이터는 변경되지 않습니다' })).toBeVisible();
+  const hint = page.getByRole('button', { name: '초안과 제출의 차이', exact: true });
+  await hint.focus();
+  await expect(page.getByRole('tooltip')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await expect(hint).toBeFocused();
+  await page.getByText('코드 보기 · Button', { exact: true }).click();
+  await expect(page.getByRole('button', { name: '코드 복사 · Button', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `artifacts/workspace-preview/jhw-pattern-${testInfo.project.name}.png`, style: 'nextjs-portal { display: none; }' });
 });

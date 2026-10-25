@@ -1,0 +1,46 @@
+{
+  "name": "@jhworks/pattern",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "JHWorks semantic tokens and workflow UI patterns (workspace preview)",
+  "license": "UNLICENSED",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "react.js",
+    "react.d.ts",
+    "catalog.js",
+    "tokens.json",
+    "tokens.css",
+    "components.css",
+    "README.md",
+    "legacy.css",
+    "build.mjs",
+    "check.mjs"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./react": {
+      "types": "./react.d.ts",
+      "import": "./react.js"
+    },
+    "./tokens.css": "./tokens.css",
+    "./components.css": "./components.css",
+    "./tokens.json": "./tokens.json",
+    "./legacy.css": "./legacy.css"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check && node check.mjs"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

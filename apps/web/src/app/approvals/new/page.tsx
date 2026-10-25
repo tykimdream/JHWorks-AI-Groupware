@@ -1,3 +1,4 @@
+import { ContextHint } from '@/components/context-hint';
 import { AppShell } from '@/components/app-shell';
 import { ApprovalForm, type ApprovalFormPreset } from '@/components/approval-form';
 
@@ -24,10 +25,11 @@ export default async function NewApprovalPage({ searchParams }: NewApprovalPageP
         <div>
           <p className="eyebrow">NEW DRAFT</p>
           <h1>결재 문서 작성</h1>
-          <p>Draft는 미완성 상태로 저장할 수 있으며 제출 시 필수 항목을 검증합니다.</p>
+          <p>작성 중인 문서는 초안으로 저장됩니다. 저장 후 내용을 확인하고 별도로 제출하세요.</p>
         </div>
       </header>
-      <ApprovalForm preset={preset} />
+      <p className="form-guidance">아직 정보가 부족해도 저장할 수 있어요. <ContextHint label="초안과 제출의 차이">초안은 나만 수정할 수 있고, 제출하면 지정 결재자에게 전달됩니다.</ContextHint></p>
+      <ApprovalForm preset={preset} initialType={query.type === 'EXPENSE' ? 'EXPENSE' : undefined} />
     </AppShell>
   );
 }

@@ -111,3 +111,17 @@ pnpm test:e2e:public-demo
 ```
 
 일반 검증과 브라우저 테스트는 외부 AI를 호출하지 않는다. PostgreSQL 통합 테스트는 CI의 별도 서비스에서 실행한다. 실제 모델 평가는 `pnpm eval:all` 등 별도 명령이며 유료 호출이 발생하므로 일반 CI에 포함하지 않는다.
+
+## JHW Pattern 개발
+
+토큰·Button·Badge는 `packages/pattern`에서 관리하고 앱과 `/pattern` 문서가 함께 소비합니다.
+
+```bash
+pnpm --filter @jhworks/pattern build
+pnpm check:pattern
+pnpm --filter @jhworks/pattern pack --pack-destination ./artifacts/pattern
+```
+
+토큰 생성물 일치, 주요 텍스트 색상 쌍의 4.5:1 대비와 패키지 계약은 `pnpm validate`에 포함됩니다.
+전체 UI의 접근성 인증을 의미하지는 않습니다. npm 게시 전에는 이름·소유권·라이선스·안정 API를 확정합니다.
+[원칙·출처·검증 범위](design/ux-principles.md)를 참고합니다.

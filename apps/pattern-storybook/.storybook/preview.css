@@ -1,0 +1,3 @@
+html { color-scheme: light; }
+body { color: var(--jhw-color-text); background: var(--jhw-color-surface); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: var(--jhw-font-body); }
+.sb-show-main { padding: 24px; }

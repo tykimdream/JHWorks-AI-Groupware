@@ -178,3 +178,28 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
+
+  pattern-storybook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:pattern
+      - run: pnpm type-check:storybook
+      - run: pnpm build:storybook
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:storybook
+      - name: Upload static Storybook and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pattern-storybook
+          path: |
+            apps/pattern-storybook/storybook-static/
+            playwright-storybook-report/
+            artifacts/storybook/

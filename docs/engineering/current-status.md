@@ -12,8 +12,8 @@
 | 공개 대표 흐름 | 경비 작성·보완·제출·역할 전환·승인, API/문서/Pattern 제공 |
 | 공개 AI / 자동 정리 | 마지막 배포 기록 OFF / OFF. 실제 변경 전 재대조 |
 | 실제 AI / 사람 평가 | 승인된 고정 합성36개 실제 모델 통과 / 신규 사용자 측정 대기 |
-| Storybook / npm | 미설치·미배포 / private·미게시 |
-| 다음 작업 | M4-02 Storybook·정적 배포 준비. M2-03 공개 적용·M1-02는 운영 조건 대조 후 진행 |
+| Storybook / npm | 독립 정적23개 story·PC/모바일50개 로컬 검증, 공개 대기 / private·미게시 |
+| 다음 작업 | M4-02 공개 조건 확인, M5-01 목록 baseline. M2-03 공개 적용·M1-02는 운영 조건 대조 후 진행 |
 | 외부 조건 대기 중 | M1 증거 대조·M2 offline/예산·M3 로컬 개선 중 독립 작업 진행 |
 
 
@@ -47,6 +47,11 @@
 [소비 컴포넌트 계약](pattern-form-components.md)의 Field·입력3종·Alert·EmptyState·ConfirmationDialog를 패키지와 대표 경비 흐름·Pattern 예제가 공유한다.
 라벨/설명/오류 ID, disabled/required/ref, 확인창 키보드·포커스와 기존 실제 경비 흐름을 함께 검증한다.
 기존 앱 dialog CSS는 패키지 토큰 CSS로 옮겼고 npm은 private/미게시다. 다음은 M4-02 Storybook이다.
+
+## 2026-10-25 Storybook 독립 소비 — M4-02
+
+[정적 배포 계약](../design/storybook.md)에 실제 패키지를 소비하는23개 story·PC/모바일50개·axe 자동 검사·키보드·무API호출을 기록했다.
+생성 파일은 CI artifact로 보관하고 수동 Pages workflow를 준비했다. 실제 Pages 공개 설정/배포 URL 검증은 아직 없으며 npm은 미게시다.
 
 ## 2026-10-25 AI 입력 이어받기·브랜드·공유 메타데이터
 

@@ -1,0 +1,26 @@
+{
+  "name": "@jhworks/pattern-storybook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev -p 6006 --no-open --disable-telemetry",
+    "build": "storybook build --disable-telemetry",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jhworks/pattern": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "10.6.3",
+    "@storybook/addon-docs": "10.6.3",
+    "@storybook/react-vite": "10.6.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "storybook": "10.6.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  }
+}

@@ -33,6 +33,7 @@ def test_demo_uses_separate_service_and_hosting_cookie_without_granting_invocati
     assert spec["serviceAccountName"] == config.runtime_service_account
     env = {row["name"]: row for row in spec["containers"][1]["env"]}
     assert env["JHWORKS_AI_ENABLED"]["value"] == "false"
+    assert env["JHWORKS_PUBLIC_EXPENSE_AI_ENABLED"]["value"] == "false"
     assert env["JHWORKS_PUBLIC_DEMO_ENABLED"]["value"] == "true"
     assert env["JHWORKS_SESSION_COOKIE_NAME"]["value"] == "__session"
     refs = {row["valueFrom"]["secretKeyRef"]["name"] for row in env.values() if "valueFrom" in row}
@@ -45,6 +46,7 @@ def test_demo_uses_separate_service_and_hosting_cookie_without_granting_invocati
         jwt_secret="x" * 32,
     )
     assert resolved.public_demo_enabled and resolved.cookie_secure and not resolved.ai_enabled
+    assert not resolved.public_expense_ai_enabled
     assert (
         resolved.session_cookie_name == "__session"
         and resolved.frontend_origin == config.frontend_origin

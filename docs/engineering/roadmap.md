@@ -1,196 +1,109 @@
-# 엔터프라이즈 고도화 로드맵
+# JHWorks 제품 발전 로드맵
 
-작성 기준: 2026-10-21, 로컬 `9814045`. 기존 제품 Phase 1~11을 다시 구현하는 계획이 아니다.
-현재 증거는 [assessment](assessment.md), 첫 구현의 판단은 [CSRF 작업 기록](csrf-origin-guard.md)에 둔다.
-최신 실행·병합 상태와 바로 다음 작업은 [current-status](current-status.md)를 먼저 읽는다.
-2026-10-23 코드·실행 증거 대조에 따른 작업 분해·완료 조건·의존성·예상 공수는
-[공개 마일스톤 실행 계획](execution-plan-2026-10-23.md)에 정리한다. 외부 상태를 재조회한 결과는 아니다.
-한 작업은 문제/완료 조건→대안→구현→관련 검사→결과/위험 기록 순서로 진행한다.
-진단/계획과 CSRF 구현은 별도 커밋으로 나누어 하나의 초기 고도화 PR에서 검토한다.
+기준일: 2026-10-25 · 구현 기준: main `b9831c7` / PR #74.
+이 문서가 기존 로드맵·2026-10-23 우선순위·실행 계획의 **앞으로 수행할 작업 순서**를 대체한다.
+과거 구현과 검증은 보존하며 이미 완료한 기능을 다시 만들지 않는다.
 
-## 진행 상태
+[상세 작업·완료 기준](execution-plan-2026-10-25.md) · [현재 상태와 작업 기록](current-status.md) ·
+[이전 로드맵 보관본](roadmap-2026-10-21.md)
 
-### 2026-10-23 우선순위 재정렬
+## 1. 목표와 대표 문제
 
-최신 실행 순서는 [작업 우선순위](priorities-2026-10-23.md)를 따른다.
+방문자가 경비 업무를 직접 완료하고, 풀스택 설계·프론트엔드 패턴·UI/UX·기업 AI 문제 해결 역량을
+구현과 검증 근거로 확인할 수 있는 포트폴리오 제품을 만든다.
 
-1. 결재·휴가 핵심 화면 흐름 완결과 차단 결함 수정
-2. AI 휴가 상담·결재 초안의 대표 시나리오 완성
-3. 결재 목록 응답 경합과 대표 화면 사용성 개선
-4. 방문자 체험·역할 전환·격리·만료/한도 안내·피드백 완결
-5. 공개 직전 최소 정리·복구 운영 마감
-6. 실제 도메인 앱 공개와 포트폴리오 연결
-7. 사용자 피드백 기반 개선
-8. 측정에 따른 성능·동시성·배포/백업 확장
-9. 선택적 유료 AI 및 추가 기능 확장
+대표 과제: **“CES 출장에서 쓴 17만원을 정산하려는데, 필요한 양식과 정보를 모르겠다.”**
 
-기존 결재·휴가·AI 구현과 통과한 보안 검증을 재사용한다. 운영 알림의 장시간 관찰은
-핵심 기능 작업의 선행 조건에서 제외한다. 아래 과거 체크리스트는 당시 증거와 이력이며 실행 순서가 아니다.
+작성자의 요청 → 부족한 사실 질문 → 정책 근거 → 초안 확인·저장 → 보완·제출 → 결재자의 검토·결정 → 결과 확인을
+하나의 업무로 다룬다. AI는 사실 구조화·질문·설명을 돕고 권한·금액·날짜·상태 전이는 서버가 검증한다.
 
-PR/리뷰/라벨/병합은 사용자 승인으로 자율 진행한다. 새 비용·인증/권한·공개 노출·실제 삭제 적용은
-준비된 변경과 검증/위험을 제시하고 적용 직전에 확인한다. 이 최신 승인 정책이 아래 초기 외부 push 승인 기록보다 우선한다.
+| 사용자의 목표 | 앞으로 강화할 증거 |
+| --- | --- |
+| 풀스택 역량 | 권한·트랜잭션·동시성 기반 위에 목록 계약과 DB/전송 성능의 전후 측정 |
+| 모던 프론트엔드 | 서버 데이터 수명 관리, 입력·목록 맥락 보존, 실제 사용 컴포넌트와 접근성 계약 |
+| 직관적인 UI/UX | 처음 보는 사용자의 과제 완료·오류·막힌 지점과 개선 재검증 |
+| 기업 업무 AI | 실제 모델의 실패 사례 평가, 제한된 공개 체험, 보완·검토 업무의 개선 근거 |
 
-- [x] Phase 0: Git/지침/구현/테스트/CI/UI/DB 정밀 진단, 기준 테스트·build 재검증
-- [x] 첫 구현: Cookie 쓰기 출처 검증과 기존 업무 흐름 회귀 테스트
-- [x] QA-01 평가 JSON/자식 프로세스 UTF-8 계약 구현·cp949 재현/관련 회귀 검증
-- [x] groupware.pikan.dev 정적 준비 화면·DNS·HTTPS 실제 검증 (앱 공개와 구분)
-- [x] DB 공유 로그인 예산·PostgreSQL 동시성·private migration/배포·데이터 보존·새 head 격리 restore
-- [x] 서명 token 4종 필수 claim/만료 계약·신규 69개 회귀 (PR #40, 외부 재배포 전)
-- [x] 방문자 workspace 경계·서버 수명·원자 쓰기 예산 기반 (#41/#42 CI 검증, 외부 적용 전)
-- [x] 방문자 체험·피드백 UI/API와 실제 API 브라우저 검증 (#43, 원격 공개/수집 전)
-- [x] #43 main 비공개 migration/release와 기존 합성 업무 데이터 보존·새 head 격리 restore
-- [ ] 피드백 보관 정리 주기·실패 감지·실제 실행 검증 (코드와 운영 완료 구분)
-- [ ] 공개 데모 생성 총량·전용 인증 모드·읽기/AI 비용 제한·정리/초기화·Hosting 연결
-- [x] 실제 Supabase migration·승인받은 private staging 일반 release 검증
-- [x] Supabase online migration과 Cloud Run private 기동·별도 수동 smoke 4개 검증
-- [x] CI URL 별칭 수정 PR #20 병합·소규모 staging dump/격리 restore 비교
-- [x] staging Environment main 전용·추가 배포 승인 없음으로 복원(사용자 승인)
-- [x] PR #21 main CI → 일반 private release 39619750992 → deploy-SA HTTP 4/4
-- [x] 로컬 기본 seed의 원격 DB 실행 차단 PR #23 리뷰·CI·병합
-- [x] Python 전이 패키지 보안 패치 PR #24 리뷰·CI·병합, GitHub Python open alert 0개 확인
-- [x] private 합성 fixture 도구 PR #25 리뷰·CI·병합·실제 read-only preflight
-- [x] 실제 private staging 로그인·일반/휴가 결재·권한·CSRF·stale version·logout 검증 및 업무 데이터 격리 restore
-- [ ] 공개 demo 격리·요청/비용 제한 검증
-- [ ] 목록 대표 UI/디자인 시스템, 규모별 성능, 장애 복구와 포트폴리오 증거
+## 2. 현재 기반과 남은 간극
 
-## 우선순위 조정 — 먼저 배포하고 지속 개선
+아래는 소스와 최근 검증 기록 기준이다. 이 계획 작성 중 원격 자원·데이터·모델을 새로 실행하지 않는다.
+운영 변경 직전에는 실제 상태를 다시 대조한다.
 
-2026-10-22 재개 상태: PR #21을 직접 코드 리뷰·라벨링·CI 확인 후 병합했고 main `2dfb0d0`의
-[일반 private release 39619750992](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/39619750992)가 성공했다.
-PR #22(QA-01)도 리뷰와 CI 4개 성공 뒤 병합됐다. 배포된 SHA는 `2dfb0d0`이며 이후 main 수정이
-자동으로 배포되는 구조는 아직 아니다. 다음 실행 순서는 local seed 경계 → private 합성 계정
-준비(실제 인증정보 설정 전 확인) → 로그인·결재·휴가·권한 검증 → 공개 demo 격리/호출 제한이다.
-기존 빈 업무 DB의 복원·기동 성공만으로 업무 시나리오나 공개 준비 완료를 주장하지 않는다.
-
-2026-10-21 사용자 피드백으로 다음 마일스톤을 **외부에서 접속 가능한 제한 공개 staging과 CD**로 앞당긴다.
-디자인/대용량 성능/전체 운영 고도화가 완료될 때까지 첫 배포를 미루지 않는다.
-QA-01은 작은 독립 수정으로 처리하되 전체 배포 준비를 뒤로 미루는 선행 단계로 삼지 않는다.
-
-1. 첫 배포 PR: Cloud Run web ingress + FastAPI sidecar, 동일 출처 `/api/v1` proxy,
-   Supabase Free의 비공개 업무 schema와 분리된 DB role,
-   secure cookie/origin/secret 주입, 합성 데이터의 명시적 초기화 절차를 준비한다.
-   staging은 별도 접근 제한으로 보호하고 유료 AI key는 주입하지 않는다.
-   현재 공개 demo 계정만으로 인터넷의 누구나 쓰기 가능한 서비스는 열지 않는다.
-2. CD PR: 기존 CI 통과 후 SHA/digest 이미지 생성 → staging migration 단일 실행 → rollout →
-   readiness/smoke → 실패 시 직전 application digest 복귀를 구성한다.
-   기존 DB는 배포마다 seed/reset하지 않는다. migration 호환성·backup/restore 확인을 배포 조건으로 둔다.
-   GitHub Environment의 production 승인 단계는 유지한다.
-3. 인프라·domain·secret 접근을 확보한 뒤 제한 공개 staging의 실제 로그인/저장/TLS/CSRF를 검증한다.
-   이후 작은 PR을 main에 병합하면 검증된 버전이 staging에 반영되도록 운영한다.
-4. 익명 방문자도 사용할 공개 demo는 인증/데이터 격리·호출 제한·비용 제한·취약점 분류를 완료한 뒤 연다.
-   UI/성능 개선은 배포된 staging에서 전후를 측정하며 계속한다.
-
-사용자와 비교 후 **Cloud Run + Supabase Free** 방향을 선택했다. 단일 VPS는 대안 기록으로 남긴다.
-초기 cloud 예산은 월 1만원 목표이며 hard cap이 아니다. AI 월 $5는 별도 제안이며 실제 provider 예산과
-서버 제한을 구현하기 전에는 연결하지 않는다. 부하 실험은 로컬 PostgreSQL + fake AI로 한정한다.
-로그인된 앱 안 브라우저에서 기존 결제 연결 프로젝트를 읽기 확인했으며 그룹웨어 전용 project는 없었다.
-전용 GCP 프로젝트 `jhworks-staging-tykimdream`과 사용자 생성 Supabase Free 서울 프로젝트는 준비됐다.
-GCP registry·실행 계정·Secret version 1·한정된 IAM/WIF 설정과 2026-10-21 첫 private 배포를 수행했다.
-비밀 값은 저장소/채팅에 기록하지 않는다. 익명 포트폴리오 방문자용 공개일은 아직 정하지 않았다.
-
-이번 구현의 범위와 검증은 [Cloud Run 첫 단위](cloud-run-supabase-plan.md),
-외부 설정 순서는 [배포 가이드](../operations/cloud-run-supabase.md)를 따른다.
-현재 CD는 exact main CI를 요구하는 수동 실행형 workflow다. staging 추가 reviewer 승인은 사용자 승인으로 제거했다.
-main 자동 배포는 백업 자동화와 실제 staging 검증 뒤 별도 단위로 추가한다.
-로컬 구현은 TLS/실패 진단 수정 후 API 183개, 브라우저 10개, lint/type/build를 통과했다.
-[배포 준비 검증 기록](cloud-run-supabase-verification.md)에 외부 미검증 범위와 재개 순서를 남겼다.
-Supabase 전용 프로젝트 생성은 사용자가 완료했다. 서울·Healthy·Data API 비활성을 확인했고 사용자 승인으로
-vector/schema/role bootstrap 및 읽기 권한 검증(all_checks_ok=true)을 완료했다.
-이후 실제 앱 pooler 연결과 migration head `b63d91e52fa0`, 업무 테이블의 기본 권한을 확인했다.
-GCP 전용 예산 알림·서울 immutable Docker 저장소·권한 없는 전용 계정 3개·빈 secret 보관함 3개를 생성했다.
-사용자의 credential helper 실행과 Secret version 1 등록은 완료했고, 승인된 runtime/migrate Secret 읽기
-권한 4개도 버전 조건과 함께 연결했다. PR #18 병합과 main CI를 통과했고 WIF/배포 권한을 적용했다.
-첫 release attempt 1의 immutable subject 불일치를 교정했으며 attempt 2에서 실제 GitHub→GCP 인증이 성공했다.
-이미지 build/push도 통과했으나 첫 service 부재의 CLI 오류 문구 차이로 release가 중단됐다.
-목록 JSON으로 존재 여부를 판단하도록 수정했고 API 190개/lint/strict mypy를 통과했다.
-PR #19 병합 후 `dfff250`의 실제 migration/service Ready와 별도 수동 smoke 4개를 통과했다.
-CI release는 정상 URL 별칭을 거부해 실패했다. 해당 비교와 서비스 전체 max=2를 수정해
-API 197개/lint/strict mypy를 통과한 PR #20은 병합됐다. 이후 실제 작은 dump/격리 복원 비교에 성공했다.
-일반 release 39615588202는 application 단계에서 실패했고 기존 revision 100% traffic 복귀와 별도
-사용자 token HTTP 4/4를 확인했다. deploy SA WIF smoke 성공으로 표현하지 않는다.
-현재 ID token 전달/안전한 작업명 진단을 로컬 구현했고 새 PR/main release 검증이 남아 있다.
-다음 세션은 [백업·일반 release 기록](staging-backup-release.md)의 정확한 상태와 검증 한계를 먼저 읽는다.
-main 자동 배포는 아직 구현하지 않았다. workflow_dispatch 이후 추가 배포 승인이 없는 상태다.
-최신 증거와 재개 지점은
-[첫 staging 배포 기록](staging-rehearsal.md)에 둔다. 공개 전환과 AI 연결은 별도 gate다.
-
-## Phase별 작은 작업과 완료 조건
-
-| 순서/작업 | 범위·선택 기준 | 완료 조건과 증거 | 선행 조건 |
-| --- | --- | --- | --- |
-| 0-A 진단 | 기존 코드와 historical 기록 구분 | assessment, 로컬 baseline, UI 이미지, 위험/난도/범위 | 완료 |
-| 1-A 출처 검증 | 단일 frontend Cookie API의 Origin/Referer guard. token 체계 추가 대신 작은 경계 선택 | 변조/누락/중복/다른 port 거부, DB 무변경, 정상 workflow 회귀 | 로컬 완료, staging 후속 |
-| 1-B 개발 재현성 | locale 기본 인코딩 의존 제거 | [QA-01 재현·수정·검증](evaluation-encoding.md) | PR #22 리뷰·CI 후 병합 완료 |
-| 1-C 공개 데모 정책 | local demo 로그인과 public 모드 분리, 합성 데이터만 사용. 가능하면 session별 격리/만료, shared demo는 쓰기 제한 | 기본 공개 비밀번호 미허용, 타 세션 데이터 접근 차단, seed 환경 guard, reset dry-run과 보존 정책 | SEC-01/GOV-01 |
-| 1-D 남용/비용 제한 | 로그인·일반 API·AI의 서로 다른 예산. 단일 instance는 proxy+최소 상태부터, worker가 늘면 공유 원자 카운터 비교 | 429/Retry-After, 동시 요청 경계, TTL 회복, AI budget 초과 시 provider 호출 0회. 기본 AI key 미주입 | 배포 topology·신뢰 proxy 결정 |
-| 1-E production artifact | 기존 Docker 재사용, 비root/버전 고정·DB 비노출·HTTPS proxy/secret 주입. 로컬 Compose와 분리 | image scan, config fail-fast, 5432 외부 차단, Cookie/CORS/CSRF 실제 browser 확인 | Docker engine, 1-C/D |
-| 1-F 백업/복원 | synthetic PostgreSQL에 pg_dump→별도 DB restore, schema/invariant 검증 | backup ID/보존/RPO 목표·실측 RTO, 예약/결재선/캘린더 검증, 기존 volume 비삭제 | 로컬 PostgreSQL |
-| 1-G staging CD | 기존 4개 CI job 유지. 승인된 registry에 SHA tag+digest, release record, 단일 migration job | build→scan→staging migration→ready→smoke→E2E, migration 실패 시 rollout 없음 | 환경 권한·1-E/F, 인프라 승인 |
-| 1-H production CD | GitHub Environment 수동 승인과 최소 배포 권한, 직전 digest 복귀 | release runbook을 실제 명령에 맞게 갱신, 실패 drill/rollback 후 동일 smoke 통과 | staging 증거·사용자 production 승인 |
-| 2-A 대표 화면 | 결재 목록의 정보 밀도/상태/키보드/모바일 방향을 먼저 구현. 기존 CSS token 확장부터 | Before/After 동일 데이터·viewport 이미지, loading/error/empty/retry, keyboard/zoom 수동 확인 | 디자인 방향 1개 화면 검토 |
-| 2-B 공통 규격 | 색·글자·간격·상태 token, Button/Field/Alert/EmptyState 등 반복 경계 | 격리 예시·필요한 동작 테스트, 대비/포커스 확인. 라이브러리 추가 시 비용/호환/번들 비교 | 2-A |
-| 2-C 업무 화면 적용 | 로그인/대시보드→목록·상세→작성·승인→근태·AI→조직, 한 화면씩 | 사용자 목적/클릭/입력실수/복구 점검, axe 자동 결과와 WCAG 2.2 AA 수동 결과 분리 | 2-B, 서버 권한 유지 |
-| 3-A 성능 baseline | 기존 도메인의 1k→10k→100k synthetic generator, seed 고정/분포·DB 크기 기록 | query count, 응답 byte, EXPLAIN ANALYZE BUFFERS, API p50/p95/p99·오류율·CPU/RSS/pool, React trace | 격리 PostgreSQL, 아래 실험 계약 |
-| 3-B 서버 조회 제한 | 목록 summary DTO, 페이지 크기 상한, SQL 필터/정렬·Tool query도 제한. offset/cursor 비교 | 권한 필터 후 pagination, tie/경계/삽입·수정 중 중복·누락 계약, query count 테스트와 동일 부하 재측정 | 3-A·API/FE/Tool 계약 설계 |
-| 3-C FE 경합·렌더링 | 요청 취소/최신 응답, loading/retry, cache 무효화. Profiler로 기술 선택 | 지연 응답 역전 E2E, mutation 뒤 최신 목록, bounded DOM, render/commit trace 비교 | 3-B, FE-01은 먼저 독립 수정 가능 |
-| 3-D 동시성 | PostgreSQL 별도 connection/transaction에서 승인·수정·동일 token·같은 연차 경합 | 한 번 예약/한 번 결재선, 음수 연차 없음, conflict 명시, deadlock/timeout 후 rollback 검증 | 기존 lock/version/unique 재사용 |
-| 3-E 1M DB 실험 | 브라우저로 전체 전송 금지, 100k 실측으로 저장공간/WAL/index/백업 비용 계산 | 여유 disk/RAM 확인 후 별도 실행 승인, 실행시간·query plan·정리 계획. 100k 완료로 1M을 주장하지 않음 | 3-A/D, 자원 검토 |
-| 4-A 최소 관측 | 기존 JSON log/request ID 재사용. latency/error 집계·uptime·frontend exception부터 | 수집 항목/PII/보존/비용, 오류→request ID→원인 조회 가능, 알림 drill | staging |
-| 4-B 장애 주입 | DB 중단·느린 API·provider timeout/429·응답 유실·배포 실패 | 실패 화면/안전한 재시도/복구·RPO/RTO 기록. write 무조건 자동 재시도 금지 | fake 테스트→실제 격리 DB 순서 |
-| 4-C 추가 기술 판단 | OTel/분산 tracing·circuit breaker는 반복 장애/추적 공백 측정 후 | 도입/비도입 ADR, 동작·운영 가치 증거. 개인 규모에서 Kafka/K8s 등 기본 제외 | 4-A/B 측정 |
-| 5-A 기술 증빙 | 기존 architecture-and-controls/runbook/ADR 재사용, 구현과 목표 분리 | 시스템/FE/API/AI/권한/배포/동시성/성능/복구 문서와 재현 명령 | 각 완료 단위마다 갱신 |
-| 5-B 포트폴리오 | 웹/PDF에 재사용할 Markdown·이미지·CSV/JSON source | 서비스 URL(배포 후), synthetic 화면, 개선 전후 조건/실측/한계, 개인·회사 성과 분리 | 실제 증거 있는 항목만 |
-
-## 배포 후보 비교와 비용 승인 경계
-
-2026-10-21 공식 가격/문서를 확인했다. 아래는 소규모 개인 데모에 대한 설계 추정이며 견적/결제 승인이 아니다.
-세금·환율·도메인·초과 전송·백업 저장·유료 AI는 별도다. 최종 선택 직전에 지역/재고/청구 화면을 재확인한다.
-
-| 후보 | 월 비용/무료 범위 | 호환·운영·복구·확장성 |
+| 분야 | 재사용할 기반 | 앞으로 강화할 부분 |
 | --- | --- | --- |
-| Vercel Hobby + Render Free API + Neon Free PG | 무료 할당 내 $0. Vercel Hobby는 개인 비상업용. Render는 15분 idle sleep, Neon Free는 100 CU-hours/project/month·1GB/project 현재 표기 | Next 지원, FastAPI 장기 process와 pgvector 가능한 PG 분리. 관리 부담 낮지만 cold start/무료 제한·cross-site Cookie/지역 지연 점검 필요. TLS/secret은 각 플랫폼 설정, backup 보존은 plan별 확인과 별도 dump. 같은 site 도메인 또는 proxy 필요 |
-| Vercel Hobby + Render 유료 API + Neon Free | API $7/month(512MB)부터, DB 한도 내 $0. 리소스 적합성은 측정 필요 | API cold start 회피. 관리형 운영으로 단순하지만 memory·DB usage·egress 비용이 별도. scale-out 시 DB pool/limit 공유가 필요 |
-| 단일 VPS + Compose + TLS reverse proxy + 자체 PG/pgvector | Hetzner 유럽 CX23 예시 서버 €5.49/month(IPv4·VAT 제외), backup 서버 가격의 20% 추가. IPv4/도메인/오프사이트 저장 포함한 계획 예산 약 €8~12/month, 실제 총액 미확정 | 기존 이미지/SQL 호환 높음. same-origin `/api`로 Cookie 단순화. HTTPS 갱신·OS patch·secret 파일 권한·백업·복원을 직접 운영. 단일 장애점, 한국 latency 미측정. build는 CI에서 하고 DB 리소스는 실측 후 확장 |
+| 업무 | 일반·출장·경비·휴가 결재, 초안·제출·승인·반려·재작성 | 경비 보완과 결재자 검토의 품질 |
+| 공개 체험 | 실제 도메인·방문 공간 격리·역할 전환·15분/일20회/보관30공간 제한 | 만료 공간의 지속 정리, 한도·장애의 회복 경로 |
+| AI | 자연어 초안·후속 질문·정책 RAG·허용된 Tool·확인 기반 저장 | 실제 모델 평가 확대와 경비 초안의 제한 공개 |
+| AI 근거 | 실제 모델의 고정 합성 경비 2건 점검 | 2건을 통계적 정확도나 전체 AI 품질로 일반화하지 않기 |
+| 디자인·FE | JHW 토큰34개·Button/Badge·Pattern 문서·첫 방문 안내·사이드바 Tailwind4 | 폼/상태 컴포넌트, 데이터 요청 공유, 입력·탐색 맥락 보존 |
+| BE·DB | 명령별 권한·version·트랜잭션·PostgreSQL 회귀·Swagger7도메인40API | 무제한 목록 조회와 전체 상세 응답의 개선·측정 |
+| 배포 | CI·수동 private release·고정 이미지·public 후보 검사·트래픽 전환 | 공개 배포 절차 통합과 실패 복구 재현 |
+| 사용자 검증 | 피드백 접수·휴가 작업 비교 절차 | 경비 기준 신규 사용자 실험. 기존 task-study.csv에는 측정 행이 없음 |
 
-무료 후보의 Render 자체 무료 PostgreSQL은 30일 만료이므로 장기 데모 DB 후보에서 제외했다.
-Neon pgvector 지원이 있더라도 현재 HNSW extension version/권한과 migration 실행은 실제 환경에서 확인해야 한다.
+공개 AI와 자동 정리는 마지막 배포 기록에서 OFF다. Storybook과 npm 공개는 아직 수행하지 않았다.
+낙관적 동시성 제어는 구현돼 있지만 낙관적 UI 업데이트와 구분한다.
 
-공식 근거:
-[Vercel Hobby](https://vercel.com/docs/plans/hobby),
-[Render 무료 제한](https://render.com/docs/free),
-[Render 가격](https://render.com/pricing?trk=article-ssr-frontend-pulse_little-text-block),
-[Neon 가격](https://neon.com/pricing),
-[Neon pgvector](https://neon.com/blog/sunset-pgembedding),
-[Hetzner 2026-06 가격](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/),
-[Hetzner backup 과금](https://docs.hetzner.com/cloud/billing/faq/).
+## 3. 체크포인트와 실행 순서
 
-**과거 비교 제안(현재 미선택):** 지속 접속 가능한 저비용 데모와 운영 실습을 함께 목표로 하면 단일 VPS를 검토했다.
-운영 시간을 줄이고 싶으면 관리형 API+PG가 대안이다. 월 비용을 전혀 쓰지 않는 기간에는 무료 후보를
-cold start 있는 비상업 데모로 제한하고, 안정적 상시 운영이라고 표현하지 않는다.
+달력 일정을 확약하지 않고, 아래 완료 조건과 작은 PR 단위로 진행한다.
+사람의 실험 참여·예산 결정처럼 외부 입력이 필요한 항목은 대기 상태로 표시하고 독립 작업은 계속한다.
 
-사용자 승인 요청은 보안 P0 보완과 로컬 검증 뒤에 한다. 그때 provider/지역·월 상한·backup·domain·AI 예산·
-결제 수단 필요 여부·생성/삭제할 자원을 하나의 구체적 안으로 제시한다. 이번에는 계정 연결/자원 생성/결제 없음.
-Production 배포·외부 push·기존 데이터 삭제는 별도 승인 대상이다.
+| 순서/ID | 체크포인트 | 완료 기준 | 주된 의존성 |
+| --- | --- | --- | --- |
+| M0 | 대표 업무·측정 기준 고정 | 경비 제품 명세·고정 과제·익명 기록 양식·실험/기술 지표 구분 | 기존 경비 구현 재사용 |
+| M1 | 최소 지속 운영 마감 | 정리 대상·보존 경계·실행/재실행·실패 시 복구를 한정된 범위에서 확인 | 기존 정리 도구·실행 증거 대조 |
+| M2 | 경비 AI 평가·제한 공개 | 필수 회귀 사례 평가, 서버 비용 예산, 실패/소진 대체 경로, 실제 공개 대표 흐름 검증 | M0, 실제 공개 전 M1·비용/키 적용 범위 확인 |
+| M3 | 업무 UX·FE 상태 강화 | 관찰한 장애 개선, 공통 요청 수명·입력/목록 복귀·오류 회복 검증 | M0; 사용자 결과는 확보되는 대로 반영 |
+| M4 | 디자인 시스템·Storybook | 실제 폼·상태 컴포넌트 사용, 상태별 stories·키보드 검증, 정적 배포 확인 | M3의 대표 흐름/컴포넌트 경계 |
+| M5 | 목록 계약·규모별 성능 | 제한된 목록·안정 정렬·FE/Tool 연계, 동일 데이터의 전후 측정 | 변경 전 baseline, 기존 권한 회귀 |
+| M6 | 배포·관측·복구 통합 | public 후보→검사→전환→복구를 반복 가능한 workflow로 실행 | M1, 기존 release 계약 |
+| M7 | 포트폴리오 사례 연구 | 문제·선택 이유·실제 결과·재현 방법·한계를 연결한 문서와 데모 | 각 단계의 실제 증거 |
 
-## 성능 실험 계약
+**첫 제품 체크포인트:** M0의 기준을 만들고 M1을 한정해 마감한 뒤 M2의 경비 AI를 완성한다.
+M3의 사용자 검증과 차단 결함 수정은 이 기간에도 이어간다. M4~M6를 모두 끝내야 AI를 보여줄 수 있는 구조로 만들지 않는다.
 
-처음은 k6(HTTP percentile/threshold·CI artifact)를 후보로 두고, Python 서비스 내부 scenario 제어가 더 중요하면
-Locust와 비교한다. 도구 선택만으로 성능이 개선되지는 않는다. 새로운 도구/라이브러리는 먼저 작은 재현에서 검증한다.
+**두 번째 체크포인트:** 사용성 결과를 반영한 M3와 실제 소비 컴포넌트·Storybook의 M4.
 
-- dataset seed/행 수(문서·회차·팀 분포)/DB 크기, commit SHA, OS/CPU/RAM, PG 설정·pool·이미지 digest 기록.
-- 동일 scenario에서 1/10/50 동시 사용자, warm-up 30초+측정 3분을 초기 계획으로 사용. 자원 포화/오류 시 안전 중단.
-  데이터 규모·concurrency를 한꺼번에 바꾸지 않고 조회·승인/예약 쓰기 scenario를 구분한다.
-- API p50/p95/p99·throughput·오류율, DB query count/time/plan·connection, 프로세스 CPU/RSS 수집.
-- desktop/mobile 조건 고정, DOM 수·응답 크기·React render/commit·heap·LCP/INP/CLS를 분리 기록.
-  lab 측정과 field CWV를 구분하며 Lighthouse 점수를 실제 사용자 성능으로 주장하지 않는다.
-- 같은 dataset/환경/시간/측정 방법으로 baseline→변경→재측정. 캐시 warm/cold·반복 횟수와 편차 포함.
-- 먼저 SQL/전송량을 제한한 뒤 DOM 병목에 virtualization, CPU 작업에 Worker, 입력 우선순위에 concurrent API를 검토.
-  현재 어느 것의 성능 향상률도 측정하지 않았다.
+**세 번째 체크포인트:** M5·M6의 측정·운영 개선과 이를 정리하는 M7. M7의 기록은 마지막에 몰아서 작성하지 않는다.
 
-## 재개·리뷰 절차
+## 4. 운영 작업이 제품 개발을 막지 않게 하는 원칙
 
-다음 세션은 assessment 결과와 이 체크리스트, `git status`부터 읽는다. 이번 PR은 CSRF 한 단위와
-진단/계획/검증 artifact를 포함한다. 우선 QA-01을 별도 변경으로 처리하고 SEC-01/03으로 진행한다.
-Cloud Run 첫 배포 브랜치의 검증을 확인하고 전용 외부 project/secret을 준비한다.
-Docker 엔진이 준비되면 기존 container-smoke와 PostgreSQL 동시성부터 재현한다.
-완료된 단위마다 구현 파일·실행 명령·실패/통과·외부 미검증·다음 작업을 갱신한다.
+- M1은 체험 공간 누적으로 신규 체험이 막히는 문제를 해결하는 최소 범위로 제한한다.
+- 기존 dry-run/apply/재실행·키 격리·알림 수신 증거를 먼저 대조하고 확인된 실험을 반복하지 않는다.
+- 장시간 알림 관찰·대규모 대시보드·추가 인프라 확장을 AI/UX 구현의 선행 조건으로 삼지 않는다.
+- 운영 적용에 외부 입력이 필요해도 M2의 offline 평가·예산 구현과 M3의 로컬 개선은 진행한다.
+- 실제 권한 침해·데이터 손상·비용 제한 우회 결함은 발견 즉시 우선 처리한다.
+
+## 5. 분야별 개발 범위
+
+| 분야 | 우선 개발 | 후속 또는 조건부 |
+| --- | --- | --- |
+| 기획 | 작성자/결재자 과제·성공/실패 조건·대표 흐름 | ERP·조직관리 등 새 도메인 |
+| 업무 기능 | 반려 사유→수정, 검토 요약·확인 항목, 제안→근거→해결 행동 | 영수증 원본 첨부·OCR |
+| 디자인·UX | 문구·정보 우선순위·폼/상태 표현·신규 사용자 과제 검증 | 사용자 필요로 확인되지 않은 화면 확대 |
+| FE | 공통 요청·계정 전환 무효화·입력/목록 맥락·안전한 재시도 | 실제 가역 동작에 적합한 낙관적 UI, 측정 후 가상화 |
+| BE·DB | 목록 계약·권한 보존·안정 정렬·SQL 측정 | 수요 없는 복잡한 결재선·서비스 분리 |
+| AI | 실제 평가·제한 공개·사실/근거 경계·비용 제한 | 읽기 제안의 설명 고도화, 영수증 해석 |
+| 인프라 | 체험 지속성·최소 상태/비용 관찰·복구 | 관찰 공백이 확인된 뒤 추가 관측 도구 |
+| 배포·개발환경 | 공개 배포 workflow 통합·고정 source/digest·소비 앱 검증 | 검증된 gate 이후 main 자동 배포 |
+| 품질·보안 | 만료/한도/경합/응답 유실·접근성·데이터 규모 회귀 | 근거 없는 테스트 수 확대 |
+| 포트폴리오 | 실제 개선 전후·선택 이유·범위와 한계 | 검증 없는 정확도·절감률·대규모 운영 주장 |
+
+## 6. 상태 관리와 종료 규칙
+
+상태는 `planned / ready / in_progress / waiting_external / verified / released / deferred`로 기록한다.
+문서 작성·로컬 통과·CI 통과·실제 배포를 같은 완료로 취급하지 않는다.
+
+각 PR에는 작업 ID, 해결할 문제, 범위, 실제 검사 결과, 공개 여부, 남은 조건, 다음 ID를 남긴다.
+자가 리뷰는 독립 승인과 구분한다. 코드 PR은 관련 검사와 저장소 필수 CI 통과 후 병합한다.
+문서 전용 PR은 링크·내용 일관성을 검증하고 저장소 CI를 따르며 제품 재배포는 하지 않는다.
+
+현재 계획의 실험 규모·품질 문턱은 제안이다. baseline과 사례를 확인한 뒤 구현 PR에 구체적인 수치를 고정한다.
+실제 측정 전에는 업무 시간 절감·모델 정확도·사용자 완료율을 성과로 발표하지 않는다.
+
+## 7. 다음 세션 시작점
+
+1. `git status`와 이 로드맵, 상세 계획을 읽고 기존 미커밋 작업을 보존한다.
+2. **M0-01의 대표 경비 계약 + M2-01의 기존 평가 대조·offline 회귀 확장**을 첫 작업 PR로 만든다.
+3. 사용자 실험 결과를 기다리는 동안 M1-01의 기존 정리 증거 대조 또는 M2-01의 기존 평가 사례 목록화를 진행한다.
+4. 이 로드맵 PR을 올린 것만으로 실제 사용자 실험·정리·AI 공개·Storybook 배포를 완료 처리하지 않는다.

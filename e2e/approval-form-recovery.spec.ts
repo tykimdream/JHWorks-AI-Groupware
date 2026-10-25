@@ -81,8 +81,9 @@ test('logout clears temporary forms and invalid or expired storage is rejected',
   await login(page);
   await page.evaluate((key) => sessionStorage.setItem(key, JSON.stringify({ schema: 1, version: null, expiresAt: Date.now() - 1, values: {} })), key);
   await page.reload();
+  await expect(title(page)).toBeVisible(); // A missing button also matches before hydration.
   await expect(page.getByRole('button', { name: '이전 입력 이어쓰기' })).toHaveCount(0);
-  expect(await page.evaluate((key) => sessionStorage.getItem(key), key)).toBeNull();
+  await expect.poll(() => page.evaluate((key) => sessionStorage.getItem(key), key)).toBeNull();
   await page.evaluate((key) => sessionStorage.setItem(key, '{broken'), key);
   await page.reload();
   await expect(title(page)).toBeEmpty();

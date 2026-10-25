@@ -30,3 +30,20 @@ CI `postgres` job은 기존 PostgreSQL 회귀 뒤 같은 도구를 실행하고 
 ## 다음 판단
 
 실제 artifact를 확보한 뒤 크기별 행·SQL·전송량 증가를 확인한다. 이후 동일 조건의 query plan/HTTP/UI 측정과 M5-02의 제한된 목록 계약을 설계한다. 현재 API의 무제한 전체 본문·이력 반환을 이 도구 자체로 개선했다고 주장하지 않는다. 요약 DTO·페이지 상한을 바꿀 때는 목록 UI와 업무 조회 Tool의 전체/일부 결과 의미도 함께 수정해야 한다.
+
+## 첫 실제 PostgreSQL 결과 — 2026-10-26
+
+[CI 실행40205237027](https://github.com/tykimdream/JHWorks-AI-Groupware/actions/runs/40205237027)의 `postgres` job에서 실제 PostgreSQL17.11/Python3.12.15로 실행했다. [원시 report](benchmarks/approval-list-2026-10-26.json)의 source는 GitHub PR 합성 merge `25878c5eb7d60ea9bd004393897e292aeeaed7b6`(PR head `5fd1ca8`)이다. 위 warm-up1/반복3/단일 동시성 조건을 따른다.
+
+| 전체 합성 문서 | 조회자·범위 | 반환 행 | SQL 수 | JSON bytes | ORM+직렬화 중간값 ms |
+| --- | --- | --- | --- | --- | --- |
+| 100 | 작성자 mine | 75 | 2 | 165172 | 7.17 |
+| 100 | 결재자 assigned | 100 | 2 | 220148 | 9.64 |
+| 100 | 비참여자 assigned | 0 | 1 | 22 | 1.11 |
+| 1000 | 작성자 mine | 750 | 3 | 1651523 | 113.29 |
+| 1000 | 결재자 assigned | 1000 | 3 | 2201274 | 168.75 |
+| 1000 | 비참여자 assigned | 0 | 1 | 22 | 1.28 |
+
+행·SQL·bytes는 각 경우3회 모두 같았다. 결재자1000건은 압축 전 JSON 약2.20MB이며100건의 약10배다. SQL이 행마다 늘어나는 N+1 양상은 이 조건에서 관찰하지 않았고, select-in loading의 batch 증가로2→3회였다. 본문·첨부 메타·이력 전체를 보내는 응답량은 M5-02 요약 DTO/페이지 상한을 우선 검토할 구체적 근거다. 실제 웹 요청의 지연·압축량·대규모 운영 성능을 측정한 결과는 아니다.
+
+이 측정으로 서비스 baseline만 확인했다. query plan·HTTP/UI 측정과 제한된 목록 계약·개선 후 같은 조건 재측정은 남아 있다.

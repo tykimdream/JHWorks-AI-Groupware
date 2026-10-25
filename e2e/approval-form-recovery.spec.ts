@@ -64,7 +64,7 @@ test('save failure keeps fields and storage failure warns without blocking serve
     await route.fulfill({ status: 503, json: { error: { code: 'SYNTHETIC_FAILURE', message: '합성 저장 실패' } } });
   });
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
-  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: '합성 저장 실패' })).toBeVisible();
   await expect(title(page)).toHaveValue('실패 후 보존');
   await page.unroute('**/api/v1/approvals');
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();

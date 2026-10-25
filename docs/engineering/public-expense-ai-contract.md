@@ -96,6 +96,7 @@ uv run python -m app.ops.ai_budget_reconcile \
 후속 입력 상한, paid embedding 미호출, 명시적 저장/재전송/제출/역할 승인과 복구를 검사한다.
 브라우저의 공개 AI/소진 상태는 명시적 mock이며 실제 모델 품질 결과가 아니다.
 
+[M2-03A의 예산 제한 평가 준비](bounded-expense-model-evaluation.md)는 기본 계획만 제공한다.
 M2-03에서 실제 키·모델 접근·총 평가 예산/호출 상한, 고정 사례 평가, 실제 원격 migration과
 source/digest 후보, OFF·실패·소진 흐름을 확인해야 한다. 키 업로드·유료 호출·공개 활성화는 아직 수행하지 않았다.
 보관 한도/정리·백업 조건은 M1-02 기록과 별도 대조한다. 일반 CI는 합성 provider만 사용한다.

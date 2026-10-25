@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSessionScope } from '@/components/session-data-provider';
 import { apiFetch } from '@/lib/api';
 
 export type AICapability =
@@ -20,14 +21,10 @@ interface DemoConfiguration {
 }
 
 export const useDemoConfiguration = () => {
-  const [configuration, setConfiguration] = useState<DemoConfiguration | null>(null);
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    apiFetch<DemoConfiguration>('/demo/configuration', { signal: controller.signal })
-      .then((value) => { if (!controller.signal.aborted) setConfiguration(value); })
-      .catch(() => { if (!controller.signal.aborted) setError(true); });
-    return () => controller.abort();
-  }, []);
-  return { configuration, error };
+  const { epoch } = useSessionScope();
+  const query = useQuery({
+    queryKey: ['session', epoch, 'configuration'],
+    queryFn: ({ signal }) => apiFetch<DemoConfiguration>('/demo/configuration', { signal }),
+  });
+  return { configuration: query.isError ? null : query.data ?? null, error: query.isError };
 };

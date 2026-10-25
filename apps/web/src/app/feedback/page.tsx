@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { ApiError, apiFetch, getUserErrorMessage } from '@/lib/api';
+import { notifyIdentityChanged } from '@/lib/session-events';
 
 export default function FeedbackPage() {
   const { configuration, error: configurationError } = useDemoConfiguration();
@@ -44,6 +45,7 @@ export default function FeedbackPage() {
     pending.current = true; setBusy(true); setError(null);
     try {
       await apiFetch('/demo/start', { method: 'POST' });
+      notifyIdentityChanged();
       setNeedsVisit(false); setNotice('체험이 연결됐습니다. 작성한 의견을 보내주세요.');
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '체험을 연결하지 못했습니다. 잠시 후 다시 시도해주세요.'));

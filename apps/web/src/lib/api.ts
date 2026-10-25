@@ -1,3 +1,5 @@
+import { getSessionGeneration, notifySessionExpired } from '@/lib/session-events';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
 interface ErrorBody {
@@ -69,6 +71,7 @@ export const getUserErrorMessage = (error: unknown, fallback: string): string =>
 };
 
 export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+  const requestGeneration = getSessionGeneration();
   const headers = new Headers(init.headers);
   const requestId = headers.get('X-Request-ID') ?? globalThis.crypto.randomUUID();
   headers.set('X-Request-ID', requestId);
@@ -88,6 +91,9 @@ export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise
       body = (await response.json()) as ErrorBody;
     } catch {
       // The fallback below keeps non-JSON infrastructure errors understandable.
+    }
+    if (response.status === 401 && path !== '/auth/login' && !init.signal?.aborted) {
+      notifySessionExpired(requestGeneration);
     }
     throw new ApiError(
       response.status,

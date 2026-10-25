@@ -36,9 +36,13 @@ test('feedback preserves input across expired-session recovery and reports recei
   await expect(consent).toBeChecked();
   await page.getByRole('button', { name: '의견 보내기' }).click();
   await expect(page.getByRole('alert').filter({ hasText: '입력한 의견은 유지' })).toBeVisible();
+  await expect(page).toHaveURL(/\/feedback$/);
   await expect(message).toHaveValue(/승인 버튼/);
   await page.getByRole('button', { name: '체험 연결하기' }).click();
   await expect(page.getByRole('status')).toContainText('체험이 연결됐습니다');
+  await expect(page).toHaveURL(/\/feedback$/);
+  await expect(message).toHaveValue(/승인 버튼/);
+  await expect(consent).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await mkdir('artifacts/feedback', { recursive: true });
   await page.screenshot({ path: `artifacts/feedback/form-${testInfo.project.name}.png`, fullPage: true });

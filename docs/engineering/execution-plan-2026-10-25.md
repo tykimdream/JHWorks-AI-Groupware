@@ -120,8 +120,10 @@ DB 대상 수·백업 신선도·실제 정리/예약 적용은 M1-02에 남겨 
 
 ## 5. M3 — UX·프론트엔드
 
-### M3-01 공통 서버 데이터 수명 — planned
+### M3-01 공통 서버 데이터 수명 — verified (로컬 구현·회귀, 공개 미배포)
 
+- [세션 수명 계약](session-data-lifecycle.md): 공통 훅2개를 instance-local QueryClient로 공유했다.
+  고정 PC/모바일 경로의 성공200 응답은 설정7→2, 계정3→1이며, 전체 HTTP 시도나 실사용 지연 측정은 아니다.
 - `useCurrentEmployee`, `useDemoConfiguration`, 화면별 조회를 조사해 중복 요청·소유권·갱신 경계를 정한다.
 - 기존 context/전용 store와 query cache 도구를 비교하고 규모에 맞는 한 가지 방식으로 설명한다. 라이브러리 설치 자체를 완료 기준으로 삼지 않는다.
 - 계정/방문 공간/역할 변경·로그아웃 시 이전 캐시를 노출하지 않는다. 요청 취소·오래된 응답 무시·mutation 후 무효화를 유지한다.

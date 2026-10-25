@@ -39,3 +39,5 @@ playwright-public-demo-report/
 test-results/
 
 artifacts/pattern/
+
+artifacts/session-data/

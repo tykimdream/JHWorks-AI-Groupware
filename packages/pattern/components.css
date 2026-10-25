@@ -87,3 +87,26 @@
     transition: none;
   }
 }
+
+.jhw-field { display: grid; gap: var(--jhw-space-2); min-width: 0; }
+.jhw-field__heading { display: flex; align-items: center; gap: var(--jhw-space-1); }
+.jhw-field__label { display: block; color: var(--jhw-color-text); font-size: var(--jhw-font-small); font-weight: 650; }
+.jhw-field__description, .jhw-field__error { margin: 0; font-size: var(--jhw-font-small); line-height: 1.6; overflow-wrap: anywhere; }
+.jhw-field__description { color: var(--jhw-color-text-muted); }
+.jhw-field__error { color: var(--jhw-color-danger); }
+.jhw-input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: var(--jhw-space-3); border: 1px solid var(--jhw-color-border); border-radius: var(--jhw-radius-sm); background: var(--jhw-color-surface); color: var(--jhw-color-text); font: inherit; }
+.jhw-input:focus { outline: 2px solid var(--jhw-color-primary); outline-offset: 2px; border-color: var(--jhw-color-primary); box-shadow: none; }
+.jhw-input[aria-invalid="true"] { border-color: var(--jhw-color-danger); }
+.jhw-input:disabled { background: var(--jhw-color-canvas); color: var(--jhw-color-text-muted); cursor: not-allowed; }
+textarea.jhw-input { resize: vertical; }
+.jhw-alert { padding: var(--jhw-space-4); border: 1px solid var(--jhw-color-border); border-radius: var(--jhw-radius-sm); color: var(--jhw-color-text); background: var(--jhw-color-canvas); line-height: 1.7; overflow-wrap: anywhere; }
+.jhw-alert strong { display: block; margin-bottom: var(--jhw-space-1); }
+.jhw-alert--danger { border-color: var(--jhw-color-danger); background: var(--jhw-color-danger-subtle); }
+.jhw-alert--success { border-color: var(--jhw-color-success); }
+.jhw-empty-state { display: grid; gap: var(--jhw-space-2); padding: var(--jhw-space-6); border: 1px dashed var(--jhw-color-border); border-radius: var(--jhw-radius-md); background: var(--jhw-color-surface); color: var(--jhw-color-text); overflow-wrap: anywhere; }
+.jhw-empty-state p { color: var(--jhw-color-text-muted); margin: 0; line-height: 1.7; }
+.jhw-confirmation-dialog { box-sizing: border-box; width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; border: 1px solid var(--jhw-color-border); border-radius: var(--jhw-radius-md); padding: var(--jhw-space-6); background: var(--jhw-color-surface); color: var(--jhw-color-text); box-shadow: var(--jhw-shadow); font: inherit; overflow-wrap: anywhere; }
+.jhw-confirmation-dialog::backdrop { background: color-mix(in srgb, var(--jhw-color-text) 45%, transparent); }
+.jhw-confirmation-dialog h2 { font-size: 1.25rem; margin: var(--jhw-space-2) 0; }
+.jhw-confirmation-dialog > p { color: var(--jhw-color-text-muted); line-height: 1.7; }
+.jhw-confirmation-dialog__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--jhw-space-3); margin-top: var(--jhw-space-5); }

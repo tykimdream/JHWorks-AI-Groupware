@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { tokens } from '@jhworks/pattern';
 import { Badge, Button } from '@jhworks/pattern/react';
 import { ContextHint } from '@/components/context-hint';
+import { PatternAlertExample, PatternDialogExample, PatternEmptyExample, PatternFormExample } from '@/components/pattern-form-examples';
 
 function CodeSample({ name, code }: { name: string; code: string }) {
   const [copied, setCopied] = useState(false);
@@ -38,6 +39,10 @@ function CodeSample({ name, code }: { name: string; code: string }) {
   );
 }
 const components = [
+  { id: 'field', name: 'Field / Input / Select / Textarea', label: '입력과 오류', summary: '라벨·입력 조건·오류를 연결합니다. 필수 정보는 입력칸 옆에 직접 표시합니다.' },
+  { id: 'alert', name: 'Alert', label: '상태 안내', summary: '실패의 원인과 다음 행동을 안내하고 기존 입력을 유지합니다.' },
+  { id: 'empty', name: 'EmptyState', label: '빈 결과', summary: '무엇이 없는지와 다음 행동을 짧게 안내합니다.' },
+  { id: 'dialog', name: 'ConfirmationDialog', label: '확인 대화상자', summary: '결정할 사실을 보여주고 확인합니다. 취소 초기 포커스·Esc·Tab 순환을 공유합니다.' },
   {
     id: 'button',
     name: 'Button',
@@ -268,7 +273,10 @@ export function PatternLibrary() {
                       <Badge tone="success">승인</Badge>
                       <Badge tone="danger">반려</Badge>
                     </>
-                  ) : (
+                  ) : item.id === 'field' ? <PatternFormExample />
+                    : item.id === 'alert' ? <PatternAlertExample />
+                    : item.id === 'empty' ? <PatternEmptyExample />
+                    : item.id === 'dialog' ? <PatternDialogExample /> : (
                     <span>
                       초안과 제출은 별도 단계입니다.{' '}
                       <ContextHint label="초안과 제출의 차이">
@@ -283,6 +291,14 @@ export function PatternLibrary() {
                   code={
                     item.id === 'button'
                       ? '<Button onClick={save}>초안 저장</Button>\n<Button variant="secondary">취소</Button>\n<Button disabled aria-busy="true">저장 중…</Button>'
+                      : item.id === 'field'
+                        ? '<Field label="실제 지출 금액" description="원 단위" error={error}>\n  <Input type="number" value={amount} onChange={changeAmount} />\n</Field>\n<Field label="비용 구분"><Select>{options}</Select></Field>\n<Field label="업무 목적"><Textarea /></Field>'
+                      : item.id === 'alert'
+                        ? '<Alert tone="danger" title="저장하지 못했습니다">입력은 유지했습니다. 다시 시도해주세요.</Alert>'
+                      : item.id === 'empty'
+                        ? '<EmptyState title="작성한 결재가 없습니다." description="첫 초안을 작성해보세요." />'
+                      : item.id === 'dialog'
+                        ? '<ConfirmationDialog open={open} title="제출할까요?" description="내용을 확인해주세요." confirmLabel="확인하고 제출" onCancel={cancel} onConfirm={submit} />'
                       : item.id === 'badge'
                         ? '<Badge tone="info">결재 대기</Badge>\n<Badge tone="success">승인</Badge>'
                         : '// 제품 내부의 접근성 패턴 (패키지 export 준비 중)\n<ContextHint label="초안과 제출의 차이">\n  초안 저장과 제출은 별도 단계입니다.\n</ContextHint>'

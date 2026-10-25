@@ -28,7 +28,9 @@ M0-02의 사람 실험은 별도 일정으로 진행하며 이 PR의 병합 조�
 M0-01: [대표 경비 계약](../product/expense-settlement-contract.md)에서 단계·사실·실패 조건을 기존 구현에 연결했다.
 M2-01: [평가 계약](expense-evaluation-contracts.md)에 기존6/추가30 사례, 공통 채점과 offline/model 경계를 기록했다.
 M0-02: [경비 실험 절차](../portfolio/expense-task-study.md)와 빈 CSV를 준비했으며 사람의 측정은 대기한다.
-실제 모델 추가 호출·공개 AI·운영 변경은 수행하지 않았다. 다음 구현은 M1-01 대조 후 M2-02다.
+실제 모델 추가 호출·공개 AI·운영 변경은 수행하지 않았다.
+M1-01: [현재 리소스 대조](demo-retention-current-audit-2026-10-25.md)에서 dry-run/PAUSED와 기존4개 실행·정책2개를 조회했다.
+DB 대상 수·백업 신선도·실제 정리/예약 적용은 M1-02에 남겨 두고 다음 구현은 M2-02다.
 
 ## 2. M0 — 제품·사용성 기준
 
@@ -55,7 +57,7 @@ M0-02: [경비 실험 절차](../portfolio/expense-task-study.md)와 빈 CSV를 
 
 ## 3. M1 — 최소 지속 운영
 
-### M1-01 기존 증거·현재 상태 대조 — planned
+### M1-01 기존 증거·현재 상태 대조 — verified (리소스 조회·남은 차이 기록)
 
 - 시작점: [기존 정리 운영](demo-retention-operations.md), [실행 대조](demo-retention-rehearsal.md),
   기존 정리·방문자 수명·보존 경계 코드/회귀. 미커밋 운영 문서는 보존하고 배포된 사실로 간주하지 않는다.

@@ -167,6 +167,16 @@ jobs:
             tests/test_postgres_demo_workspace.py \
             tests/test_postgres_demo_isolation.py
 
+
+      - name: Record isolated approval list service baseline
+        working-directory: apps/api
+        run: uv run --frozen python -m app.ops.approval_list_benchmark --output ../../artifacts/performance/approval-list.json
+      - name: Upload synthetic performance baseline
+        uses: actions/upload-artifact@v6
+        with:
+          name: approval-list-baseline
+          path: artifacts/performance/approval-list.json
+
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

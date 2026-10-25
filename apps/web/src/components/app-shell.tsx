@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
+import { notifyIdentityChanged } from '@/lib/session-events';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { DemoRoleSwitcher } from '@/components/demo-entry';
 import { apiFetch } from '@/lib/api';
@@ -40,6 +41,7 @@ export const AppShell = ({ children }: AppShellProps) => {
     try {
       await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
       if (employee) clearDraftRequest(employee.id);
+      notifyIdentityChanged(true);
       router.replace('/login');
     } catch {
       setLogoutError(true);

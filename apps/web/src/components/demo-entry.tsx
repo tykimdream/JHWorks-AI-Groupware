@@ -4,9 +4,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
-import { IDENTITY_CHANGED_EVENT } from '@/hooks/use-current-employee';
+import { notifyIdentityChanged } from '@/lib/session-events';
 
-export const DemoEntry = ({ durationMinutes }: { durationMinutes: number }) => {
+export const DemoEntry = ({
+  durationMinutes,
+  expenseAiAvailable = false,
+}: {
+  durationMinutes: number;
+  expenseAiAvailable?: boolean;
+}) => {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
@@ -18,6 +24,7 @@ export const DemoEntry = ({ durationMinutes }: { durationMinutes: number }) => {
     setError(null);
     try {
       await apiFetch('/demo/start', { method: 'POST' });
+      notifyIdentityChanged();
       router.replace('/');
     } catch (caught: unknown) {
       setError(
@@ -43,7 +50,9 @@ export const DemoEntry = ({ durationMinutes }: { durationMinutes: number }) => {
         </ol>
         <p>가입 없이 · {durationMinutes}분 체험 · 방문자별 전용 공간</p>
         <p className="subtle">
-          실제 개인정보나 회사 자료를 입력하지 마세요. 이 체험에서는 AI 호출을 제공하지 않습니다.
+          실제 개인정보나 회사 자료를 입력하지 마세요. {expenseAiAvailable
+            ? 'AI 경비 초안을 준비할 수 있으며, 이용 한도에 도달하면 직접 작성할 수 있습니다.'
+            : '이 체험에서는 AI 호출을 제공하지 않습니다.'}
         </p>
         {error && (
           <p role="alert" className="error-banner">
@@ -89,7 +98,7 @@ export const DemoRoleSwitcher = ({
     try {
       await apiFetch('/demo/role', { method: 'POST', body: JSON.stringify({ role }) });
       // The shell hides old content during refresh, then keys children by the new identity.
-      window.dispatchEvent(new Event(IDENTITY_CHANGED_EVENT));
+      notifyIdentityChanged();
       router.replace(role === 'manager' ? '/approvals?scope=assigned' : '/approvals');
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '역할을 바꾸지 못했습니다. 다시 시도해주세요.'));

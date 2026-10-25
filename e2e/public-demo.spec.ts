@@ -9,7 +9,7 @@ async function verifyDesktopLayout(page: Page) {
     expect(Math.abs(sidebar!.y)).toBeLessThan(1);
     expect(sidebar?.height).toBeCloseTo(900, 0);
     await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(page.getByRole('link', { name: 'j. JHWorks', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'JHWorks 홈으로', exact: true })).toBeVisible();
   }
   // A short laptop viewport must keep account actions visible while only the menu scrolls.
   for (const height of [600, 720, 900]) {

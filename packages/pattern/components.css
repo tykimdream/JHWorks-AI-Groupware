@@ -89,6 +89,7 @@
 }
 
 .jhw-field { display: grid; gap: var(--jhw-space-2); min-width: 0; }
+.jhw-field__heading { display: flex; align-items: center; gap: var(--jhw-space-1); }
 .jhw-field__label { display: block; color: var(--jhw-color-text); font-size: var(--jhw-font-small); font-weight: 650; }
 .jhw-field__description, .jhw-field__error { margin: 0; font-size: var(--jhw-font-small); line-height: 1.6; overflow-wrap: anywhere; }
 .jhw-field__description { color: var(--jhw-color-text-muted); }

@@ -10,7 +10,8 @@ export function Field({ id: suppliedId, label, description, error, disabled = fa
   const descriptionId = description ? `${id}-description` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   return h('div', { className: `jhw-field ${className}`.trim() },
-    h('label', { className: 'jhw-field__label', htmlFor: id }, label, required ? h('span', { 'aria-hidden': true }, ' *') : null),
+    h('div', { className: 'jhw-field__heading' }, h('label', { className: 'jhw-field__label', htmlFor: id }, label),
+      required ? h('span', { 'aria-hidden': true }, '*') : null),
     h(FieldContext.Provider, { value: { id, descriptionId, errorId, disabled, required } }, children),
     description ? h('p', { id: descriptionId, className: 'jhw-field__description' }, description) : null,
     error ? h('p', { id: errorId, className: 'jhw-field__error' }, error) : null);

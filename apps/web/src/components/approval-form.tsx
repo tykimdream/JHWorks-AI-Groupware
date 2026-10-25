@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import type {
@@ -14,11 +14,14 @@ import type {
   ExpenseDetails,
   ExpenseCategory,
 } from '@/lib/types';
+import { useWorkspaceEmployee } from '@/components/app-shell';
+import { clearManualDraft, readManualDraft } from '@/lib/manual-draft-handoff';
 import { expenseCategoryLabels } from '@/lib/approval-labels';
 
 interface ApprovalFormProps {
   initial?: Approval;
   initialType?: ApprovalType;
+  manualHandoff?: boolean;
   preset?: ApprovalFormPreset;
 }
 
@@ -57,8 +60,13 @@ const blankLeaveDetails: LeaveDetails = {
 
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
-export const ApprovalForm = ({ initial, preset, initialType }: ApprovalFormProps) => {
+export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false }: ApprovalFormProps) => {
   const router = useRouter();
+  const employee = useWorkspaceEmployee();
+  const [handoff] = useState(() => !initial && manualHandoff && employee ? readManualDraft(employee.id) : null);
+  useEffect(() => {
+    if (!initial && manualHandoff && employee) clearManualDraft(employee.id);
+  }, [employee, initial, manualHandoff]);
   const initialTrip =
     initial?.details.kind === 'BUSINESS_TRIP' ? initial.details : blankTripDetails;
   const initialLeave =
@@ -70,7 +78,7 @@ export const ApprovalForm = ({ initial, preset, initialType }: ApprovalFormProps
           endDate: preset?.endDate ?? '',
           leaveUnit: preset?.leaveUnit ?? 'FULL_DAY',
         };
-  const [type, setType] = useState<ApprovalType>(initial?.type ?? preset?.type ?? initialType ?? 'BUSINESS_TRIP');
+  const [type, setType] = useState<ApprovalType>(initial?.type ?? preset?.type ?? handoff?.type ?? initialType ?? 'BUSINESS_TRIP');
   const [expense, setExpense] = useState<ExpenseDetails>(
     initial?.details.kind === 'EXPENSE'
       ? initial.details
@@ -87,7 +95,7 @@ export const ApprovalForm = ({ initial, preset, initialType }: ApprovalFormProps
     initial?.title ?? (preset ? `${preset.startDate} 휴가 신청` : ''),
   );
   const [content, setContent] = useState(
-    initial?.content ?? (preset ? '업무 일정과 인수인계를 확인한 후 연차 사용을 신청합니다.' : ''),
+    initial?.content ?? handoff?.content ?? (preset ? '업무 일정과 인수인계를 확인한 후 연차 사용을 신청합니다.' : ''),
   );
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? '');
   const [destination, setDestination] = useState(initialTrip.destination ?? '');
@@ -202,6 +210,9 @@ export const ApprovalForm = ({ initial, preset, initialType }: ApprovalFormProps
 
   return (
     <form className="document-form" onSubmit={handleSubmit}>
+      {manualHandoff && <p role="status" className="form-guidance">{handoff
+        ? 'AI 화면의 요청과 추가 답변을 업무 내용으로 옮겼습니다. 문서 유형과 실제 지출 정보를 직접 확인해주세요. 아직 저장되지 않았습니다.'
+        : '이어받을 입력이 없거나 15분 보관 시간이 지났습니다. 직접 내용을 입력해주세요.'}</p>}
       <div className="form-section form-grid-two">
         <label>
           <span>결재 종류</span>

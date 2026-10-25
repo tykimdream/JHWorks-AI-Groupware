@@ -29,7 +29,7 @@ export default async function NewApprovalPage({ searchParams }: NewApprovalPageP
         </div>
       </header>
       <p className="form-guidance">아직 정보가 부족해도 저장할 수 있어요. <ContextHint label="초안과 제출의 차이">초안은 나만 수정할 수 있고, 제출하면 지정 결재자에게 전달됩니다.</ContextHint></p>
-      <ApprovalForm preset={preset} initialType={query.type === 'EXPENSE' ? 'EXPENSE' : undefined} />
+      <ApprovalForm manualHandoff={query.handoff === 'manual'} preset={preset} initialType={query.type === 'EXPENSE' ? 'EXPENSE' : undefined} />
     </AppShell>
   );
 }

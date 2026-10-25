@@ -119,12 +119,14 @@ test('a cookie change outside the app clears parent page input on focus', async 
 
 test('current identity expiry goes to login and the next account starts fresh', async ({ page }) => {
   await login(page);
+  await page.evaluate(() => sessionStorage.setItem('jhworks:manual-draft:emp_sales_001', JSON.stringify({ content: '만료 전 합성 입력', expiresAt: Date.now() + 60000 })));
   await page.route('**/api/v1/employees/me', (route) => route.fulfill({
     status: 401, json: { error: { code: 'AUTHENTICATION_REQUIRED' } },
   }));
   await focus(page);
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.locator('.profile-card')).toHaveCount(0);
+  expect(await page.evaluate(() => sessionStorage.getItem('jhworks:manual-draft:emp_sales_001'))).toBeNull();
   await page.unroute('**/api/v1/employees/me');
   await page.getByRole('button', { name: /결재자 · 최도윤/ }).click();
   await page.getByRole('button', { name: 'Demo 로그인', exact: true }).click();

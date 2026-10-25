@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { useCurrentEmployee } from '@/hooks/use-current-employee';
 import { notifyIdentityChanged } from '@/lib/session-events';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
@@ -66,9 +67,7 @@ export const AppShell = ({ children }: AppShellProps) => {
     <div className="app-frame">
       <aside className="sidebar tw:sticky tw:top-0 tw:flex tw:h-dvh tw:min-h-0 tw:flex-col tw:overflow-hidden tw:border-0 tw:border-r tw:border-solid tw:border-jhw-border tw:bg-jhw-surface tw:px-4 tw:pt-7 tw:pb-4 tw:text-jhw-text tw:max-[900px]:static tw:max-[900px]:h-auto tw:max-[900px]:gap-4 tw:max-[900px]:border-r-0 tw:max-[900px]:border-b tw:max-[900px]:p-4">
         <div>
-          <Link className="brand" href="/">
-            <span className="brand-mark">j.</span> JHWorks
-          </Link>
+          <BrandLogo />
           <p className="workspace-label">우리의 일, 더 가볍게.</p>
         </div>
         <nav

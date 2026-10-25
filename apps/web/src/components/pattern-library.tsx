@@ -1,5 +1,7 @@
 'use client';
 
+import { BrandLogo } from '@/components/brand-logo';
+
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { tokens } from '@jhworks/pattern';
@@ -84,9 +86,8 @@ export function PatternLibrary() {
         본문으로 건너뛰기
       </a>
       <header className="pattern-header">
-        <Link href="/pattern" className="pattern-logo">
-          <span>jhw.</span> Pattern
-        </Link>
+        <BrandLogo />
+        <Link href="/pattern" className="pattern-logo">Pattern</Link>
         <Badge>0.1 · Workspace preview</Badge>
         <Link href="/">JHWorks로 돌아가기 ↗</Link>
       </header>

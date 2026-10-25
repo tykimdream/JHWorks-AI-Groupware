@@ -11,6 +11,7 @@ import {
   notifyIdentityChanged,
   SESSION_EXPIRED_EVENT,
 } from '@/lib/session-events';
+import { clearManualDraft } from '@/lib/manual-draft-handoff';
 import type { CurrentEmployee } from '@/lib/types';
 
 interface SessionScope {
@@ -28,6 +29,7 @@ export const useSessionScope = () => {
 
 function createSessionCache() {
   let fingerprint: string | null = null;
+  let employeeId: string | null = null;
   const client = new QueryClient({
     defaultOptions: {
       queries: {
@@ -50,11 +52,16 @@ function createSessionCache() {
           notifyIdentityChanged();
         } else {
           fingerprint = next;
+          employeeId = employee.id;
         }
       },
     }),
   });
-  return { client, clearFingerprint: () => { fingerprint = null; } };
+  return { client, clearIdentity: () => {
+    if (employeeId) clearManualDraft(employeeId);
+    fingerprint = null;
+    employeeId = null;
+  } };
 }
 
 export const SessionDataProvider = ({ children }: { children: ReactNode }) => {
@@ -73,7 +80,7 @@ export const SessionDataProvider = ({ children }: { children: ReactNode }) => {
       if (guest && scopeRef.current.guest) return;
       const next = { epoch: advanceSessionGeneration(), guest };
       scopeRef.current = next;
-      cache.clearFingerprint();
+      cache.clearIdentity();
       void client.cancelQueries();
       client.clear();
       setScope(next);

@@ -22,6 +22,8 @@ import type { Approval, BusinessTripDetails, LeaveDetails } from '@/lib/types';
 import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { ExpenseChecksPanel } from '@/components/expense-checks';
+import { latestRejectionComment } from '@/lib/expense-repair';
+import { RejectionContext } from '@/components/rejection-context';
 
 type Command = ApprovalCommandName;
 
@@ -169,6 +171,8 @@ export default function ApprovalDetailPage() {
         </div>
       </header>
 
+      {isAuthor && (approval.status === 'DRAFT' || approval.status === 'REJECTED') && <RejectionContext comment={latestRejectionComment(approval)} />}
+
       {configuration?.enabled && isAuthor && approval.status === 'PENDING' && employee && (
         <section className="next-step-notice" aria-label="체험 다음 단계">
           <div>
@@ -197,6 +201,8 @@ export default function ApprovalDetailPage() {
               approvalId={approval.id}
               version={approval.version}
               status={approval.status}
+              canEdit={isAuthor}
+              listScope={from === 'mine' || from === 'assigned' ? from : undefined}
             />
           )}
 

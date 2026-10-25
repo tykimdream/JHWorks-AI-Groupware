@@ -7,10 +7,14 @@ import { AppShell } from '@/components/app-shell';
 import { ApprovalForm } from '@/components/approval-form';
 import { ApiError, apiFetch } from '@/lib/api';
 import type { Approval } from '@/lib/types';
+import { latestRejectionComment, parseExpenseRepairField } from '@/lib/expense-repair';
+import { RejectionContext } from '@/components/rejection-context';
 
 export default function EditApprovalPage() {
   const { id } = useParams<{ id: string }>();
-  const from = useSearchParams().get('from');
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
+  const focusField = parseExpenseRepairField(searchParams.get('focus'));
   const [approval, setApproval] = useState<Approval | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +37,8 @@ export default function EditApprovalPage() {
       </header>
       {error && <p className="error-banner">{error}</p>}
       {!approval && !error && <div className="empty-card">초안을 불러오는 중입니다.</div>}
-      {approval && <ApprovalForm key={`${approval.id}:${approval.version}`} initial={approval} listScope={from === 'mine' || from === 'assigned' ? from : undefined} />}
+      {approval && <RejectionContext comment={latestRejectionComment(approval)} />}
+      {approval && <ApprovalForm key={`${approval.id}:${approval.version}`} initial={approval} listScope={from === 'mine' || from === 'assigned' ? from : undefined} focusField={focusField} />}
     </AppShell>
   );
 }

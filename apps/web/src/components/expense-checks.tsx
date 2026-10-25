@@ -6,6 +6,7 @@ import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import { WorkspaceIcon } from '@/components/workspace-icon';
 import { StatusBadge } from '@/components/status-badge';
 import type { ApprovalStatus } from '@/lib/types';
+import { repairFieldForCheck } from '@/lib/expense-repair';
 
 interface ExpenseChecks {
   approvalId: string;
@@ -32,16 +33,23 @@ const fieldLabels: Record<string, string> = {
   amount: '0원보다 큰 실제 지출 금액',
 };
 
-function Findings({ checks }: { checks: ExpenseChecks }) {
+function Findings({ checks, repairBase }: { checks: ExpenseChecks; repairBase?: string }) {
   return (
     <>
       {checks.missingFields.length > 0 && (
-        <p className="expense-finding">
+        <div className="expense-finding">
           <strong>제출 전에 보완해 주세요</strong>
-          <span>
-            {checks.missingFields.map((field) => fieldLabels[field] ?? field).join(' · ')}
-          </span>
-        </p>
+          <ul>
+            {checks.missingFields.map((field) => {
+              const target = repairFieldForCheck(field);
+              const label = fieldLabels[field] ?? field;
+              return <li key={field}>{repairBase && target
+                ? <Link href={`${repairBase}&focus=${target}`}>{label} 보완하기 →</Link>
+                : label}</li>;
+            })}
+          </ul>
+          {repairBase && <p>항목을 누르면 해당 입력칸으로 이동합니다. 수정 후 초안으로 저장하고 다시 확인해주세요.</p>}
+        </div>
       )}
       {checks.duplicateMatches.length > 0 && (
         <div className="expense-finding">
@@ -72,10 +80,14 @@ export function ExpenseChecksPanel({
   approvalId,
   version,
   status = 'DRAFT',
+  canEdit = false,
+  listScope,
 }: {
   approvalId: string;
   version: number;
   status?: ApprovalStatus;
+  canEdit?: boolean;
+  listScope?: 'mine' | 'assigned';
 }) {
   const [checks, setChecks] = useState<ExpenseChecks | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +134,7 @@ export function ExpenseChecksPanel({
         <p role="status">누락 정보와 중복 가능성을 확인하고 있습니다.</p>
       ) : (
         <>
-          <Findings checks={checks} />
+          <Findings checks={checks} repairBase={canEdit && status === 'DRAFT' ? `/approvals/${approvalId}/edit?from=${listScope ?? 'mine'}` : undefined} />
           {!checks.missingFields.length && !checks.duplicateMatches.length && (
             <p>
               필수 지출 정보가 입력됐고, 조회 가능한 문서에서 같은 지출일·사용처·금액의 경비를 찾지

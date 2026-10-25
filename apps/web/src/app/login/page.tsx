@@ -66,9 +66,9 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-story">
-        <div className="tw:mb-8"><BrandLogo /></div>
+        <div className="tw:mb-8"><BrandLogo inverse /></div>
         <p className="eyebrow">JHWORKS · SYNTHETIC COMPANY</p>
-        <h1>업무 흐름은 단순하게.<br />AI 실행은 안전하게.</h1>
+        <h1 className="tw:break-keep tw:max-[480px]:text-4xl! tw:max-[480px]:leading-tight!">업무 흐름은 단순하게.<br />AI 실행은 안전하게.</h1>
         <p>
           JHWorks AI Groupware는 가상 기업의 결재 흐름 위에서 AI Review, RAG, Tool Calling과
           Human-in-the-loop를 단계적으로 검증하는 독립 프로젝트입니다.

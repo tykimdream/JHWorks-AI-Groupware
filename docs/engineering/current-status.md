@@ -1,6 +1,15 @@
 # 실행 상태와 다음 작업 — 2026-10-22
 
 
+## 2026-10-25 PC 사이드바·Tailwind 도입
+
+사이드바 하단의 안내·역할 전환·프로필을 하나의 footer로 묶고 로그아웃을 계정 행 안에 배치했다.
+PC에서는 메뉴만 스크롤하며 계정 동작은 화면 아래에 남긴다. 모바일은 일반 흐름과 가로 메뉴를 유지한다.
+Tailwind 4·PostCSS를 도입해 이 영역부터 전환했으며, `tw:` prefix와 JHW 토큰 bridge를 사용한다.
+Preflight는 제외하고 전환한 영역의 기존 CSS 선택자를 제거했다. 전체 CSS 전환은 완료되지 않았다.
+[도구 역할과 Storybook 도입 기준](../design/styling.md)에 문서와 검증 환경의 차이를 기록했다.
+Storybook은 아직 설치·배포하지 않았다.
+
 ## 2026-10-25 SaaS UX·첫 방문 가이드·JHW Pattern
 
 [공식 디자인 시스템 비교](../design/ux-principles.md)를 바탕으로 공개 홈의 비활성 AI 입력창을

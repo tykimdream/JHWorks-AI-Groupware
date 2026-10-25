@@ -1,0 +1,16 @@
+/* Incremental adoption: existing base styles remain until each area is migrated. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme) prefix(tw);
+@import 'tailwindcss/utilities.css' layer(utilities) prefix(tw) source('../');
+
+/* JHW Pattern remains the source of truth; utilities reference its public tokens. */
+@theme inline {
+  --color-jhw-text: var(--jhw-color-text);
+  --color-jhw-muted: var(--jhw-color-text-muted);
+  --color-jhw-border: var(--jhw-color-border);
+  --color-jhw-surface: var(--jhw-color-surface);
+  --color-jhw-canvas: var(--jhw-color-canvas);
+  --color-jhw-primary: var(--jhw-color-primary);
+  --color-jhw-primary-subtle: var(--jhw-color-primary-subtle);
+  --color-jhw-success: var(--jhw-color-success);
+}

@@ -10,17 +10,20 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@jhworks/pattern": "workspace:*",
     "next": "16.4.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "@jhworks/pattern": "workspace:*"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.10.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.1",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^4.3.3",
     "typescript": "5.9.3"
   }
 }

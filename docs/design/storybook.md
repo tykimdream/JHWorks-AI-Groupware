@@ -56,6 +56,6 @@ axe 자동 검사와 개발자 키보드 회귀는 사람의 접근성 평가·�
 
 ## 파비콘 원본 공유
 
-Storybook은 기본 아이콘 대신 `apps/web/src/app/icon.svg`를 정적 favicon 입력으로 사용한다. 승인된 J 심볼에서 생성한 같은 보라색·흰색 아이콘이며 별도 그림을 복제하지 않는다. Storybook 빌드는 이 파일을 `icon.svg`로 제공하고 manager의 `rel=icon`도 해당 파일을 가리킨다. 정적/공개 smoke는 link뿐 아니라 실제 SVG 응답이 앱 원본과 같은지 검사한다.
+Storybook은 기본 아이콘 대신 `apps/web/public/brand/favicon.svg`를 정적 favicon 입력으로 사용한다. 승인된 J 심볼에서 생성한 같은 보라색·흰색 아이콘이며 별도 그림을 복제하지 않는다. 이 파일과 앱의 `src/app/icon.svg`는 같은 생성 도구가 만든다. Storybook 빌드는 공유 파일을 `favicon.svg`로 제공하고 manager의 `rel=icon`도 해당 파일을 가리킨다. 정적/공개 smoke는 link뿐 아니라 실제 SVG 응답이 앱 원본과 같은지 검사한다.
 
 업무 앱 소스에는 Next.js 파일 규약의 `icon.svg`, `favicon.ico`(16/32/48), `apple-icon.png`(180)가 있다. 소스 설정과 공개 배포는 별개다. 2026-10-26 확인 당시 `groupware.pikan.dev`에는 icon link가 없고 `/favicon.ico`·`/icon.svg`가404였다. 제품 공개 배포 확인 전에는 이 앱에 파비콘이 반영됐다고 표시하지 않는다.

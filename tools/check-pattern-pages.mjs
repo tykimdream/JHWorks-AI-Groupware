@@ -18,7 +18,7 @@ try {
     expect(index.ok()).toBe(true);
     const entries = (await index.json()).entries;
     expect(Object.values(entries).filter(x => x.type === 'story')).toHaveLength(23);
-    const favicon = await context.request.get(base + 'icon.svg');
+    const favicon = await context.request.get(base + 'favicon.svg');
     expect(favicon.ok()).toBe(true);
     expect(favicon.headers()['content-type']).toContain('image/svg+xml');
     expect(await favicon.text()).toBe(await readFile(new URL('../apps/web/src/app/icon.svg', import.meta.url), 'utf8'));
@@ -27,7 +27,7 @@ try {
     expect(brand.headers()['content-type']).toContain('image/svg+xml');
     const response = await page.goto(base + '?path=/docs/jhw-pattern-forms-field--docs');
     expect(response.status()).toBe(200);
-    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', './icon.svg');
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', './favicon.svg');
     const preview = page.frameLocator('#storybook-preview-iframe');
     await expect(preview.getByRole('heading', { name: 'Field', exact: true }).first()).toBeVisible();
     await page.reload();

@@ -7,7 +7,7 @@ const config: StorybookConfig = {
   core: { disableTelemetry: true },
   staticDirs: [
     { from: '../../web/public/brand', to: '/brand' },
-    { from: '../../web/src/app/icon.svg', to: '/favicon.svg' },
+    { from: '../../web/public/brand/favicon.svg', to: '/favicon.svg' },
   ],
 };
 export default config;

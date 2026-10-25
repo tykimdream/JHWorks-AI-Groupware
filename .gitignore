@@ -50,3 +50,6 @@ apps/pattern-storybook/storybook-static/
 artifacts/storybook/
 playwright-storybook-report/
 test-results-storybook/
+
+# Disposable list benchmark reports (curated evidence lives in docs)
+artifacts/performance/

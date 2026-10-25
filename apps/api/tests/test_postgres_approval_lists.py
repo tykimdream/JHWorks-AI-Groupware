@@ -111,3 +111,22 @@ def test_postgres_multiple_rounds_preserve_json_without_duplicate_or_leaked_item
     assert hidden.status_code == 200
     assert hidden.json() == {"items": [], "total": 0}
     assert client.get(path).status_code == 403
+
+
+def test_synthetic_service_baseline_reports_visible_rows_and_serialization() -> None:
+    from app.ops.approval_list_benchmark import run
+
+    raw = os.environ.get("JHWORKS_TEST_POSTGRES_URL")
+    if not raw:
+        pytest.skip("dedicated local PostgreSQL test URL not configured")
+    report = run(raw, [4], 2)
+    assert report["fixtureVersion"] == "approval-list-v1"
+    assert "synthetic-ci-only" not in str(report)
+    cases = {case["actor"]: case for case in report["cases"]}
+    for actor, expected in (("author", 3), ("approver", 4), ("outsider", 0)):
+        samples = cases[actor]["samples"]
+        assert len(samples) == 2
+        assert all(sample["rows"] == expected for sample in samples)
+        assert all(sample["sqlStatements"] >= 1 for sample in samples)
+        assert all(sample["payloadBytes"] > 0 for sample in samples)
+        assert cases[actor]["medianTotalMs"] >= 0

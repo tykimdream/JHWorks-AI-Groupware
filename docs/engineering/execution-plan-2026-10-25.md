@@ -191,8 +191,9 @@ DB 대상 수·백업 신선도·실제 정리/예약 적용은 M1-02에 남겨 
 
 ## 7. M5 — 목록·DB·성능
 
-### M5-01 동일 조건 baseline — planned
+### M5-01 동일 조건 baseline — in_progress (서비스 baseline 검증, HTTP/UI/plan 대기)
 
+- M5-01A: [격리 서비스 측정](approval-list-baseline.md)은 고정 합성 자료의 ORM·mapper·JSON을 측정한다. CI PostgreSQL17.11의100/1000문서 결과를 원시 report로 기록했으며 HTTP/UI/plan은 남는다.
 - 로컬 격리 PostgreSQL과 fake AI에서 합성 문서/결재 회차 분포를 고정한다. 작은 규모→1천/1만 등으로 자원을 확인하며 늘린다.
 - 목록/상세·역할별 query count/time/plan, 응답 크기, API 지연/오류, 브라우저 DOM/렌더링을 측정한다.
 - warm/cold·동시성·환경·반복 횟수·revision을 기록한다. 공개 데모에 부하를 주지 않는다.

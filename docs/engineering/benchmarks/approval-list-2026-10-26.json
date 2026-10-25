@@ -1,0 +1,205 @@
+{
+  "fixtureVersion": "approval-list-v1",
+  "sourceSha": "25878c5eb7d60ea9bd004393897e292aeeaed7b6",
+  "pythonVersion": "3.12.15",
+  "postgresVersion": "17.11 (Debian 17.11-1.pgdg12+2)",
+  "repeats": 3,
+  "warmupPerCase": 1,
+  "concurrency": 1,
+  "boundary": "ORM + mapper + JSON; excludes actor lookup, HTTP/auth, network, UI",
+  "cache": "fresh ORM session per sample; shared PostgreSQL buffers, not cold cache",
+  "cases": [
+    {
+      "documents": 100,
+      "actor": "author",
+      "scope": "mine",
+      "samples": [
+        {
+          "rows": 75,
+          "sqlStatements": 2,
+          "payloadBytes": 165172,
+          "ormMs": 5.824321000005739,
+          "mapSerializeMs": 2.0347640000011324,
+          "totalMs": 7.859085000006871
+        },
+        {
+          "rows": 75,
+          "sqlStatements": 2,
+          "payloadBytes": 165172,
+          "ormMs": 5.180721999991533,
+          "mapSerializeMs": 1.9859810000042444,
+          "totalMs": 7.166702999995778
+        },
+        {
+          "rows": 75,
+          "sqlStatements": 2,
+          "payloadBytes": 165172,
+          "ormMs": 5.109113999992587,
+          "mapSerializeMs": 1.9558150000023033,
+          "totalMs": 7.0649289999948905
+        }
+      ],
+      "medianTotalMs": 7.166702999995778
+    },
+    {
+      "documents": 100,
+      "actor": "approver",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 100,
+          "sqlStatements": 2,
+          "payloadBytes": 220148,
+          "ormMs": 6.7325180000068485,
+          "mapSerializeMs": 2.904013000005534,
+          "totalMs": 9.636531000012383
+        },
+        {
+          "rows": 100,
+          "sqlStatements": 2,
+          "payloadBytes": 220148,
+          "ormMs": 6.5595780000080595,
+          "mapSerializeMs": 2.5276359999963915,
+          "totalMs": 9.087214000004451
+        },
+        {
+          "rows": 100,
+          "sqlStatements": 2,
+          "payloadBytes": 220148,
+          "ormMs": 41.071249000012244,
+          "mapSerializeMs": 2.9658459999950537,
+          "totalMs": 44.0370950000073
+        }
+      ],
+      "medianTotalMs": 9.636531000012383
+    },
+    {
+      "documents": 100,
+      "actor": "outsider",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 1.2193459999991774,
+          "mapSerializeMs": 0.01633400000855545,
+          "totalMs": 1.2356800000077328
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 1.0932060000072852,
+          "mapSerializeMs": 0.013900999988436524,
+          "totalMs": 1.1071069999957217
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 1.0596159999920474,
+          "mapSerializeMs": 0.01233900000841004,
+          "totalMs": 1.0719550000004574
+        }
+      ],
+      "medianTotalMs": 1.1071069999957217
+    },
+    {
+      "documents": 1000,
+      "actor": "author",
+      "scope": "mine",
+      "samples": [
+        {
+          "rows": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 1651523,
+          "ormMs": 40.265331000000515,
+          "mapSerializeMs": 73.02338499999905,
+          "totalMs": 113.28871599999957
+        },
+        {
+          "rows": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 1651523,
+          "ormMs": 43.412854999999695,
+          "mapSerializeMs": 26.00967700000467,
+          "totalMs": 69.42253200000437
+        },
+        {
+          "rows": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 1651523,
+          "ormMs": 41.63420700000131,
+          "mapSerializeMs": 74.2790059999976,
+          "totalMs": 115.9132129999989
+        }
+      ],
+      "medianTotalMs": 113.28871599999957
+    },
+    {
+      "documents": 1000,
+      "actor": "approver",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 2201274,
+          "ormMs": 57.90836299999569,
+          "mapSerializeMs": 36.92535599999758,
+          "totalMs": 94.83371899999327
+        },
+        {
+          "rows": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 2201274,
+          "ormMs": 171.57223899999963,
+          "mapSerializeMs": 42.51279999999724,
+          "totalMs": 214.08503899999687
+        },
+        {
+          "rows": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 2201274,
+          "ormMs": 122.21474199999705,
+          "mapSerializeMs": 46.53165199999876,
+          "totalMs": 168.7463939999958
+        }
+      ],
+      "medianTotalMs": 168.7463939999958
+    },
+    {
+      "documents": 1000,
+      "actor": "outsider",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 1.3871889999990117,
+          "mapSerializeMs": 0.025178000001346845,
+          "totalMs": 1.4123670000003585
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 1.2357009999988122,
+          "mapSerializeMs": 0.012759000000528431,
+          "totalMs": 1.2484599999993407
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 1.271284000011974,
+          "mapSerializeMs": 0.012078999986897543,
+          "totalMs": 1.2833629999988716
+        }
+      ],
+      "medianTotalMs": 1.2833629999988716
+    }
+  ]
+}

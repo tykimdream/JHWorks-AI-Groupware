@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Annotated
 
 from pydantic import Field
 
@@ -18,7 +19,9 @@ class ApprovalDraftAIStatus(StrEnum):
 
 class ApprovalDraftPrepareRequest(ApiSchema):
     request: str = Field(min_length=2, max_length=2000)
-    answers: list[str] = Field(default_factory=list, max_length=8)
+    answers: list[Annotated[str, Field(max_length=2000)]] = Field(
+        default_factory=list, max_length=8
+    )
 
 
 class ApprovalDraftCandidateRead(ApiSchema):

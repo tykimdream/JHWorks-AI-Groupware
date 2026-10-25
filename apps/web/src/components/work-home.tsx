@@ -186,14 +186,22 @@ export function WorkHome() {
           </div>
           <h2 id="home-ai-title">
             {configuration?.enabled
-              ? '직접 작성하고 결재 흐름을 체험하세요'
+              ? '쓴 비용을 경비 초안으로 정리하세요'
               : '어떤 업무를 도와드릴까요?'}
           </h2>
           <p>
             {configuration?.enabled
-              ? '공개 체험에서는 AI 호출이 꺼져 있습니다. 경비를 직접 작성한 뒤 사전 확인·제출·승인을 경험해 보세요.'
+              ? '지출 내용을 알려주시면 빠진 정보를 확인합니다. 저장·제출·승인은 직접 진행합니다.'
               : '필요한 일을 말해 주세요. 빠진 정보를 함께 확인하고 결재 초안을 준비할게요.'}
           </p>
+          {configuration.enabled && (
+            <p className="public-ai-note">
+              {configuration.expenseAiRequestLimit
+                ? `이 방문 공간에서 AI 요청 최대 ${configuration.expenseAiRequestLimit}회 · 작성자와 결재자가 함께 사용합니다.`
+                : 'AI 요청은 한도 안에서 이용할 수 있습니다.'}{' '}
+              한도에 도달해도 직접 작성과 결재는 계속할 수 있습니다.
+            </p>
+          )}
           <form onSubmit={startDraft} className="home-composer">
             <label className="sr-only" htmlFor="home-request">
               AI 업무 요청
@@ -208,7 +216,7 @@ export function WorkHome() {
               disabled={!aiAvailable}
               placeholder={
                 configuration?.enabled
-                  ? '현재 공개 체험에서는 AI 호출이 비활성화되어 있습니다.'
+                  ? '예: 이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.'
                   : '예: 다음 주 부산 고객사 미팅 출장 결재를 준비해줘. 교통비는 17만 원이야.'
               }
               onKeyDown={(event) => {
@@ -221,7 +229,7 @@ export function WorkHome() {
             <div className="composer-footer">
               <span>
                 <WorkspaceIcon name="document" size={15} />
-                출장 신청 · 경비 정산 · 일반 결재{' '}
+                {configuration.enabled ? '경비 정산 · 한도 내 AI 초안' : '출장 신청 · 경비 정산 · 일반 결재'}{' '}
                 <span className="composer-shortcut">⌘ / Ctrl + Enter</span>
               </span>
               <button
@@ -242,7 +250,7 @@ export function WorkHome() {
           )}
           <div className="home-examples">
             <span>이렇게 시작해 보세요</span>
-            {examples.map((example) => (
+            {(configuration.enabled ? examples.slice(0, 1) : examples).map((example) => (
               <button
                 key={example.label}
                 type="button"

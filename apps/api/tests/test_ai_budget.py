@@ -119,8 +119,9 @@ def test_global_concurrency_survives_midnight_and_crash_does_not_expire_slot(
 ) -> None:
     receipt = reserve(budget_factory, policy=limits(concurrent_requests=1))
     monkeypatch.setattr(ai_budget, "database_seconds", lambda db: epoch("2026-09-01T00:01:00"))
-    with pytest.raises(ai_budget.AIBudgetLimitError):
+    with pytest.raises(ai_budget.AIBudgetLimitError) as caught:
         reserve(budget_factory, policy=limits(concurrent_requests=1))
+    assert caught.value.code == "AI_BUSY"
     with budget_factory() as db:
         ai_budget.settle(db, receipt.id, actual_micro_usd=100)
     reserve(budget_factory, policy=limits(concurrent_requests=1))

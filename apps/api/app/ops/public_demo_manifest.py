@@ -39,6 +39,7 @@ def public_demo_service_manifest(
     api["env"].extend(
         [
             {"name": "JHWORKS_PUBLIC_DEMO_ENABLED", "value": "true"},
+            {"name": "JHWORKS_PUBLIC_EXPENSE_AI_ENABLED", "value": "false"},
             {"name": "JHWORKS_SESSION_COOKIE_NAME", "value": "__session"},
             {"name": "JHWORKS_DEMO_STARTS_PER_DAY", "value": "20"},
             {"name": "JHWORKS_DEMO_RETAINED_WORKSPACES", "value": "30"},

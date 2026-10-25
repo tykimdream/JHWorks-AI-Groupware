@@ -70,3 +70,31 @@ test('configuration failure offers manual entry without enabling AI', async ({ p
   await page.getByRole('link', { name: '직접 작성하기 →', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '제목', exact: true })).toBeVisible();
 });
+
+test('public expense-only UI keeps the request when budget is exhausted', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Demo 로그인', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'AI 업무 요청' })).toBeVisible();
+  // This test exercises UI states with explicit mocked configuration/errors, not a paid model.
+  await page.route('**/api/v1/demo/configuration', (route) => route.fulfill({
+    json: {
+      ...unavailable, enabled: true, expenseAiRequestLimit: 5,
+      aiCapabilities: { ...unavailable.aiCapabilities, approvalDraft: true },
+    },
+  }));
+  await page.route('**/api/v1/approval-draft-assistant/prepare', (route) => route.fulfill({
+    status: 429, json: { error: { code: 'AI_BUDGET_EXHAUSTED' } },
+  }));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '쓴 비용을 경비 초안으로 정리하세요' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '출장 결재 준비', exact: true })).toHaveCount(0);
+  await expect(page.getByText('AI 요청 최대 5회', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'CES 경비 정산', exact: true }).click();
+  await page.getByRole('button', { name: 'AI 초안 작성으로 이동', exact: true }).click();
+  const request = page.getByRole('textbox', { name: '업무 요청', exact: true });
+  await expect(request).toHaveValue(/17만원/);
+  await page.getByRole('button', { name: 'AI로 초안 준비', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'AI 이용 한도에 도달했습니다.' })).toBeVisible();
+  await expect(request).toHaveValue(/17만원/);
+  await expect(page.getByRole('link', { name: '직접 작성으로 계속 →', exact: true })).toBeVisible();
+});

@@ -12,6 +12,7 @@ export type AICapability =
 
 interface DemoConfiguration {
   aiCapabilities: Record<AICapability, boolean>;
+  expenseAiRequestLimit?: number | null;
   enabled: boolean;
   durationMinutes: number;
   writeLimit: number;

@@ -112,11 +112,12 @@ FastAPI의 요청 형식 검증 오류는 `{"detail":[...]}` 형식이다. 모�
 `policyEmbedding`으로 기능을 구분한다. 각 값은 서버의 전역 설정·기능 allowlist·키 존재 여부를
 같이 확인한 결과다. 키·모델 설정 원문은 반환하지 않는다. 이 응답은 성공 예약이나 호출 권한 토큰이 아니다.
 
-현재 공개 모드에서는 전부 false다. 비공개 모드의 선택적 `JHWORKS_AI_CAPABILITIES`는 JSON 배열이며
+현재 배포의 공개 모드에서는 전부 false다. 별도 OFF 기본값의 경비 opt-in은
+[예산 연결 계약](../engineering/public-expense-ai-contract.md)을 따른다. 비공개 모드의 선택적 `JHWORKS_AI_CAPABILITIES`는 JSON 배열이며
 미설정 시 기존 다섯 기능을 허용하고 `[]`면 모두 제한한다. 예: `["approval_draft","policy_embedding"]`.
-전역 OFF·키 없음·공개 모드가 allowlist보다 우선한다. 실제 provider 생성에도 같은 판정을 적용한다.
+전역 OFF·키 없음·공개 모드가 allowlist보다 우선한다. 경비 opt-in만 별도 원장과 서버 scope를 거쳐 허용할 수 있다. 실제 provider 생성에도 같은 판정을 적용한다.
 후속 질문은 `approvalDraft`에 속한다. 별도 유료 정책 검색은 `policyEmbedding`을 따른다.
 
 화면은 false·누락·조회 실패를 사용 가능으로 추정하지 않는다. AI 메뉴·직접 접근 화면·홈 요청창이
-같은 값을 따르며 직접 작성·일정 확인은 계속 제공한다. 이 변경은 비용 원장과 provider의 연결이나
-공개 경비 전용 AI 활성화를 완료하지 않는다. [남은 연결 조건](../engineering/ai-budget-ledger.md)을 참고한다.
+같은 값을 따르며 직접 작성·일정 확인은 계속 제공한다. 소스의 opt-in 연결과 실제 공개 활성화는 구분한다. 실제 배포는 OFF이며
+[남은 검증 조건](../engineering/public-expense-ai-contract.md)을 참고한다.

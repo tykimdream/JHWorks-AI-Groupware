@@ -3,10 +3,12 @@ from typing import Annotated
 from fastapi import Depends, Request
 from fastapi.security import APIKeyCookie
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, sessionmaker
 
 from app.ai.approval_draft import ApprovalDraftProvider, UnavailableApprovalDraftProvider
 from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalReviewProvider
+from app.ai.budgeted_expense_draft import BudgetedExpenseDraftProvider
+from app.ai.expense_pricing import MODEL as PUBLIC_EXPENSE_MODEL
 from app.ai.leave_assistant import LeaveAssistantProvider, UnavailableLeaveAssistantProvider
 from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
 from app.ai.openai_approval_review import OpenAIApprovalReviewProvider
@@ -96,7 +98,8 @@ def get_approval_draft_provider() -> ApprovalDraftProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.allows_ai("approval_draft") or not secret:
+    # Unscoped factories/evals cannot bypass the public workspace budget.
+    if settings.public_demo_enabled or not settings.allows_ai("approval_draft") or not secret:
         return UnavailableApprovalDraftProvider()
     return OpenAIApprovalDraftProvider(
         api_key=secret,
@@ -105,7 +108,48 @@ def get_approval_draft_provider() -> ApprovalDraftProvider:
     )
 
 
-AIApprovalDraftProvider = Annotated[ApprovalDraftProvider, Depends(get_approval_draft_provider)]
+def get_scoped_approval_draft_provider(
+    db: DbSession,
+    actor: CurrentEmployee,
+    provider: Annotated[ApprovalDraftProvider, Depends(get_approval_draft_provider)],
+) -> ApprovalDraftProvider:
+    settings = get_settings()
+    if not settings.public_demo_enabled:
+        return provider
+    budget = settings.public_expense_ai_budget
+    if not settings.allows_ai("approval_draft") or budget is None or not actor.demo_workspace_id:
+        return UnavailableApprovalDraftProvider()
+    # CurrentEmployee has already validated persisted workspace membership and expiry.
+    api_key = settings.openai_api_key
+    if api_key is None:
+        return UnavailableApprovalDraftProvider()
+    secret = api_key.get_secret_value()
+    actor_id, workspace_id = actor.id, actor.demo_workspace_id
+
+    def recheck_authorization(budget_db: Session) -> None:
+        employee = budget_db.get(Employee, actor_id)
+        if employee is None or not employee.is_active or employee.demo_workspace_id != workspace_id:
+            raise AuthenticationError("The demo workspace membership changed")
+        require_demo_workspace(budget_db, employee, admit=False)
+
+    return BudgetedExpenseDraftProvider(
+        workspace_id=actor.demo_workspace_id,
+        factory=sessionmaker(bind=db.get_bind(), autoflush=False, expire_on_commit=False),
+        provider_factory=lambda: OpenAIApprovalDraftProvider(
+            api_key=secret,
+            model=PUBLIC_EXPENSE_MODEL,
+            timeout_seconds=20.0,
+            max_retries=0,
+            standard_tier=True,
+        ),
+        limits=budget,
+        check_authorization=recheck_authorization,
+    )
+
+
+AIApprovalDraftProvider = Annotated[
+    ApprovalDraftProvider, Depends(get_scoped_approval_draft_provider)
+]
 
 
 def get_leave_assistant_provider() -> LeaveAssistantProvider:

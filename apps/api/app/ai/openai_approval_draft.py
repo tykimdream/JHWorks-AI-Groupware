@@ -1,7 +1,7 @@
 import json
 from time import perf_counter
 
-from openai import OpenAI, OpenAIError
+from openai import OpenAI, OpenAIError, omit
 
 from app.ai.approval_draft import (
     PROMPT_VERSION,
@@ -16,14 +16,22 @@ from app.ai.approval_draft import (
 
 class OpenAIApprovalDraftProvider:
     def __init__(
-        self, api_key: str, model: str, timeout_seconds: float, *, max_retries: int = 1
+        self,
+        api_key: str,
+        model: str,
+        timeout_seconds: float,
+        *,
+        max_retries: int = 1,
+        standard_tier: bool = False,
     ) -> None:
         self._client = OpenAI(
             api_key=api_key,
             timeout=timeout_seconds,
             max_retries=max_retries,
+            base_url="https://api.openai.com/v1" if standard_tier else None,
         )
         self._model = model
+        self._standard_tier = standard_tier
 
     def prepare(
         self,
@@ -49,6 +57,7 @@ class OpenAIApprovalDraftProvider:
                 prompt_cache_key=PROMPT_VERSION,
                 safety_identifier=safety_identifier,
                 store=False,
+                service_tier="default" if self._standard_tier else omit,
             )
         except OpenAIError as exc:
             raise ApprovalDraftProviderError(
@@ -65,11 +74,13 @@ class OpenAIApprovalDraftProvider:
         return DraftProviderResult(
             candidate=candidate,
             provider="openai",
-            model=response.model or self._model,
+            model=response.model if self._standard_tier else (response.model or self._model),
             usage=DraftProviderUsage(
                 input_tokens=usage.input_tokens if usage else 0,
                 output_tokens=usage.output_tokens if usage else 0,
                 total_tokens=usage.total_tokens if usage else 0,
+                known=usage is not None,
             ),
             latency_ms=round((perf_counter() - started_at) * 1000),
+            service_tier=response.service_tier,
         )

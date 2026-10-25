@@ -21,12 +21,14 @@ import { useNavigationGuard } from '@/components/navigation-guard';
 import { clearFormRecovery, readFormRecovery, recoveryKey, storeFormRecovery, type ApprovalFormValues } from '@/lib/approval-form-recovery';
 import { expenseCategoryLabels } from '@/lib/approval-labels';
 import { getSessionGeneration } from '@/lib/session-events';
+import type { ExpenseRepairField } from '@/lib/expense-repair';
 
 interface ApprovalFormProps {
   initial?: Approval;
   initialType?: ApprovalType;
   manualHandoff?: boolean;
   listScope?: 'mine' | 'assigned';
+  focusField?: ExpenseRepairField;
   preset?: ApprovalFormPreset;
 }
 
@@ -65,7 +67,7 @@ const blankLeaveDetails: LeaveDetails = {
 
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
-export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false, listScope }: ApprovalFormProps) => {
+export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false, listScope, focusField }: ApprovalFormProps) => {
   const router = useRouter();
   const employee = useWorkspaceEmployee();
   const [handoff] = useState(() => !initial && manualHandoff && employee ? readManualDraft(employee.id) : null);
@@ -136,6 +138,15 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
   const hadChanges = useRef(false);
   const mounted = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const focusedRepair = useRef(false);
+  useEffect(() => {
+    if (!focusField || recovery || type !== 'EXPENSE' || focusedRepair.current) return;
+    const field = document.getElementById(`expense-field-${focusField}`);
+    if (!field) return;
+    focusedRepair.current = true;
+    field.focus({ preventScroll: true });
+    field.scrollIntoView({ block: 'center', behavior: 'instant' });
+  }, [focusField, recovery, type]);
 
   useEffect(() => {
     if (!key || saved.current) return;
@@ -331,6 +342,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
           <label>
             <span>{type === 'EXPENSE' ? '실제 지출 금액 (원)' : '예상 금액 (원)'}</span>
             <input
+              id="expense-field-amount"
               min="0"
               onChange={(event) => setAmount(event.target.value)}
               type="number"
@@ -375,6 +387,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
             <label>
               <span>실제 지출일</span>
               <input
+                id="expense-field-expenseDate"
                 type="date"
                 value={expense.expenseDate ?? ''}
                 onChange={(event) => setExpense({ ...expense, expenseDate: event.target.value })}
@@ -383,6 +396,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
             <label>
               <span>사용처</span>
               <input
+                id="expense-field-merchant"
                 maxLength={200}
                 placeholder="예: 코레일"
                 value={expense.merchant ?? ''}
@@ -392,6 +406,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
             <label>
               <span>비용 구분</span>
               <select
+                id="expense-field-category"
                 value={expense.category ?? ''}
                 onChange={(event) =>
                   setExpense({
@@ -423,6 +438,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
           <label>
             <span>업무상 지출 목적</span>
             <textarea
+              id="expense-field-purpose"
               rows={3}
               maxLength={1000}
               value={expense.purpose ?? ''}

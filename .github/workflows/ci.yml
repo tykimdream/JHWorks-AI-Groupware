@@ -160,6 +160,7 @@ jobs:
           uv run --frozen pytest \
             tests/test_postgres_approval_lists.py \
             tests/test_postgres_login_budget.py \
+            tests/test_postgres_ai_budget.py \
             tests/test_postgres_demo_workspace.py \
             tests/test_postgres_demo_isolation.py
 

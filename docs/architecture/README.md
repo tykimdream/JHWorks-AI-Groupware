@@ -1,6 +1,6 @@
 # JHWorks 전체 아키텍처
 
-2026-10-24 기준. **현재 구현·공개 상태**와 **후속 계획**을 구분한다.
+**현재 구현·공개 상태**와 **후속 계획**을 구분한다. 제품의 배포 source는 [현재 상태](../engineering/current-status.md)를 따르며, 별도 정적 Storybook은2026-10-26 공개했다.
 대표 문제는 출장 후 지출 내역과 정책을 따로 찾아 결재 양식에 반복 입력하고, 누락·중복을 사람이 재확인해야 하는 일이다.
 LLM은 의미와 의도를 구조화하고, 권한·금액·날짜·상태·저장은 일반 코드가 검증한다.
 
@@ -34,6 +34,8 @@ flowchart TB
 - Cloud Run 월 5천원 spend cap은 같은 프로젝트의 staging도 포함한다. 무료 크레딧 전 추정 비용 기준이며,
   집계 지연 초과분·Hosting·이미지 보관 등 다른 서비스 비용은 별도다. 프로젝트 전체 월 1만원 알림도 설정했다.
 - 공개 AI·자동 정리는 OFF다. 보관 30공간 상한에 닿으면 새 체험은 중단된다. 자동 중단 한도는 다음 달 자동 초기화된다.
+
+[Storybook](https://tykimdream.github.io/JHWorks-AI-Groupware/)은 별도 GitHub Pages의 정적 문서다. 제품·Pattern 문서와 같은 `packages/pattern`을 소비하지만 업무 API·인증·DB를 연결하지 않는다. [빌드·배포·검증 기록](../design/storybook.md)을 별도로 관리한다.
 
 ## 2. 애플리케이션 내부 책임
 

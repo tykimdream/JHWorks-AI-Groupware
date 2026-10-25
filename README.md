@@ -6,7 +6,7 @@
 
 전자결재에서는 요청을 문서로 옮기고, 빠진 정보를 보완하고, 규정에 맞는지 확인하는 일이 반복됩니다. JHWorks는 이 과정을 자연어 초안·정책 검색·누락 및 중복 후보 점검으로 돕습니다. 작성자가 내용을 확인해 제출하면, 결재자는 문서와 처리 이력을 보고 승인하거나 반려합니다.
 
-[라이브 데모](https://groupware.pikan.dev) · [Swagger](https://groupware.pikan.dev/api/v1/docs) · [JHW Pattern](https://groupware.pikan.dev/pattern) · [아키텍처](docs/architecture/README.md) · [포트폴리오](https://pikan.dev/ko/projects/jhworks-ai-groupware)
+[라이브 데모](https://groupware.pikan.dev) · [Swagger](https://groupware.pikan.dev/api/v1/docs) · [JHW Pattern](https://groupware.pikan.dev/pattern) · [Storybook](https://tykimdream.github.io/JHWorks-AI-Groupware/) · [아키텍처](docs/architecture/README.md) · [포트폴리오](https://pikan.dev/ko/projects/jhworks-ai-groupware)
 
 > **공개 데모:** 가입 없이 경비 작성 → 제출 → 역할 전환 → 승인을 체험할 수 있습니다. 비용 관리 때문에 공개 환경의 AI 호출은 비활성화했습니다. 자연어 초안·정책 RAG·AI 검토는 개발·검증 환경에서 제공하며, 아래에 구현 범위를 정리했습니다.
 
@@ -49,7 +49,7 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 
 ## JHW Pattern과 첫 사용자 경험
 
-[Pattern 문서](https://groupware.pikan.dev/pattern)에서는 실제 제품과 같은 토큰·Button·Badge를 조작하고 사용 코드를 확인할 수 있습니다. 색상·간격·타이포 원본은 [로컬 패키지](packages/pattern)에서 관리하며 CSS와 문서 목록을 함께 생성합니다. npm에는 아직 게시하지 않았습니다.
+[Pattern 문서](https://groupware.pikan.dev/pattern)에서는 실제 제품과 같은 토큰·Button·Badge를 조작하고 사용 코드를 확인할 수 있습니다. 색상·간격·타이포 원본은 [로컬 패키지](packages/pattern)에서 관리하며 CSS와 문서 목록을 함께 생성합니다. 공통 폼·알림·빈 상태·확인 창도 같은 패키지로 추출했습니다. [Storybook](https://tykimdream.github.io/JHWorks-AI-Groupware/)에서는23개 합성 상태를 독립적으로 재현하며 PC·모바일50개 회귀와 자동 접근성 검사를 수행합니다. 제품 공개 버전과 소스의 적용 범위는 [현재 상태](docs/engineering/current-status.md)에서 구분합니다. npm에는 아직 게시하지 않았습니다.
 
 공개 홈은 지금 가능한 경비 작성을 먼저 제안합니다. 첫 방문의 3단계 가이드는 닫기·다시 보기와 키보드를 지원하며, 양식을 여는 것까지만 안내합니다. 저장과 제출은 사용자가 각각 확인합니다.
 [스타일 도구의 역할과 Storybook 도입 기준](docs/design/styling.md), [공식 SaaS 디자인 문서 비교와 적용 기준](docs/design/ux-principles.md)에 원칙·근거·검증 범위를 기록했습니다. 실제 사용자 시간 절감과 완료율은 후속 평가로 남깁니다.
@@ -64,7 +64,7 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 | 휴가 상담·신청 | 희망 기간 해석, 계산된 후보와 근거 설명 | 잔여 연차·일정·휴일 계산, 저장과 제출의 별도 확인, 변경 직전 재검증 |
 
 권한·금액·날짜·상태 전이는 서버가 검증합니다. AI를 통한 저장과 제출에는 각각 사용자 확인이 필요합니다. 휴가 신청은 상담 → 초안 확인 → 제출 확인의 진행 상태를 DB에 보존합니다.
-추출 평가 사례는 **36개**이며 offline 데이터·채점 계약을 검증합니다. 이는 실제 모델 정확도가 아닙니다. 실제 모델 검증은 기존 고정 합성 경비 사례 **2건**으로 제한했습니다. [offline 평가 계약](docs/engineering/expense-evaluation-contracts.md)과 [실제 모델 평가의 한계](docs/engineering/expense-model-smoke.md)에서 확인할 수 있습니다.
+고정 합성 경비 **36개**를 승인된 로컬 실제 모델 평가에서 모두 통과했습니다. 개발 중 공개된 사례의 한 번 실행이며 일반화 정확도나 실사용 효과를 뜻하지 않습니다. [offline 평가 계약](docs/engineering/expense-evaluation-contracts.md)과 [실제 모델 결과·비용·한계](docs/engineering/expense-model-results-2026-10-25.md)를 구분해 기록했습니다. 공개 AI는 OFF입니다.
 
 ## 아키텍처
 
@@ -110,6 +110,8 @@ pnpm validate                 # lint · 타입 · API 테스트 · Web productio
 pnpm eval:expense:offline     # 외부 호출 없는 경비 평가 데이터 계약
 pnpm test:e2e                 # 일반 업무 · 합성 AI · desktop/mobile
 pnpm test:e2e:public-demo     # AI OFF · 공개 방문자 작성/제출/승인
+pnpm build:storybook         # 독립 컴포넌트 정적 문서
+pnpm test:storybook          # 정적 상태·접근성·키보드 검증
 ```
 
 일반 CI는 외부 AI를 호출하지 않습니다. PostgreSQL 통합 테스트와 컨테이너 smoke를 별도로 실행하며, 실제 모델 평가는 비용이 발생하는 명령으로 분리했습니다. 최신 배포·검증 근거는 [현재 상태](docs/engineering/current-status.md)와 각 PR에서 확인할 수 있습니다.
@@ -123,3 +125,5 @@ pnpm test:e2e:public-demo     # AI OFF · 공개 방문자 작성/제출/승인
 - 다음 제품 과제는 비용 제한을 갖춘 경비 AI 공개 연결과 실제 사용자 기반의 사용성 평가입니다.
 
 [현재 로드맵](docs/engineering/roadmap.md) · [작업별 실행 계획](docs/engineering/execution-plan-2026-10-25.md) · [설계 결정](docs/adr) · [제품 명세](docs/product)
+
+목록 개선을 위한 [PostgreSQL 합성 baseline](docs/engineering/approval-list-baseline.md)과 [다음 목록 계약 검토](docs/engineering/approval-list-next-contract.md)를 보관합니다. 서비스 측정값과 HTTP·브라우저 측정 범위는 구분합니다.

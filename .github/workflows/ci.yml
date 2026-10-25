@@ -47,6 +47,9 @@ jobs:
       - name: Verify local credential entry without real credentials
         run: python -m unittest discover -s tools -p 'test_store_openai_key.py'
 
+      - name: Verify generated brand artwork
+        run: python tools/sync_brand_assets.py --check
+
       - name: Validate application
         run: pnpm validate
 

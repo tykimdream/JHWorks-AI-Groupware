@@ -53,3 +53,9 @@ node tools/check-pattern-pages.mjs
 초기 정적 테스트는48/50이었다. 두 실패는 Storybook 합성 Esc가 native dialog 기본 동작을 실행하지 않는 차이였고, play 취소 버튼과 실제 Playwright Escape 검사를 분리한 뒤50/50을 확인했다. manager 캡처는 새로고침 뒤 iframe 문서 로드까지 기다리도록 수정해 다시 확인했다.
 
 axe 자동 검사와 개발자 키보드 회귀는 사람의 접근성 평가·전체 WCAG 준수·실사용자의 과제 성공률을 대신하지 않는다. 공개 URL의 대표 흐름 확인은 위 기록을 따르며 전체 실사용자 평가는 아니다. npm은 아직 private·UNLICENSED이며 게시하지 않았다.
+
+## 파비콘 원본 공유
+
+Storybook은 기본 아이콘 대신 `apps/web/src/app/icon.svg`를 정적 favicon 입력으로 사용한다. 승인된 J 심볼에서 생성한 같은 보라색·흰색 아이콘이며 별도 그림을 복제하지 않는다. Storybook 빌드는 이 파일을 `icon.svg`로 제공하고 manager의 `rel=icon`도 해당 파일을 가리킨다. 정적/공개 smoke는 link뿐 아니라 실제 SVG 응답이 앱 원본과 같은지 검사한다.
+
+업무 앱 소스에는 Next.js 파일 규약의 `icon.svg`, `favicon.ico`(16/32/48), `apple-icon.png`(180)가 있다. 소스 설정과 공개 배포는 별개다. 2026-10-26 확인 당시 `groupware.pikan.dev`에는 icon link가 없고 `/favicon.ico`·`/icon.svg`가404였다. 제품 공개 배포 확인 전에는 이 앱에 파비콘이 반영됐다고 표시하지 않는다.

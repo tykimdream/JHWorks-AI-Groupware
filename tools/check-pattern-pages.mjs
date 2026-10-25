@@ -1,7 +1,7 @@
 // Read-only smoke for the approved static Pages site. No product API calls.
 import { fileURLToPath } from 'node:url';
 import { chromium, expect, devices } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 const base = 'https://tykimdream.github.io/JHWorks-AI-Groupware/';
 const output = fileURLToPath(new URL('../artifacts/storybook/public/', import.meta.url));
 await mkdir(output, { recursive: true });
@@ -18,11 +18,16 @@ try {
     expect(index.ok()).toBe(true);
     const entries = (await index.json()).entries;
     expect(Object.values(entries).filter(x => x.type === 'story')).toHaveLength(23);
+    const favicon = await context.request.get(base + 'icon.svg');
+    expect(favicon.ok()).toBe(true);
+    expect(favicon.headers()['content-type']).toContain('image/svg+xml');
+    expect(await favicon.text()).toBe(await readFile(new URL('../apps/web/src/app/icon.svg', import.meta.url), 'utf8'));
     const brand = await context.request.get(base + 'brand/jhworks-wordmark.svg');
     expect(brand.ok()).toBe(true);
     expect(brand.headers()['content-type']).toContain('image/svg+xml');
     const response = await page.goto(base + '?path=/docs/jhw-pattern-forms-field--docs');
     expect(response.status()).toBe(200);
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', './icon.svg');
     const preview = page.frameLocator('#storybook-preview-iframe');
     await expect(preview.getByRole('heading', { name: 'Field', exact: true }).first()).toBeVisible();
     await page.reload();
@@ -50,7 +55,7 @@ try {
     await expect(page.getByRole('dialog')).toBeVisible();
     expect(errors).toEqual([]);
     expect(apiCalls).toEqual([]);
-    results.push({ viewport: name, dimensions: page.viewportSize(), stories: 23, docsReload: true, brand: true, requiredLabel: true, keyboard: true, pendingEscape: true, apiCalls: 0, pageErrors: 0 });
+    results.push({ viewport: name, dimensions: page.viewportSize(), stories: 23, docsReload: true, brand: true, favicon: true, requiredLabel: true, keyboard: true, pendingEscape: true, apiCalls: 0, pageErrors: 0 });
     await context.close();
   }
   await writeFile(`${output}/smoke.json`, JSON.stringify({ base, checkedAt: new Date().toISOString(), results }, null, 2) + '\n');

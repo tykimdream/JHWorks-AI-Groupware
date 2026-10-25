@@ -159,7 +159,10 @@ DB 대상 수·백업 신선도·실제 정리/예약 적용은 M1-02에 남겨 
 
 ## 6. M4 — 디자인 시스템·Storybook·패키지
 
-### M4-01 실제 폼·상태 컴포넌트 — planned
+### M4-01 실제 폼·상태 컴포넌트 — verified (대표 경비 폼/상태·문서·회귀, 공개 미배포)
+
+- [실제 소비 계약](pattern-form-components.md): Field/Input/Select/Textarea/Alert/EmptyState/ConfirmationDialog를 패키지로 추출하고 경비 폼·빈 목록·오류·확인 흐름과 Pattern 예제가 같은 export를 사용한다.
+  Storybook은 다음 M4-02이며 npm은 여전히 private/미게시다.
 
 - 기존 토큰/Button/Badge를 재사용하고 Field·Input·Select·Alert·EmptyState·Dialog를 실제 중복과 사용 맥락에서 추출한다.
 - 기본·오류·disabled·pending·긴 문구·키보드/포커스·상태 알림·reduced motion 계약을 정의한다.

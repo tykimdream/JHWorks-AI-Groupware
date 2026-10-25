@@ -33,10 +33,10 @@ test('request → select → inspect → explicitly save one DRAFT', async ({ pa
   await page.locator('.leave-draft-preview').screenshot({ path: `docs/portfolio/screenshots/leave-preview-${testInfo.project.name}.png` });
   let saves = 0;
   page.on('request', (request) => { if (request.url().endsWith('/draft/confirm')) saves++; });
-  await page.getByRole('button', { name: '내용을 확인했고 Draft로 저장' }).focus();
+  await page.getByRole('button', { name: '내용을 확인했고 초안으로 저장' }).focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/approvals\/.+\?leaveRunId=/);
-  await expect(page.locator('.detail-title-row .status-badge')).toContainText('임시저장');
+  await expect(page.locator('.detail-title-row .status-badge')).toContainText('초안');
   expect(saves).toBe(1);
   await page.locator('.detail-title-row').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `docs/portfolio/screenshots/leave-draft-${testInfo.project.name}.png` });

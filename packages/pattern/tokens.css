@@ -1,0 +1,37 @@
+/* Generated from tokens.json. Run pnpm --filter @jhworks/pattern build. */
+:root {
+  --jhw-color-text: #202735;
+  --jhw-color-text-muted: #626b7a;
+  --jhw-color-border: #e5e7ee;
+  --jhw-color-canvas: #f7f8fc;
+  --jhw-color-surface: #ffffff;
+  --jhw-color-primary: #6554cf;
+  --jhw-color-primary-hover: #5140b5;
+  --jhw-color-primary-subtle: #f0edfc;
+  --jhw-color-danger: #b43a32;
+  --jhw-color-danger-subtle: #fae9e7;
+  --jhw-color-success: #23704a;
+  --jhw-color-success-subtle: #e8f5ee;
+  --jhw-color-warning: #855b09;
+  --jhw-color-warning-subtle: #fff6df;
+  --jhw-color-info: #245fb4;
+  --jhw-color-info-subtle: #eaf1fd;
+  --jhw-space-1: 4px;
+  --jhw-space-2: 8px;
+  --jhw-space-3: 12px;
+  --jhw-space-4: 16px;
+  --jhw-space-5: 20px;
+  --jhw-space-6: 24px;
+  --jhw-space-7: 28px;
+  --jhw-space-8: 32px;
+  --jhw-space-12: 48px;
+  --jhw-space-16: 64px;
+  --jhw-font-caption: 11px;
+  --jhw-font-small: 12px;
+  --jhw-font-body: 14px;
+  --jhw-radius-sm: 8px;
+  --jhw-radius-md: 12px;
+  --jhw-radius-lg: 18px;
+  --jhw-motion-fast: 160ms;
+  --jhw-shadow: 0 8px 30px #25234412;
+}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
+import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { AppShell } from '@/components/app-shell';
 import { StatusBadge } from '@/components/status-badge';
 import { ApiError, apiFetch } from '@/lib/api';
@@ -15,6 +16,7 @@ type Scope = 'mine' | 'assigned';
 
 function ApprovalListContent() {
   const searchParams = useSearchParams();
+  const { configuration } = useDemoConfiguration();
   const [scope, setScope] = useState<Scope>(
     searchParams.get('scope') === 'assigned' ? 'assigned' : 'mine',
   );
@@ -51,12 +53,17 @@ function ApprovalListContent() {
           <p>내가 작성한 문서와 결재가 필요한 문서를 분리해 확인합니다.</p>
         </div>
         <div className="page-header-actions">
-          <Link className="secondary-button" href="/approvals/new">
+          <Link
+            className={configuration?.enabled ? 'primary-button' : 'secondary-button'}
+            href="/approvals/new"
+          >
             직접 작성
           </Link>
-          <Link className="primary-button" href="/approvals/ai-draft">
-            AI로 초안 만들기
-          </Link>
+          {configuration && !configuration.enabled && (
+            <Link className="primary-button" href="/approvals/ai-draft">
+              AI로 초안 만들기
+            </Link>
+          )}
         </div>
       </header>
 
@@ -95,7 +102,7 @@ function ApprovalListContent() {
           </strong>
           <span>
             {scope === 'mine'
-              ? '첫 Draft를 작성해 업무 흐름을 시작해보세요.'
+              ? '첫 초안을 작성해 업무 흐름을 시작해보세요.'
               : '새 요청이 오면 이곳에 표시됩니다.'}
           </span>
         </div>

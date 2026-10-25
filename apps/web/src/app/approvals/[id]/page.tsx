@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { DemoRoleSwitcher } from '@/components/demo-entry';
+import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { AppShell } from '@/components/app-shell';
 import { AIReviewPanel } from '@/components/ai-review-panel';
 import {
@@ -48,6 +50,7 @@ export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const leaveRunId = useSearchParams().get('leaveRunId');
   const { employee } = useCurrentEmployee();
+  const { configuration } = useDemoConfiguration();
   const [approval, setApproval] = useState<Approval | null>(null);
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -80,8 +83,12 @@ export default function ApprovalDetailPage() {
     }
     setError(null);
     setConfirmation({
-      command, id: approval.id, title: approval.title,
-      amount: approval.amount, version: approval.version, comment,
+      command,
+      id: approval.id,
+      title: approval.title,
+      amount: approval.amount,
+      version: approval.version,
+      comment,
     });
   };
 
@@ -96,14 +103,18 @@ export default function ApprovalDetailPage() {
     setIsActing(true);
     setError(null);
     try {
-      const updated = await apiFetch<Approval>(`/approvals/${confirmation.id}/${confirmation.command}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          version: confirmation.version,
-          ...(confirmation.command === 'approve' || confirmation.command === 'reject'
-            ? { comment: confirmation.comment } : {}),
-        }),
-      });
+      const updated = await apiFetch<Approval>(
+        `/approvals/${confirmation.id}/${confirmation.command}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            version: confirmation.version,
+            ...(confirmation.command === 'approve' || confirmation.command === 'reject'
+              ? { comment: confirmation.comment }
+              : {}),
+          }),
+        },
+      );
       setApproval(updated);
       setComment('');
     } catch (caught: unknown) {
@@ -131,7 +142,9 @@ export default function ApprovalDetailPage() {
       <ApprovalCommandDialog
         snapshot={confirmation}
         busy={isActing}
-        onCancel={() => { if (!commandInFlight.current) setConfirmation(null); }}
+        onCancel={() => {
+          if (!commandInFlight.current) setConfirmation(null);
+        }}
         onConfirm={runCommand}
       />
       <header className="detail-header">
@@ -151,6 +164,15 @@ export default function ApprovalDetailPage() {
         </div>
       </header>
 
+      {configuration?.enabled && isAuthor && approval.status === 'PENDING' && employee && (
+        <section className="next-step-notice" aria-label="체험 다음 단계">
+          <div>
+            <strong>제출했어요. 이제 결재자가 되어 확인해 보세요.</strong>
+            <p>같은 체험 공간에서 역할을 바꿔 승인하거나 반려할 수 있습니다.</p>
+          </div>
+          <DemoRoleSwitcher currentRole={employee.role} label="결재자로 전환해 계속하기" />
+        </section>
+      )}
       <div className="detail-layout">
         <article className="document-card">
           <section>
@@ -169,6 +191,7 @@ export default function ApprovalDetailPage() {
               key={`${approval.id}-${approval.version}`}
               approvalId={approval.id}
               version={approval.version}
+              status={approval.status}
             />
           )}
 
@@ -178,7 +201,7 @@ export default function ApprovalDetailPage() {
             <div className="action-panel danger-soft">
               <div>
                 <strong>반려된 문서입니다.</strong>
-                <p>과거 결재 의견을 유지한 채 새로운 Draft로 전환할 수 있습니다.</p>
+                <p>과거 결재 의견을 유지한 채 새로운 초안으로 전환할 수 있습니다.</p>
               </div>
               <button
                 className="primary-button"
@@ -274,8 +297,10 @@ export default function ApprovalDetailPage() {
             ) : (
               <div className="action-panel">
                 <div>
-                  <strong>제출 준비가 되었나요?</strong>
-                  <p>서버가 현재 조직 정보에서 직속 관리자를 다시 계산합니다.</p>
+                  <strong>내용을 확인하고 제출하세요</strong>
+                  <p>
+                    제출하면 지정된 결재자에게 전달됩니다. 초안은 제출 전까지 수정할 수 있습니다.
+                  </p>
                 </div>
                 <div className="button-row">
                   <Link className="secondary-button" href={`/approvals/${approval.id}/edit`}>

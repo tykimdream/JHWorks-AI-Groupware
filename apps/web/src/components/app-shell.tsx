@@ -89,13 +89,13 @@ export const AppShell = ({ children }: AppShellProps) => {
               {label}
             </Link>
           ))}
-          {!configuration?.enabled && (
+          {configuration && !configuration.enabled && (
             <Link href="/assistant" aria-current={pathname === '/assistant' ? 'page' : undefined}>
               <WorkspaceIcon name="search" />
               AI 업무 조회
             </Link>
           )}
-          {!configuration?.enabled && (
+          {configuration && !configuration.enabled && (
             <Link
               href="/approvals/ai-draft"
               aria-current={pathname === '/approvals/ai-draft' ? 'page' : undefined}
@@ -107,7 +107,8 @@ export const AppShell = ({ children }: AppShellProps) => {
           <Link href="/approvals/new">
             <WorkspaceIcon name="plus" />새 결재 작성
           </Link>
-          <span className="nav-caption nav-caption-support">FEEDBACK</span>
+          <span className="nav-caption nav-caption-support">도움말</span>
+          <Link href="/pattern"><WorkspaceIcon name="document" />JHW Pattern</Link>
           <Link href="/feedback">
             <WorkspaceIcon name="message" />
             의견 남기기

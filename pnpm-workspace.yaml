@@ -1,5 +1,6 @@
 packages:
   - apps/web
+  - packages/*
 
 
 # Patch-compatible fix for the indexed source map denial-of-service advisory.

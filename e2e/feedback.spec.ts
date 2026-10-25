@@ -6,7 +6,7 @@ const configuration = { enabled: true, durationMinutes: 15, writeLimit: 20, requ
 test('public demo entry hides shared password accounts', async ({ page }, testInfo) => {
   await page.route('**/api/v1/demo/configuration', (route) => route.fulfill({ json: configuration }));
   await page.goto('/login');
-  await expect(page.getByRole('heading', { name: '나만의 업무 공간에서 체험하세요' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '경비 정산, 작성부터 승인까지' })).toBeVisible();
   await expect(page.getByLabel('비밀번호')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '체험 시작하기' })).toBeEnabled();
   await mkdir('artifacts/feedback', { recursive: true });

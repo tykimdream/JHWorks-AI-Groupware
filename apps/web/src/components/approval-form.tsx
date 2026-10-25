@@ -18,6 +18,7 @@ import { expenseCategoryLabels } from '@/lib/approval-labels';
 
 interface ApprovalFormProps {
   initial?: Approval;
+  initialType?: ApprovalType;
   preset?: ApprovalFormPreset;
 }
 
@@ -56,7 +57,7 @@ const blankLeaveDetails: LeaveDetails = {
 
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
-export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
+export const ApprovalForm = ({ initial, preset, initialType }: ApprovalFormProps) => {
   const router = useRouter();
   const initialTrip =
     initial?.details.kind === 'BUSINESS_TRIP' ? initial.details : blankTripDetails;
@@ -69,7 +70,7 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
           endDate: preset?.endDate ?? '',
           leaveUnit: preset?.leaveUnit ?? 'FULL_DAY',
         };
-  const [type, setType] = useState<ApprovalType>(initial?.type ?? preset?.type ?? 'BUSINESS_TRIP');
+  const [type, setType] = useState<ApprovalType>(initial?.type ?? preset?.type ?? initialType ?? 'BUSINESS_TRIP');
   const [expense, setExpense] = useState<ExpenseDetails>(
     initial?.details.kind === 'EXPENSE'
       ? initial.details
@@ -193,7 +194,7 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
       );
       router.push(`/approvals/${approval.id}`);
     } catch (caught: unknown) {
-      setError(getUserErrorMessage(caught, 'Draft를 저장하지 못했습니다.'));
+      setError(getUserErrorMessage(caught, '초안을 저장하지 못했습니다.'));
     } finally {
       setIsSaving(false);
     }
@@ -327,7 +328,7 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
               <p className="eyebrow">STRUCTURED DATA</p>
               <h2>출장 정보</h2>
             </div>
-            <span className="subtle">비어 있는 항목도 Draft로 저장할 수 있습니다.</span>
+            <span className="subtle">비어 있는 항목도 초안으로 저장할 수 있습니다.</span>
           </div>
           <div className="form-grid-two">
             <label>
@@ -464,7 +465,7 @@ export const ApprovalForm = ({ initial, preset }: ApprovalFormProps) => {
           취소
         </button>
         <button className="primary-button" disabled={isSaving} type="submit">
-          {isSaving ? '저장 중…' : 'Draft 저장'}
+          {isSaving ? '저장 중…' : '초안 저장'}
         </button>
       </div>
     </form>

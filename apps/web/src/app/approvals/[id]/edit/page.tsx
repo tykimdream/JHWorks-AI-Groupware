@@ -17,7 +17,7 @@ export default function EditApprovalPage() {
     apiFetch<Approval>(`/approvals/${id}`)
       .then(setApproval)
       .catch((caught: unknown) => {
-        setError(caught instanceof ApiError ? caught.message : 'Draft를 불러오지 못했습니다.');
+        setError(caught instanceof ApiError ? caught.message : '초안을 불러오지 못했습니다.');
       });
   }, [id]);
 
@@ -31,7 +31,7 @@ export default function EditApprovalPage() {
         </div>
       </header>
       {error && <p className="error-banner">{error}</p>}
-      {!approval && !error && <div className="empty-card">Draft를 불러오는 중입니다.</div>}
+      {!approval && !error && <div className="empty-card">초안을 불러오는 중입니다.</div>}
       {approval && <ApprovalForm initial={approval} />}
     </AppShell>
   );

@@ -87,7 +87,7 @@ export const ApprovalDraftAssistant = () => {
       });
       router.push(`/approvals/${approval.id}`);
     } catch (caught: unknown) {
-      setError(getUserErrorMessage(caught, 'Draft를 저장하지 못했습니다.'));
+      setError(getUserErrorMessage(caught, '초안을 저장하지 못했습니다.'));
     } finally {
       setIsConfirming(false);
     }
@@ -360,14 +360,14 @@ export const ApprovalDraftAssistant = () => {
               </section>
 
               <div className="draft-confirm-panel">
-                <p>저장하면 편집 가능한 DRAFT가 생성됩니다. 자동 제출되지는 않습니다.</p>
+                <p>저장하면 편집 가능한 초안이 저장됩니다. 자동 제출되지는 않습니다.</p>
                 <button
                   className="primary-button"
                   disabled={isConfirming}
                   onClick={handleConfirm}
                   type="button"
                 >
-                  {isConfirming ? 'Draft 저장 중…' : '확인하고 Draft로 저장'}
+                  {isConfirming ? '초안 저장 중…' : '확인하고 초안으로 저장'}
                 </button>
                 <span>저장 후 문서 상세 화면에서 수정하고 제출할 수 있습니다.</span>
               </div>

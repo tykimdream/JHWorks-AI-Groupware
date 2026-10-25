@@ -231,7 +231,7 @@ export const AIReviewPanel = ({
                 <p>
                   {review.revisedContent?.trim()
                     && review.revisedContent.trim() !== approval.content.trim()
-                    ? 'AI 제안을 바로 다듬은 뒤 Draft 본문에 반영할 수 있습니다.'
+                    ? 'AI 제안을 바로 다듬은 뒤 초안 본문에 반영할 수 있습니다.'
                     : 'AI가 현재 본문을 유지했습니다. 필요한 내용을 직접 다듬어 반영할 수 있습니다.'}
                 </p>
               </div>

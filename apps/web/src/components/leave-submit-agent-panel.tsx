@@ -101,7 +101,7 @@ export const LeaveSubmitAgentPanel = ({
       {!preparation && approval.status === 'DRAFT' && run?.status !== 'CANCELED' && (
         <div className="action-panel">
           <div>
-            <strong>Draft 저장 확인은 완료되었습니다.</strong>
+            <strong>초안 저장 확인은 완료되었습니다.</strong>
             <p>제출은 현재 상태를 다시 계산한 별도 미리보기와 두 번째 확인이 필요합니다.</p>
           </div>
           <button className="primary-button" disabled={isPreparing} onClick={prepare} type="button">
@@ -117,12 +117,12 @@ export const LeaveSubmitAgentPanel = ({
             <strong>아직 제출되지 않음</strong>
           </div>
           <dl className="preview-detail-grid">
-            <div><dt>Approval version</dt><dd>v{preparation.preview.approvalVersion}</dd></div>
+            <div><dt>문서 버전</dt><dd>v{preparation.preview.approvalVersion}</dd></div>
             <div><dt>차감</dt><dd>{preparation.preview.requestedDays}일</dd></div>
             <div><dt>현재 가용</dt><dd>{preparation.preview.availableDays}일</dd></div>
             <div><dt>현재 대기</dt><dd>{preparation.preview.pendingDays}일</dd></div>
             <div><dt>최종 결재자</dt><dd>{preparation.preview.managerName} · {preparation.preview.managerPosition}</dd></div>
-            <div><dt>계정 version</dt><dd>v{preparation.preview.accountVersion}</dd></div>
+            <div><dt>연차 정보 버전</dt><dd>v{preparation.preview.accountVersion}</dd></div>
           </dl>
           {preparation.preview.warnings.length > 0 && (
             <div className="availability-notice">
@@ -132,7 +132,7 @@ export const LeaveSubmitAgentPanel = ({
             </div>
           )}
           <p className="subtle">
-            확인 직전에 status, version, 결재자, 연차 계정과 캘린더를 다시 검증합니다. 만료·취소·stale이면 Draft를 변경하지 않습니다.
+            제출 전에 문서·결재자·잔여 연차와 일정을 다시 확인합니다. 확인 시간이 지났거나 내용이 바뀌면 다시 검토해 주세요.
           </p>
           <div className="leave-assistant-actions">
             <button className="ghost-button" disabled={isResuming} onClick={() => resume('CANCEL')} type="button">
@@ -146,10 +146,10 @@ export const LeaveSubmitAgentPanel = ({
       )}
 
       {run?.status === 'CANCELED' && (
-        <p className="stale-banner">제출을 취소했습니다. Draft와 연차 계정은 변경되지 않았습니다.</p>
+        <p className="stale-banner">제출을 취소했습니다. 초안과 연차 계정은 변경되지 않았습니다.</p>
       )}
       {run?.status === 'FAILED' && (
-        <p className="stale-banner">Tool 실패 상태가 저장되었습니다. 같은 확인으로 안전하게 다시 시도할 수 있습니다.</p>
+        <p className="stale-banner">제출을 완료하지 못했습니다. 확인한 내용은 유지되며 다시 시도할 수 있습니다.</p>
       )}
       {run?.status === 'SUBMITTED' && (
         <p className="review-success-banner">두 번째 확인이 완료되어 직속 관리자에게 제출했습니다.</p>

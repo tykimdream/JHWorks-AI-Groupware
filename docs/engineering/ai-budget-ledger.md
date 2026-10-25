@@ -51,6 +51,8 @@ GCP Cloud Run spend cap과 이 원장은 서로 다른 예산이다.
 
 `a14c7e2d903f`는 두 테이블만 추가한다. 원장이 하나라도 존재하면 downgrade를 거부하며
 offline SQL downgrade도 거부한다. 초기의 빈 원장만 제거할 수 있다. 원격 DB에는 적용하지 않았다.
+기존 운영 SQL·fixture preflight는 배포된 `f30c9a71b624`를 계속 고정한다.
+CI는 이 과거 상태 재현과 최신 head의 전용 migration/runtime 역할·신규 테이블 권한을 별도로 검증한다.
 
 ```sh
 cd apps/api

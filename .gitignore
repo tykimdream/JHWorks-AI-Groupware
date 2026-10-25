@@ -44,3 +44,9 @@ artifacts/session-data/
 
 artifacts/brand/
 artifacts/brand-redesign/
+
+# Static Storybook build and browser evidence
+apps/pattern-storybook/storybook-static/
+artifacts/storybook/
+playwright-storybook-report/
+test-results-storybook/

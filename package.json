@@ -25,10 +25,15 @@
     "test:e2e": "playwright test",
     "test:e2e:public-demo": "playwright test --config=playwright.public-demo.config.ts",
     "check:pattern": "pnpm --filter @jhworks/pattern check",
-    "eval:expense:offline": "cd apps/api && uv run python -m app.evals.draft_contract"
+    "eval:expense:offline": "cd apps/api && uv run python -m app.evals.draft_contract",
+    "storybook": "pnpm --filter @jhworks/pattern-storybook dev",
+    "build:storybook": "pnpm --filter @jhworks/pattern-storybook build",
+    "type-check:storybook": "pnpm --filter @jhworks/pattern-storybook type-check",
+    "test:storybook": "playwright test --config=playwright.storybook.config.ts"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.58.2"
   },
   "pnpm": {

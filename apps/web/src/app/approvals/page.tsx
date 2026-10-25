@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { AppShell } from '@/components/app-shell';
@@ -14,34 +14,43 @@ import { approvalTypeLabels } from '@/lib/approval-labels';
 
 type Scope = 'mine' | 'assigned';
 
-function ApprovalListContent() {
+function ApprovalListRoute() {
   const searchParams = useSearchParams();
+  const scope: Scope = searchParams.get('scope') === 'assigned' ? 'assigned' : 'mine';
+  return <ApprovalListContent scope={scope} />;
+}
+
+function ApprovalListContent({ scope }: { scope: Scope }) {
+  const router = useRouter();
   const { configuration } = useDemoConfiguration();
-  const [scope, setScope] = useState<Scope>(
-    searchParams.get('scope') === 'assigned' ? 'assigned' : 'mine',
-  );
-  const [data, setData] = useState<ApprovalListResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const restoredRow = useRef<string | null>(null);
+  const [result, setResult] = useState<{
+    scope: Scope;
+    data: ApprovalListResponse | null;
+    error: string | null;
+  } | null>(null);
+  // Keep tabs mounted for keyboard focus, but never show another scope's result.
+  const data = result?.scope === scope ? result.data : null;
+  const error = result?.scope === scope ? result.error : null;
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
     apiFetch<ApprovalListResponse>(`/approvals?scope=${scope}`, { signal: controller.signal })
       .then((result) => {
-        if (!controller.signal.aborted) setData(result);
+        if (!controller.signal.aborted) setResult({ scope, data: result, error: null });
       })
       .catch((caught: unknown) => {
         if (controller.signal.aborted) return;
-        setError(caught instanceof ApiError ? caught.message : '결재 목록을 불러오지 못했습니다.');
+        setResult({ scope, data: null, error: caught instanceof ApiError ? caught.message : '결재 목록을 불러오지 못했습니다.' });
       });
     return () => controller.abort();
   }, [scope, attempt]);
 
   const changeScope = (nextScope: Scope) => {
     if (nextScope === scope) return;
-    setScope(nextScope);
-    setData(null);
-    setError(null);
+    setResult(null);
+    router.push(`/approvals?scope=${nextScope}`, { scroll: false });
   };
 
   return (
@@ -86,7 +95,7 @@ function ApprovalListContent() {
           <button
             className="text-button"
             onClick={() => {
-              setError(null);
+              setResult(null);
               setAttempt((value) => value + 1);
             }}
           >
@@ -110,7 +119,19 @@ function ApprovalListContent() {
       {data && data.total > 0 && (
         <div className="approval-list">
           {data.items.map((approval) => (
-            <Link className="approval-row" href={`/approvals/${approval.id}`} key={approval.id}>
+            <Link
+              className="approval-row tw:scroll-mt-6 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-jhw-primary"
+              id={`approval-${approval.id}`}
+              href={`/approvals/${approval.id}?from=${scope}`}
+              key={approval.id}
+              ref={(node) => {
+                const target = `#${encodeURIComponent(`approval-${approval.id}`)}`;
+                if (!node || window.location.hash !== target || restoredRow.current === target) return;
+                restoredRow.current = target;
+                node.focus({ preventScroll: true });
+                node.scrollIntoView({ block: 'center', behavior: 'instant' });
+              }}
+            >
               <div>
                 <div className="row-meta">
                   <span>{approvalTypeLabels[approval.type]}</span>
@@ -144,7 +165,7 @@ function ApprovalListContent() {
 export default function ApprovalListPage() {
   return (
     <Suspense fallback={<main className="centered-state">결재 목록을 준비하고 있습니다.</main>}>
-      <ApprovalListContent />
+      <ApprovalListRoute />
     </Suspense>
   );
 }

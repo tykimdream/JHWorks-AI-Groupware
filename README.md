@@ -121,4 +121,4 @@ pnpm test:e2e:public-demo     # AI OFF · 공개 방문자 작성/제출/승인
 - 공개 AI 활성화, 자동 정리 운영, 예약 백업, main 자동 배포는 후속 과제입니다. 실제 기업의 업무 시간 절감은 아직 측정하지 않았습니다.
 - 다음 제품 과제는 비용 제한을 갖춘 경비 AI 공개 연결과 실제 사용자 기반의 사용성 평가입니다.
 
-[세부 로드맵](docs/engineering/roadmap.md) · [설계 결정](docs/adr) · [제품 명세](docs/product)
+[현재 로드맵](docs/engineering/roadmap.md) · [작업별 실행 계획](docs/engineering/execution-plan-2026-10-25.md) · [설계 결정](docs/adr) · [제품 명세](docs/product)

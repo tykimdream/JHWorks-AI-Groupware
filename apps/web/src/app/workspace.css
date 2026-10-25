@@ -1029,25 +1029,10 @@ textarea:focus {
   }
 }
 
-.approval-command-dialog {
-  width: min(520px, calc(100vw - 32px));
-  max-height: calc(100dvh - 48px);
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-6);
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow);
-}
-.approval-command-dialog::backdrop { background: rgb(23 34 29 / 45%); }
-.approval-command-dialog h2 { margin: var(--space-2) 0; }
-.approval-command-dialog > p:not(.eyebrow) { color: var(--muted); line-height: 1.7; }
 .command-preview { display: grid; gap: var(--space-3); margin: var(--space-5) 0; }
 .command-preview > div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: var(--space-3); }
 .command-preview dt { color: var(--muted); }
 .command-preview dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
-.approval-command-dialog .button-row { justify-content: flex-end; flex-wrap: wrap; }
 
 /* Task-first entry and optional discovery. Essential instructions stay in the page. */
 .home-start-card { padding: var(--space-8); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }

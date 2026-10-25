@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert, Field, Input, Select, Textarea } from '@jhworks/pattern/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
@@ -339,39 +340,35 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
           </select>
         </label>
         {type !== 'LEAVE' && (
-          <label>
-            <span>{type === 'EXPENSE' ? '실제 지출 금액 (원)' : '예상 금액 (원)'}</span>
-            <input
-              id="expense-field-amount"
+          <Field id="expense-field-amount" label={type === 'EXPENSE' ? '실제 지출 금액 (원)' : '예상 금액 (원)'}>
+            <Input
               min="0"
               onChange={(event) => setAmount(event.target.value)}
               type="number"
               value={amount}
             />
-          </label>
+          </Field>
         )}
       </div>
 
       <div className="form-section">
-        <label>
-          <span>제목</span>
-          <input
+        <Field label="제목" required>
+          <Input
             maxLength={120}
             onChange={(event) => setTitle(event.target.value)}
             required
             value={title}
           />
-        </label>
-        <label>
-          <span>업무 내용</span>
-          <textarea
+        </Field>
+        <Field label="업무 내용">
+          <Textarea
             maxLength={5000}
             onChange={(event) => setContent(event.target.value)}
             placeholder="결재자가 목적과 기대 결과를 이해할 수 있도록 작성하세요."
             rows={6}
             value={content}
           />
-        </label>
+        </Field>
       </div>
 
       {type === 'EXPENSE' && (
@@ -384,29 +381,23 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
             <span className="subtle">이미 지출한 비용을 기록합니다.</span>
           </div>
           <div className="form-grid-two">
-            <label>
-              <span>실제 지출일</span>
-              <input
-                id="expense-field-expenseDate"
+            <Field id="expense-field-expenseDate" label="실제 지출일">
+              <Input
                 type="date"
                 value={expense.expenseDate ?? ''}
                 onChange={(event) => setExpense({ ...expense, expenseDate: event.target.value })}
               />
-            </label>
-            <label>
-              <span>사용처</span>
-              <input
-                id="expense-field-merchant"
+            </Field>
+            <Field id="expense-field-merchant" label="사용처">
+              <Input
                 maxLength={200}
                 placeholder="예: 코레일"
                 value={expense.merchant ?? ''}
                 onChange={(event) => setExpense({ ...expense, merchant: event.target.value })}
               />
-            </label>
-            <label>
-              <span>비용 구분</span>
-              <select
-                id="expense-field-category"
+            </Field>
+            <Field id="expense-field-category" label="비용 구분">
+              <Select
                 value={expense.category ?? ''}
                 onChange={(event) =>
                   setExpense({
@@ -421,11 +412,10 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
                     {label}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label>
-              <span>증빙 참조 (선택)</span>
-              <input
+              </Select>
+            </Field>
+            <Field id="expense-field-receiptReference" label="증빙 참조 (선택)">
+              <Input
                 maxLength={255}
                 placeholder="예: 사내 문서번호 RCP-CES-001"
                 value={expense.receiptReference ?? ''}
@@ -433,18 +423,16 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
                   setExpense({ ...expense, receiptReference: event.target.value })
                 }
               />
-            </label>
+            </Field>
           </div>
-          <label>
-            <span>업무상 지출 목적</span>
-            <textarea
-              id="expense-field-purpose"
+          <Field id="expense-field-purpose" label="업무상 지출 목적">
+            <Textarea
               rows={3}
               maxLength={1000}
               value={expense.purpose ?? ''}
               onChange={(event) => setExpense({ ...expense, purpose: event.target.value })}
             />
-          </label>
+          </Field>
           <p className="expense-evidence-note">
             증빙 참조만 기록하며 파일을 업로드하지 않습니다. 영수증 원본은 결재자가 별도로 확인해야
             합니다.
@@ -590,7 +578,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
         </div>
       )}
 
-      {error && <p className="error-banner" role="alert">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="sticky-actions">
         <button className="secondary-button" disabled={isSaving} onClick={cancelEditing} type="button">
           취소

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { EmptyState } from '@jhworks/pattern/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
@@ -105,16 +106,10 @@ function ApprovalListContent({ scope }: { scope: Scope }) {
       )}
       {!data && !error && <div className="empty-card">결재 문서를 불러오는 중입니다.</div>}
       {data?.total === 0 && (
-        <div className="empty-card">
-          <strong>
-            {scope === 'mine' ? '작성한 결재가 없습니다.' : '배정된 결재가 없습니다.'}
-          </strong>
-          <span>
-            {scope === 'mine'
-              ? '첫 초안을 작성해 업무 흐름을 시작해보세요.'
-              : '새 요청이 오면 이곳에 표시됩니다.'}
-          </span>
-        </div>
+        <EmptyState
+          title={scope === 'mine' ? '작성한 결재가 없습니다.' : '배정된 결재가 없습니다.'}
+          description={scope === 'mine' ? '첫 초안을 작성해 업무 흐름을 시작해보세요.' : '새 요청이 오면 이곳에 표시됩니다.'}
+        />
       )}
       {data && data.total > 0 && (
         <div className="approval-list">

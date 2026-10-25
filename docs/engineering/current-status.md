@@ -12,8 +12,8 @@
 | 공개 대표 흐름 | 경비 작성·보완·제출·역할 전환·승인, API/문서/Pattern 제공 |
 | 공개 AI / 자동 정리 | 마지막 배포 기록 OFF / OFF. 실제 변경 전 재대조 |
 | 실제 AI / 사람 평가 | 승인된 고정 합성36개 실제 모델 통과 / 신규 사용자 측정 대기 |
-| Storybook / npm | 독립 정적23개 story·PC/모바일50개 로컬 검증, 공개 대기 / private·미게시 |
-| 다음 작업 | M4-02 공개 조건 확인, M5-01 목록 baseline. M2-03 공개 적용·M1-02는 운영 조건 대조 후 진행 |
+| Storybook / npm | [정적 Storybook 공개·URL 검증](../design/storybook.md),23개 story·CI50개 / private·미게시 |
+| 다음 작업 | M4-02 정적 공개 완료, M5-01 서비스 baseline 확인·HTTP/UI/plan 측정 후 M5-02 목록 계약. M2-03 공개 적용·M1-02는 운영 조건 대조 후 진행 |
 | 외부 조건 대기 중 | M1 증거 대조·M2 offline/예산·M3 로컬 개선 중 독립 작업 진행 |
 
 
@@ -51,7 +51,11 @@
 ## 2026-10-25 Storybook 독립 소비 — M4-02
 
 [정적 배포 계약](../design/storybook.md)에 실제 패키지를 소비하는23개 story·PC/모바일50개·axe 자동 검사·키보드·무API호출을 기록했다.
-생성 파일은 CI artifact로 보관하고 수동 Pages workflow를 준비했다. 실제 Pages 공개 설정/배포 URL 검증은 아직 없으며 npm은 미게시다.
+생성 파일은 CI artifact로 보관한다. 2026-10-26 승인 범위로 소스9ef9aca의 수동 Pages 배포와 실제 URL의 PC/모바일 대표 흐름을 검증했다. npm은 미게시이며 제품 Cloud Run 배포는 변경하지 않았다.
+
+## 2026-10-26 목록 서비스 baseline — M5-01A
+
+[고정 합성 PostgreSQL 결과](approval-list-baseline.md)를 PR #93으로 병합했다.1000건 assigned 응답은 SQL3회·JSON2201274bytes였고 ORM+직렬화 중간값168.75ms였다. 서비스 구간 결과이며 HTTP/UI/plan은 아직이다. [다음 계약 검토](approval-list-next-contract.md)에 목록·홈 집계·조회 Tool의 동시 전환 필요를 정리했다.
 
 ## 2026-10-25 AI 입력 이어받기·브랜드·공유 메타데이터
 

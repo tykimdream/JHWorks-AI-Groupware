@@ -1,0 +1,36 @@
+{
+  "base": "https://tykimdream.github.io/JHWorks-AI-Groupware/",
+  "checkedAt": "2026-10-25T15:26:27.208Z",
+  "results": [
+    {
+      "viewport": "desktop",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      },
+      "stories": 23,
+      "docsReload": true,
+      "brand": true,
+      "requiredLabel": true,
+      "keyboard": true,
+      "pendingEscape": true,
+      "apiCalls": 0,
+      "pageErrors": 0
+    },
+    {
+      "viewport": "mobile",
+      "dimensions": {
+        "width": 390,
+        "height": 664
+      },
+      "stories": 23,
+      "docsReload": true,
+      "brand": true,
+      "requiredLabel": true,
+      "keyboard": true,
+      "pendingEscape": true,
+      "apiCalls": 0,
+      "pageErrors": 0
+    }
+  ]
+}

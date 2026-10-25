@@ -40,6 +40,9 @@ from app.services.policy_retrieval import index_active_policy_sections
 settings = get_settings()
 settings.openai_api_key = None
 settings.frontend_origin = "http://localhost:3100"
+# The full desktop/mobile suite can legitimately authenticate more than 60 times/minute.
+# Keep the production limiter intact; this isolated synthetic fixture uses its supported ceiling.
+settings.login_requests_per_minute = 600
 
 # Import after the test-only configuration; existing databases are never used.
 from app.main import app  # noqa: E402

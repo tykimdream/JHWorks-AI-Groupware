@@ -1,5 +1,6 @@
 'use client';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
@@ -13,7 +14,7 @@ const demoAccounts = [
   {
     label: '작성자 · 윤서진',
     email: 'seojin.yoon@jhworks.test',
-    description: '휴가 상담과 결재 작성',
+    description: '경비·출장·휴가 결재 작성',
   },
   {
     label: '결재자 · 최도윤',
@@ -65,6 +66,7 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-story">
+        <div className="tw:mb-8"><BrandLogo /></div>
         <p className="eyebrow">JHWORKS · SYNTHETIC COMPANY</p>
         <h1>업무 흐름은 단순하게.<br />AI 실행은 안전하게.</h1>
         <p>
@@ -73,7 +75,7 @@ export default function LoginPage() {
         </p>
         <div className="phase-marker">
           <span>현재 단계</span>
-          <strong>휴가 상담 → 날짜 선택 → 확인 후 초안 저장</strong>
+          <strong>경비 작성 → 확인 후 제출 → 결재자 승인</strong>
         </div>
       </section>
       <section className="login-panel">

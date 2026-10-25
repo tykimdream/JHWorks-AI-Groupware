@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PublicPageHeader } from '@/components/brand-logo';
 import { useRef, useState, type FormEvent } from 'react';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { ApiError, apiFetch, getUserErrorMessage } from '@/lib/api';
@@ -54,6 +55,7 @@ export default function FeedbackPage() {
 
   return (
     <main className="feedback-page">
+      <PublicPageHeader />
       <header className="page-header">
         <div><p className="eyebrow">JHWORKS · FEEDBACK</p><h1>써보니 어떠셨나요?</h1>
           <p>불편한 점이나 개선 아이디어를 남겨주세요. 접수한 의견은 개발자가 직접 검토합니다.</p></div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PublicPageHeader } from '@/components/brand-logo';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
@@ -36,6 +37,7 @@ export const DemoEntry = ({
   };
   return (
     <main className="feedback-page">
+      <PublicPageHeader />
       <section className="form-section feedback-form">
         <p className="eyebrow">JHWORKS · INTERACTIVE DEMO</p>
         <h1>경비 정산, 작성부터 승인까지</h1>

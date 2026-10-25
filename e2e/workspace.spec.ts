@@ -144,6 +144,7 @@ test('AI failure retains the request and offers a usable manual form', async ({ 
   await expect(page.getByRole('textbox', { name: '업무 요청', exact: true })).toHaveValue(
     /CES 협력사 미팅/,
   );
-  await page.getByRole('link', { name: '직접 작성으로 계속 →', exact: true }).click();
+  await page.getByRole('button', { name: '직접 작성으로 계속 →', exact: true }).click();
   await expect(page.getByRole('heading', { name: '결재 문서 작성', exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '업무 내용', exact: true })).toHaveValue(/CES 협력사 미팅/);
 });

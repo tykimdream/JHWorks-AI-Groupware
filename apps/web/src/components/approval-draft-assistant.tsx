@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
@@ -11,6 +10,7 @@ import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { useWorkspaceEmployee } from '@/components/app-shell';
 import { readDraftRequest, clearDraftRequest } from '@/lib/draft-handoff';
+import { storeManualDraft } from '@/lib/manual-draft-handoff';
 import type { Approval, ApprovalDraftPrepareResponse, BusinessTripDetails } from '@/lib/types';
 
 const starterExamples = [
@@ -41,8 +41,21 @@ export const ApprovalDraftAssistant = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
+  const continueManually = () => {
+    const content = [request, ...answers, answer].filter((text) => text.trim()).join('\n\n');
+    if (!employee || !storeManualDraft(employee.id, {
+      content,
+      type: expenseOnly ? 'EXPENSE' : result?.preview?.type,
+    })) {
+      setHandoffError('입력을 옮기지 못했습니다. 브라우저 저장 권한과 전체 5,000자 한도를 확인해주세요. 현재 입력은 유지됩니다.');
+      return;
+    }
+    router.push('/approvals/new?handoff=manual');
+  };
 
   const prepare = async (nextAnswers: string[]) => {
+    setHandoffError(null);
     setError(null);
     setIsPreparing(true);
     try {
@@ -97,6 +110,7 @@ export const ApprovalDraftAssistant = () => {
   };
 
   const reset = () => {
+    setHandoffError(null);
     setRequest('');
     setAnswers([]);
     setAnswer('');
@@ -236,9 +250,9 @@ export const ApprovalDraftAssistant = () => {
 
               {result.status === 'UNSUPPORTED' && (
                 <div className="unsupported-actions">
-                  <Link className="secondary-button" href="/approvals/new">
+                  <button className="secondary-button" type="button" onClick={continueManually}>
                     수동으로 작성
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
@@ -246,11 +260,12 @@ export const ApprovalDraftAssistant = () => {
           {error && (
             <div className="error-banner" role="alert">
               <p>{error}</p>
-              <Link href="/approvals/new" className="text-button">
+              <button type="button" className="text-button" onClick={continueManually}>
                 직접 작성으로 계속 →
-              </Link>
+              </button>
             </div>
           )}
+          {handoffError && <p role="alert" className="error-banner">{handoffError}</p>}
         </section>
 
         <aside className="draft-preview-column">

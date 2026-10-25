@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import type {
@@ -16,12 +16,17 @@ import type {
 } from '@/lib/types';
 import { useWorkspaceEmployee } from '@/components/app-shell';
 import { clearManualDraft, readManualDraft } from '@/lib/manual-draft-handoff';
+import { ConfirmationDialog } from '@/components/confirmation-dialog';
+import { useNavigationGuard } from '@/components/navigation-guard';
+import { clearFormRecovery, readFormRecovery, recoveryKey, storeFormRecovery, type ApprovalFormValues } from '@/lib/approval-form-recovery';
 import { expenseCategoryLabels } from '@/lib/approval-labels';
+import { getSessionGeneration } from '@/lib/session-events';
 
 interface ApprovalFormProps {
   initial?: Approval;
   initialType?: ApprovalType;
   manualHandoff?: boolean;
+  listScope?: 'mine' | 'assigned';
   preset?: ApprovalFormPreset;
 }
 
@@ -60,7 +65,7 @@ const blankLeaveDetails: LeaveDetails = {
 
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
-export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false }: ApprovalFormProps) => {
+export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false, listScope }: ApprovalFormProps) => {
   const router = useRouter();
   const employee = useWorkspaceEmployee();
   const [handoff] = useState(() => !initial && manualHandoff && employee ? readManualDraft(employee.id) : null);
@@ -117,6 +122,78 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const values: ApprovalFormValues = { type, expense, title, content, amount, destination, tripStartDate, tripEndDate, clientName, visitPurpose, transportation, lodging, meals, other, leaveUnit, leaveStartDate, leaveEndDate, leaveReason, handoverNote };
+  const serialized = JSON.stringify(values);
+  const [baseline] = useState(serialized);
+  const dirty = baseline !== serialized;
+  const key = employee ? recoveryKey(employee.id, initial?.id ?? 'new') : null;
+  const [recovery, setRecovery] = useState(() => key ? readFormRecovery(key, initial?.version ?? null) : null);
+  const [storageFailed, setStorageFailed] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const navigationGuardRef = useNavigationGuard();
+  const saved = useRef(false);
+  const saving = useRef(false);
+  const hadChanges = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+
+  useEffect(() => {
+    if (!key || saved.current) return;
+    if (!dirty) { if (hadChanges.current) clearFormRecovery(key); return; }
+    hadChanges.current = true;
+    // Browser storage availability is only known after the write side effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStorageFailed(!storeFormRecovery(key, initial?.version ?? null, JSON.parse(serialized)));
+  }, [key, dirty, serialized, initial?.version]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const guard = (navigate: () => void) => {
+      if (saved.current) navigate();
+      else setPendingNavigation(() => navigate);
+    };
+    navigationGuardRef.current = guard;
+    const warn = (event: BeforeUnloadEvent) => {
+      if (saved.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => {
+      if (navigationGuardRef.current === guard) navigationGuardRef.current = null;
+      window.removeEventListener('beforeunload', warn);
+    };
+  }, [dirty, navigationGuardRef]);
+
+  const restore = () => {
+    if (!recovery) return;
+    setType(recovery.type);
+    setExpense(recovery.expense);
+    setTitle(recovery.title);
+    setContent(recovery.content);
+    setAmount(recovery.amount);
+    setDestination(recovery.destination);
+    setTripStartDate(recovery.tripStartDate);
+    setTripEndDate(recovery.tripEndDate);
+    setClientName(recovery.clientName);
+    setVisitPurpose(recovery.visitPurpose);
+    setTransportation(recovery.transportation);
+    setLodging(recovery.lodging);
+    setMeals(recovery.meals);
+    setOther(recovery.other);
+    setLeaveUnit(recovery.leaveUnit);
+    setLeaveStartDate(recovery.leaveStartDate);
+    setLeaveEndDate(recovery.leaveEndDate);
+    setLeaveReason(recovery.leaveReason);
+    setHandoverNote(recovery.handoverNote);
+    setRecovery(null);
+  };
+  const cancelEditing = () => {
+    const navigate = () => router.push(initial ? `/approvals/${initial.id}${listScope ? `?from=${listScope}` : ''}` : '/approvals');
+    if (dirty) setPendingNavigation(() => navigate);
+    else navigate();
+  };
+
   const breakdownTotal = useMemo(
     () =>
       [transportation, lodging, meals, other].reduce((sum, value) => sum + Number(value || 0), 0),
@@ -146,6 +223,9 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (saving.current) return;
+    const requestGeneration = getSessionGeneration();
+    saving.current = true;
     setError(null);
     setIsSaving(true);
 
@@ -200,16 +280,40 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
           body: JSON.stringify(payload),
         },
       );
-      router.push(`/approvals/${approval.id}`);
+      if (requestGeneration !== getSessionGeneration()) return;
+      saved.current = true;
+      if (key) clearFormRecovery(key);
+      if (mounted.current) router.push(`/approvals/${approval.id}${listScope ? `?from=${listScope}` : ''}`);
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '초안을 저장하지 못했습니다.'));
     } finally {
+      saving.current = false;
       setIsSaving(false);
     }
   };
 
   return (
-    <form className="document-form" onSubmit={handleSubmit}>
+    <form className="document-form" onSubmit={handleSubmit} aria-busy={isSaving} onChange={() => { if (recovery) setRecovery(null); }}>
+      <ConfirmationDialog open={pendingNavigation !== null} title="저장하지 않고 이동할까요?" description="변경한 내용과 이 탭의 임시 입력을 지우고 이동합니다. 저장하려면 계속 작성을 선택해주세요." confirmLabel="저장하지 않고 이동" cancelLabel="계속 작성" onCancel={() => setPendingNavigation(null)} onConfirm={() => {
+        const navigate = pendingNavigation;
+        if (!navigate || saving.current) return;
+        saved.current = true;
+        if (key) clearFormRecovery(key);
+        setPendingNavigation(null);
+        navigate();
+      }} busy={isSaving} />
+      {recovery && !dirty && <section className="form-guidance" aria-label="이전 입력 복원">
+        <p>이 탭에 저장하지 않은 입력이 있습니다. 이어서 작성할까요? 새로 입력하면 이전 임시 입력을 대체합니다.</p>
+        <div className="button-row">
+          <button type="button" className="secondary-button" onClick={restore}>이전 입력 이어쓰기</button>
+          <button type="button" className="text-button" onClick={() => { if (key) clearFormRecovery(key); setRecovery(null); }}>이전 입력 지우기</button>
+        </div>
+      </section>}
+      {dirty && <p className="form-guidance" role="status">{storageFailed
+        ? '이 브라우저에서는 입력을 임시 보관하지 못했습니다. 화면을 떠나기 전에 초안으로 저장해주세요.'
+        : '입력을 이 탭에 최대 15분 임시 보관합니다. 서버에 저장하려면 초안 저장을 눌러주세요.'}</p>}
+
+      <fieldset disabled={isSaving} className="tw:contents">
       {manualHandoff && <p role="status" className="form-guidance">{handoff
         ? 'AI 화면의 요청과 추가 답변을 업무 내용으로 옮겼습니다. 문서 유형과 실제 지출 정보를 직접 확인해주세요. 아직 저장되지 않았습니다.'
         : '이어받을 입력이 없거나 15분 보관 시간이 지났습니다. 직접 내용을 입력해주세요.'}</p>}
@@ -470,15 +574,16 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
         </div>
       )}
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && <p className="error-banner" role="alert">{error}</p>}
       <div className="sticky-actions">
-        <button className="secondary-button" onClick={() => router.back()} type="button">
+        <button className="secondary-button" disabled={isSaving} onClick={cancelEditing} type="button">
           취소
         </button>
         <button className="primary-button" disabled={isSaving} type="submit">
           {isSaving ? '저장 중…' : '초안 저장'}
         </button>
       </div>
+      </fieldset>
     </form>
   );
 };

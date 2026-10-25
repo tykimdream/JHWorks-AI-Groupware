@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { GuardedLink as Link } from '@/components/navigation-guard';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 

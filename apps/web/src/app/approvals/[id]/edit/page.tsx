@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { AppShell } from '@/components/app-shell';
@@ -10,6 +10,7 @@ import type { Approval } from '@/lib/types';
 
 export default function EditApprovalPage() {
   const { id } = useParams<{ id: string }>();
+  const from = useSearchParams().get('from');
   const [approval, setApproval] = useState<Approval | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export default function EditApprovalPage() {
       </header>
       {error && <p className="error-banner">{error}</p>}
       {!approval && !error && <div className="empty-card">초안을 불러오는 중입니다.</div>}
-      {approval && <ApprovalForm initial={approval} />}
+      {approval && <ApprovalForm key={`${approval.id}:${approval.version}`} initial={approval} listScope={from === 'mine' || from === 'assigned' ? from : undefined} />}
     </AppShell>
   );
 }

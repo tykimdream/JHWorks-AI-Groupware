@@ -308,7 +308,7 @@ export default function ApprovalDetailPage() {
                   </p>
                 </div>
                 <div className="button-row">
-                  <Link className="secondary-button" href={`/approvals/${approval.id}/edit`}>
+                  <Link className="secondary-button" href={`/approvals/${approval.id}/edit${from === 'mine' || from === 'assigned' ? `?from=${from}` : ''}`}>
                     수정
                   </Link>
                   <button

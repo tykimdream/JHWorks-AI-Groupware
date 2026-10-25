@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import URL, make_url
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.schema import CreateSchema, DropSchema
 
@@ -20,7 +21,10 @@ FIXTURE_VERSION = "approval-list-v1"
 
 
 def dedicated_url(raw: str) -> URL:
-    url = make_url(raw)
+    try:
+        url = make_url(raw)
+    except (ArgumentError, ValueError):
+        raise ValueError("invalid dedicated test database URL") from None
     if (url.drivername != "postgresql+psycopg"
             or url.host not in {"127.0.0.1", "localhost", "::1"}
             or url.database != "jhworks_test" or url.username != "jhworks_test"

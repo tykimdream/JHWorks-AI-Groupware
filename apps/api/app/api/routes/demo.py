@@ -1,15 +1,15 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Response
+from fastapi import APIRouter, Cookie, Depends, Response
 
-from app.api.dependencies import CurrentEmployee, DbSession
+from app.api.dependencies import CurrentEmployee, DbSession, get_ai_capabilities
 from app.core.config import get_settings
 from app.core.errors import NotFoundError
 from app.core.security import create_session_token
 from app.models.demo_workspace import DemoWorkspace
 from app.models.employee import Employee
-from app.schemas.demo import DemoConfiguration, DemoRoleRequest, DemoVisitRead
+from app.schemas.demo import AICapabilities, DemoConfiguration, DemoRoleRequest, DemoVisitRead
 from app.services.demo_visitor import start_visit_safely, switch_role
 from app.services.mappers import current_employee_read
 
@@ -41,14 +41,19 @@ def _visit_response(db: DbSession, response: Response, actor: Employee) -> DemoV
 
 
 @router.get("/configuration", response_model=DemoConfiguration, summary="체험 설정 조회")
-def configuration() -> DemoConfiguration:
+def configuration(
+    ai_capabilities: Annotated[AICapabilities, Depends(get_ai_capabilities)],
+) -> DemoConfiguration:
     """
     공개 체험 활성화 여부와 이용 시간·공간별 쓰기·보호 요청 제한을
-    조회합니다.
+    조회합니다. aiCapabilities는 서버 설정에 따른 기능별 AI 사용 가능
+    여부입니다. 실제 요청은 권한·유효 세션·현재 provider 상태를 다시 확인합니다.
     """
     settings = get_settings()
     return DemoConfiguration(
-        enabled=settings.public_demo_enabled, duration_minutes=settings.demo_ttl_minutes
+        enabled=settings.public_demo_enabled,
+        duration_minutes=settings.demo_ttl_minutes,
+        ai_capabilities=ai_capabilities,
     )
 
 

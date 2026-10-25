@@ -104,3 +104,19 @@ FastAPI의 요청 형식 검증 오류는 `{"detail":[...]}` 형식이다. 모�
 - [Services](../../apps/api/app/services/): 업무 규칙·트랜잭션
 - [Models](../../apps/api/app/models/) / [Alembic](../../apps/api/alembic/versions/): 저장 구조·변경 이력
 - [전체 아키텍처](../architecture/README.md): 배포·대표 업무·책임 경계
+
+## 기능별 AI 사용 가능 상태
+
+`GET /api/v1/demo/configuration`의 `enabled`는 공개 체험 여부이며 AI 활성화 여부가 아니다.
+`aiCapabilities`의 `approvalDraft`, `approvalReview`, `leaveAssistant`, `workAssistant`,
+`policyEmbedding`으로 기능을 구분한다. 각 값은 서버의 전역 설정·기능 allowlist·키 존재 여부를
+같이 확인한 결과다. 키·모델 설정 원문은 반환하지 않는다. 이 응답은 성공 예약이나 호출 권한 토큰이 아니다.
+
+현재 공개 모드에서는 전부 false다. 비공개 모드의 선택적 `JHWORKS_AI_CAPABILITIES`는 JSON 배열이며
+미설정 시 기존 다섯 기능을 허용하고 `[]`면 모두 제한한다. 예: `["approval_draft","policy_embedding"]`.
+전역 OFF·키 없음·공개 모드가 allowlist보다 우선한다. 실제 provider 생성에도 같은 판정을 적용한다.
+후속 질문은 `approvalDraft`에 속한다. 별도 유료 정책 검색은 `policyEmbedding`을 따른다.
+
+화면은 false·누락·조회 실패를 사용 가능으로 추정하지 않는다. AI 메뉴·직접 접근 화면·홈 요청창이
+같은 값을 따르며 직접 작성·일정 확인은 계속 제공한다. 이 변경은 비용 원장과 provider의 연결이나
+공개 경비 전용 AI 활성화를 완료하지 않는다. [남은 연결 조건](../engineering/ai-budget-ledger.md)을 참고한다.

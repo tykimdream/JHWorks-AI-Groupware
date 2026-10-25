@@ -54,12 +54,12 @@ function ApprovalListContent() {
         </div>
         <div className="page-header-actions">
           <Link
-            className={configuration?.enabled ? 'primary-button' : 'secondary-button'}
+            className={configuration?.aiCapabilities?.approvalDraft ? 'secondary-button' : 'primary-button'}
             href="/approvals/new"
           >
             직접 작성
           </Link>
-          {configuration && !configuration.enabled && (
+          {configuration?.aiCapabilities?.approvalDraft && (
             <Link className="primary-button" href="/approvals/ai-draft">
               AI로 초안 만들기
             </Link>

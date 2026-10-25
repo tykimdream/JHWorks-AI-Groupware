@@ -1,3 +1,4 @@
+import { AICapabilityGate } from '@/components/ai-capability-gate';
 import { AppShell } from '@/components/app-shell';
 import { WorkAssistant } from '@/components/work-assistant';
 
@@ -11,7 +12,9 @@ export default function WorkAssistantPage() {
           <p>현재 사용자 권한 안에서 조직·결재·정책 데이터를 안전하게 조회합니다.</p>
         </div>
       </header>
-      <WorkAssistant />
+      <AICapabilityGate capability="workAssistant">
+        <WorkAssistant />
+      </AICapabilityGate>
     </AppShell>
   );
 }

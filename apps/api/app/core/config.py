@@ -5,6 +5,17 @@ from urllib.parse import urlparse
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+AICapability = Literal[
+    "approval_draft", "approval_review", "leave_assistant", "work_assistant", "policy_embedding"
+]
+AI_CAPABILITIES: tuple[AICapability, ...] = (
+    "approval_draft",
+    "approval_review",
+    "leave_assistant",
+    "work_assistant",
+    "policy_embedding",
+)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -37,6 +48,7 @@ class Settings(BaseSettings):
     cookie_samesite: str = Field(default="lax", pattern="^(lax|strict|none)$")
     openai_api_key: SecretStr | None = None
     ai_enabled: bool = True
+    ai_capabilities: frozenset[AICapability] = frozenset(AI_CAPABILITIES)
     openai_model: str = "gpt-5.4-mini"
     ai_review_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
     approval_draft_confirmation_ttl_minutes: int = Field(default=15, ge=1, le=60)
@@ -46,6 +58,17 @@ class Settings(BaseSettings):
     policy_embedding_dimensions: int = Field(default=1536, ge=256, le=3072)
     policy_retrieval_top_k: int = Field(default=4, ge=1, le=10)
     policy_retrieval_min_score: float = Field(default=0.15, ge=-1.0, le=1.0)
+
+    def allows_ai(self, capability: AICapability) -> bool:
+        # Public admission/provider accounting is not wired yet: remain closed independently
+        # of mutable runtime settings. This allowlist cannot enable public paid calls.
+        return (
+            not self.public_demo_enabled
+            and self.ai_enabled
+            and capability in self.ai_capabilities
+            and self.openai_api_key is not None
+            and bool(self.openai_api_key.get_secret_value().strip())
+        )
 
     @model_validator(mode="after")
     def validate_public_demo_safety(self) -> Self:

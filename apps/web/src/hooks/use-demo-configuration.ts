@@ -3,7 +3,15 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 
+export type AICapability =
+  | 'approvalDraft'
+  | 'approvalReview'
+  | 'leaveAssistant'
+  | 'workAssistant'
+  | 'policyEmbedding';
+
 interface DemoConfiguration {
+  aiCapabilities: Record<AICapability, boolean>;
   enabled: boolean;
   durationMinutes: number;
   writeLimit: number;

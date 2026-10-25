@@ -44,7 +44,7 @@ export function WorkHome() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const input = useRef<HTMLTextAreaElement>(null);
-  const aiAvailable = configuration !== null && !configuration.enabled;
+  const aiAvailable = configuration?.aiCapabilities?.approvalDraft === true;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,11 +138,11 @@ export function WorkHome() {
             </Link>
           )}
         </section>
-      ) : configuration.enabled ? (
+      ) : !aiAvailable ? (
         <section className="home-start-card" aria-labelledby="home-start-title">
           <div className="home-start-heading">
-            <span className="small-pill">15분 체험 · 방문자 전용 공간</span>
-            <WelcomeGuide />
+            <span className="small-pill">{configuration.enabled ? `${configuration.durationMinutes}분 체험 · 방문자 전용 공간` : '직접 작성'}</span>
+            {configuration.enabled && <WelcomeGuide />}
           </div>
           <p className="eyebrow">첫 번째 업무</p>
           <h2 id="home-start-title">경비 정산부터 시작해 보세요</h2>
@@ -168,8 +168,9 @@ export function WorkHome() {
             <Link href="/attendance">휴가 일정 살펴보기 →</Link>
           </div>
           <p className="public-ai-note">
-            이 체험에서는 AI 호출을 제공하지 않아요. 직접 작성·사전 점검·결재 기능은 모두 이용할 수
-            있습니다.
+            {configuration.enabled
+              ? '이 체험에서는 AI 호출을 제공하지 않아요. 직접 작성·사전 점검·결재 기능은 모두 이용할 수 있습니다.'
+              : '현재 AI 초안을 사용할 수 없습니다. 직접 작성·사전 점검·결재 기능으로 업무를 이어가세요.'}
           </p>
         </section>
       ) : (
@@ -351,9 +352,9 @@ export function WorkHome() {
               <WorkspaceIcon name="document" size={28} />
               <strong>첫 번째 업무를 시작해 볼까요?</strong>
               <p>
-                {configuration?.enabled
-                  ? '경비·출장·일반·휴가 결재를 직접 작성해 보세요.'
-                  : 'AI로 초안을 준비하거나 직접 결재를 작성해 보세요.'}
+                {aiAvailable
+                  ? 'AI로 초안을 준비하거나 직접 결재를 작성해 보세요.'
+                  : '경비·출장·일반·휴가 결재를 직접 작성해 보세요.'}
               </p>
               <Link href="/approvals/new">새 결재 작성 →</Link>
             </div>
@@ -400,9 +401,9 @@ export function WorkHome() {
               </span>
               <h3>
                 {nextDocument?.title ??
-                  (configuration?.enabled
-                    ? '첫 경비 정산을 작성해 보세요.'
-                    : '복잡한 결재, 한 문장으로 시작하세요.')}
+                  (aiAvailable
+                    ? '복잡한 결재, 한 문장으로 시작하세요.'
+                    : '첫 경비 정산을 작성해 보세요.')}
               </h3>
               <p>
                 {pending.length
@@ -415,9 +416,9 @@ export function WorkHome() {
                         ? configuration?.enabled
                           ? '문서를 제출했습니다. 결재자로 역할을 바꾸면 승인 과정을 이어서 체험할 수 있어요.'
                           : '지정 결재자가 문서를 검토하고 있습니다. 문서에서 진행 상태를 확인하세요.'
-                        : configuration?.enabled
-                          ? '지출일·사용처·금액을 입력하고 제출 전 누락과 중복 후보를 확인하세요.'
-                          : '출장 목적과 일정을 알려주시면 회사 양식에 맞는 초안을 준비합니다.'}
+                        : aiAvailable
+                          ? '출장 목적과 일정을 알려주시면 회사 양식에 맞는 초안을 준비합니다.'
+                          : '지출일·사용처·금액을 입력하고 제출 전 누락과 중복 후보를 확인하세요.'}
               </p>
               <Link
                 className="next-action-link"
@@ -444,7 +445,7 @@ export function WorkHome() {
               <strong>알고 계셨나요?</strong>
               {configuration?.enabled
                 ? '초안 저장과 제출은 별도 단계입니다. 제출 후 결재자로 역할을 전환해 승인할 수 있습니다.'
-                : 'AI 초안은 확인 후 저장되며, 저장만으로 결재가 제출되지는 않습니다.'}
+                : '초안은 확인 후 저장되며, 저장만으로 결재가 제출되지는 않습니다.'}
             </p>
           </div>
         </aside>

@@ -10,6 +10,14 @@ test('public pages have accessible home logos and fit desktop and mobile', async
     await expect(logo).toHaveAttribute('href', '/');
     await logo.focus();
     await expect(logo).toBeFocused();
+    const originalViewport = page.viewportSize()!;
+    await page.setViewportSize({ width: 320, height: 800 });
+    await expect(logo).toBeVisible();
+    const bounds = await logo.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.setViewportSize(originalViewport);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `artifacts/brand/${path.slice(1)}-${testInfo.project.name}.png`, fullPage: false });
   }
@@ -28,6 +36,20 @@ test('share crawlers get absolute metadata, a real PNG, canonical public pages a
   expect(html).toContain('name="twitter:card" content="summary_large_image"');
   expect(html).toContain('rel="canonical" href="https://groupware.pikan.dev/login"');
   expect(html).toContain('name="robots" content="index, follow"');
+  expect(html).toMatch(/rel="icon"[^>]+href="\/favicon\.ico/);
+  expect(html).toMatch(/rel="apple-touch-icon"[^>]+href="\/apple-icon\.png/);
+  const favicon = await request.get('/favicon.ico');
+  expect(favicon.ok()).toBe(true);
+  const iconBytes = await favicon.body();
+  expect(iconBytes.readUInt16LE(2)).toBe(1); // ICO file, not HTML fallback.
+  const sizes = Array.from({ length: iconBytes.readUInt16LE(4) }, (_, index) => iconBytes[6 + index * 16]);
+  expect(sizes).toEqual([16, 32, 48]);
+  const appleIcon = await request.get('/apple-icon.png');
+  expect(appleIcon.ok()).toBe(true);
+  const appleBytes = await appleIcon.body();
+  expect(appleBytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(appleBytes.readUInt32BE(16)).toBe(180);
+  expect(appleBytes.readUInt32BE(20)).toBe(180);
   const imageUrl = html.match(/property="og:image" content="([^"]+)"/)?.[1];
   expect(imageUrl).toMatch(/^https:\/\/groupware\.pikan\.dev\/opengraph-image/);
   const imagePath = new URL(imageUrl!).pathname;

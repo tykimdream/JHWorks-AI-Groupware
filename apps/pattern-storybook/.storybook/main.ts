@@ -5,6 +5,9 @@ const config: StorybookConfig = {
   stories: ['../stories/**/*.stories.tsx'],
   addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
   core: { disableTelemetry: true },
-  staticDirs: [{ from: '../../web/public/brand', to: '/brand' }],
+  staticDirs: [
+    { from: '../../web/public/brand', to: '/brand' },
+    { from: '../../web/public/brand/favicon.svg', to: '/favicon.svg' },
+  ],
 };
 export default config;

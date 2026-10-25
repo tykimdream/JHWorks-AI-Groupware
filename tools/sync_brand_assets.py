@@ -36,7 +36,8 @@ def main() -> None:
             '<title>JHWorks</title><rect width="48" height="48" rx="10" fill="#6554cf"/>'
             + ''.join(f'<path fill="#fff" d="{path}"/>' for path in symbol) + '</svg>\n')
     outputs = {ROOT / 'apps/web/src/components/brand-artwork.ts': source,
-               ROOT / 'apps/web/src/app/icon.svg': icon}
+               ROOT / 'apps/web/src/app/icon.svg': icon,
+               BRAND / 'favicon.svg': icon}
     for path, content in outputs.items():
         if args.check:
             if not path.exists() or path.read_text() != content:

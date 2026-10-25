@@ -55,10 +55,15 @@ test('confirmation keyboard and pending behavior work from a static subpath', as
 });
 
 test('static manager, brand asset and direct docs link resolve below /storybook/', async ({ page, request }, testInfo) => {
+  const favicon = await request.get('favicon.svg');
+  expect(favicon.ok()).toBe(true);
+  expect(favicon.headers()['content-type']).toContain('image/svg+xml');
+  expect(await favicon.text()).toBe(readFileSync('apps/web/src/app/icon.svg', 'utf8'));
   const brand = await request.get('brand/jhworks-wordmark.svg');
   expect(brand.ok()).toBe(true);
   expect(brand.headers()['content-type']).toContain('image/svg+xml');
   await page.goto('?path=/docs/jhw-pattern-forms-field--docs');
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', './favicon.svg');
   await expect(page.locator('iframe#storybook-preview-iframe')).toBeVisible();
   await expect(page.frameLocator('iframe#storybook-preview-iframe').getByRole('heading', { name: 'Field', exact: true }).first()).toBeVisible();
   await page.reload();

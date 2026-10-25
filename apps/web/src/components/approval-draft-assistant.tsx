@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
+import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { formatCurrency } from '@/lib/format';
 import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseSummary } from '@/components/expense-summary';
@@ -27,6 +28,8 @@ const policyStatusLabels = {
 
 export const ApprovalDraftAssistant = () => {
   const router = useRouter();
+  const { configuration } = useDemoConfiguration();
+  const expenseOnly = configuration?.enabled === true;
   const employee = useWorkspaceEmployee();
   const [request, setRequest] = useState(() => (employee ? readDraftRequest(employee.id) : ''));
   useEffect(() => {
@@ -108,6 +111,11 @@ export const ApprovalDraftAssistant = () => {
 
   return (
     <div className="draft-studio">
+      <p className="draft-support-note">
+        {expenseOnly
+          ? '공개 AI는 경비 초안과 추가 질문만 지원합니다. 지출 사실을 확인해 주세요. 정책 검색·AI 검토는 제공하지 않습니다.'
+          : '출장 신청·경비 정산·일반 결재를 지원합니다. 지출 내역과 규정 근거를 확인한 뒤 저장해 주세요.'}
+      </p>
       <div className="draft-progress" aria-label="초안 작성 단계">
         <span className={!result ? 'current' : ''}>
           01 <strong>업무 요청</strong>
@@ -126,7 +134,7 @@ export const ApprovalDraftAssistant = () => {
           <div className="section-heading">
             <div>
               <p className="eyebrow">JHWORKS AI</p>
-              <h2>어떤 결재가 필요한가요?</h2>
+              <h2>{expenseOnly ? '어떤 비용을 사용하셨나요?' : '어떤 결재가 필요한가요?'}</h2>
             </div>
             {result && (
               <button className="text-button" onClick={reset} type="button">
@@ -144,7 +152,9 @@ export const ApprovalDraftAssistant = () => {
                     disabled={isPreparing}
                     maxLength={2000}
                     onChange={(event) => setRequest(event.target.value)}
-                    placeholder="예: 다음 주 화요일 부산 고객사 미팅 출장 결재 만들어줘."
+                    placeholder={expenseOnly
+                      ? '예: 이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.'
+                      : '예: 다음 주 화요일 부산 고객사 미팅 출장 결재 만들어줘.'}
                     rows={5}
                     value={request}
                   />
@@ -159,7 +169,7 @@ export const ApprovalDraftAssistant = () => {
               </form>
               <div className="draft-examples">
                 <span>예시로 시작하기</span>
-                {starterExamples.map((example) => (
+                {(expenseOnly ? starterExamples.slice(0, 1) : starterExamples).map((example) => (
                   <button
                     key={example}
                     disabled={isPreparing}

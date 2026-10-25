@@ -255,6 +255,11 @@ def _policy_context(
     preview: ApprovalCreate,
     provider: PolicyEmbeddingProvider,
 ) -> PolicySearchResponse:
+    if get_settings().public_demo_enabled:
+        # The first public capability has no paid embedding or policy-model stage.
+        return _not_applicable_policy_context().model_copy(
+            update={"status": PolicyRetrievalStatus.UNAVAILABLE}
+        )
     policy_type = policy_retrieval.APPROVAL_POLICY_TYPES.get(preview.type)
     if policy_type is None:
         return _not_applicable_policy_context()
@@ -320,13 +325,20 @@ def prepare_approval_draft(
     preview: ApprovalCreate | None = None
     confirmation_token: str | None = None
     policy_context = _not_applicable_policy_context()
-    if candidate.intent not in {
+    public_expense_only = get_settings().public_demo_enabled
+    if (
+        public_expense_only and candidate.intent != DraftIntent.EXPENSE
+    ) or candidate.intent not in {
         DraftIntent.GENERAL,
         DraftIntent.BUSINESS_TRIP,
         DraftIntent.EXPENSE,
     }:
         status = ApprovalDraftAIStatus.UNSUPPORTED
-        assistant_message = _unsupported_message(candidate.intent)
+        assistant_message = (
+            "공개 AI는 경비 정산만 지원합니다. 출장·일반·휴가는 직접 작성해 주세요."
+            if public_expense_only
+            else _unsupported_message(candidate.intent)
+        )
         missing = []
         questions: list[ApprovalDraftQuestion] = []
     elif missing:
@@ -394,6 +406,8 @@ def confirm_approval_draft(
     preview: ApprovalCreate,
     confirmation_token: str,
 ) -> Approval:
+    if get_settings().public_demo_enabled and preview.type != ApprovalType.EXPENSE:
+        raise AuthorizationError("Public AI confirmation only supports expense drafts")
     confirmation = decode_approval_draft_confirmation_token(confirmation_token)
     if confirmation.employee_id != actor.id:
         raise AuthorizationError("This approval draft confirmation belongs to another employee")

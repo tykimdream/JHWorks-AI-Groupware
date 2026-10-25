@@ -6,29 +6,18 @@ from datetime import UTC, datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.core.ai_budget import AIBudgetLimits as AIBudgetLimits
 from app.core.errors import AppError, ConflictError, ServiceUnavailableError
 from app.models.ai_budget import AIBudgetCounter, AIBudgetReservation
 from app.services.login_budget import database_seconds
 
 GLOBAL_KEY = "global"
-
-
-class AIBudgetLimits(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    # No production defaults: real budgets and a verified upper-bound estimator are required.
-    day_micro_usd: StrictInt = Field(ge=1, le=10**12)
-    month_micro_usd: StrictInt = Field(ge=1, le=10**12)
-    day_admissions: StrictInt = Field(ge=1, le=10000)
-    scope_day_admissions: StrictInt = Field(ge=1, le=1000)
-    concurrent_requests: StrictInt = Field(ge=1, le=100)
 
 
 @dataclass(frozen=True)
@@ -40,8 +29,14 @@ class BudgetReceipt:
 
 
 class AIBudgetLimitError(AppError):
-    def __init__(self) -> None:
-        super().__init__("AI_BUDGET_EXHAUSTED", "AI budget is unavailable. Use manual entry.", 429)
+    def __init__(self, *, busy: bool = False) -> None:
+        super().__init__(
+            "AI_BUSY" if busy else "AI_BUDGET_EXHAUSTED",
+            "AI is busy. Retry shortly or use manual entry."
+            if busy
+            else "AI budget is unavailable. Use manual entry.",
+            429,
+        )
 
 
 def _fresh(db: Session) -> None:
@@ -117,9 +112,10 @@ def reserve(
         counters = _lock_counters(db, (day, month, scope))
         if global_counter.is_frozen:
             raise ServiceUnavailableError("AI_BUDGET_FROZEN", "AI is paused. Use manual entry.")
+        if global_counter.active_requests >= limits.concurrent_requests:
+            raise AIBudgetLimitError(busy=True)
         if (
-            global_counter.active_requests >= limits.concurrent_requests
-            or counters[day].admissions >= limits.day_admissions
+            counters[day].admissions >= limits.day_admissions
             or counters[scope].admissions >= limits.scope_day_admissions
             or counters[day].spent_micro_usd + counters[day].reserved_micro_usd + maximum_micro_usd
             > limits.day_micro_usd
@@ -157,7 +153,9 @@ def reserve(
         ) from None
 
 
-def settle(db: Session, reservation_id: str, *, actual_micro_usd: int | None) -> BudgetReceipt:
+def settle(
+    db: Session, reservation_id: str, *, actual_micro_usd: int | None, freeze: bool = False
+) -> BudgetReceipt:
     """Settle trusted server usage; unknown billing consumes the full reservation.
 
     An overrun records the real charge and freezes all new admissions. A process crash leaves
@@ -190,6 +188,8 @@ def settle(db: Session, reservation_id: str, *, actual_micro_usd: int | None) ->
             if charged > row.maximum_micro_usd
             else "SETTLED"
         )
+        if freeze:
+            counters[GLOBAL_KEY].is_frozen = True
         if row.status != "RESERVED":
             if row.status != status or row.charged_micro_usd != charged:
                 raise ConflictError("AI_SETTLEMENT_CHANGED", "AI settlement cannot be overwritten")

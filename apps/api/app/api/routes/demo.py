@@ -54,6 +54,13 @@ def configuration(
         enabled=settings.public_demo_enabled,
         duration_minutes=settings.demo_ttl_minutes,
         ai_capabilities=ai_capabilities,
+        expense_ai_request_limit=(
+            settings.public_expense_ai_budget.scope_day_admissions
+            if settings.public_demo_enabled
+            and settings.allows_ai("approval_draft")
+            and settings.public_expense_ai_budget is not None
+            else None
+        ),
     )
 
 

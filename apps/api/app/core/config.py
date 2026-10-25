@@ -5,6 +5,8 @@ from urllib.parse import urlparse
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.ai_budget import AIBudgetLimits
+
 AICapability = Literal[
     "approval_draft", "approval_review", "leave_assistant", "work_assistant", "policy_embedding"
 ]
@@ -48,6 +50,8 @@ class Settings(BaseSettings):
     cookie_samesite: str = Field(default="lax", pattern="^(lax|strict|none)$")
     openai_api_key: SecretStr | None = None
     ai_enabled: bool = True
+    public_expense_ai_enabled: bool = False
+    public_expense_ai_budget: AIBudgetLimits | None = None
     ai_capabilities: frozenset[AICapability] = frozenset(AI_CAPABILITIES)
     openai_model: str = "gpt-5.4-mini"
     ai_review_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
@@ -60,20 +64,37 @@ class Settings(BaseSettings):
     policy_retrieval_min_score: float = Field(default=0.15, ge=-1.0, le=1.0)
 
     def allows_ai(self, capability: AICapability) -> bool:
-        # Public admission/provider accounting is not wired yet: remain closed independently
-        # of mutable runtime settings. This allowlist cannot enable public paid calls.
-        return (
-            not self.public_demo_enabled
-            and self.ai_enabled
-            and capability in self.ai_capabilities
-            and self.openai_api_key is not None
-            and bool(self.openai_api_key.get_secret_value().strip())
+        key_present = self.openai_api_key is not None and bool(
+            self.openai_api_key.get_secret_value().strip()
         )
+        if self.public_demo_enabled:
+            return (
+                not self.ai_enabled
+                and self.public_expense_ai_enabled
+                and self.public_expense_ai_budget is not None
+                and capability == "approval_draft"
+                and capability in self.ai_capabilities
+                and key_present
+            )
+        return self.ai_enabled and capability in self.ai_capabilities and key_present
 
     @model_validator(mode="after")
     def validate_public_demo_safety(self) -> Self:
         if self.public_demo_enabled and self.ai_enabled:
             raise ValueError("Public demo requires JHWORKS_AI_ENABLED=false")
+        if self.public_expense_ai_enabled:
+            budget = self.public_expense_ai_budget
+            if not self.public_demo_enabled or budget is None:
+                raise ValueError("Public expense AI requires public demo and explicit budget")
+            # Deliberate rollout ceiling, not a default paid budget. No activation by key alone.
+            if not (
+                307200 <= budget.day_micro_usd <= 500000
+                and budget.day_micro_usd <= budget.month_micro_usd <= 2000000
+                and budget.day_admissions <= 10
+                and budget.scope_day_admissions <= 5
+                and budget.concurrent_requests == 1
+            ):
+                raise ValueError("Public expense AI budget exceeds rollout limits")
         return self
 
     @model_validator(mode="after")

@@ -86,6 +86,7 @@ class DraftProviderUsage:
     input_tokens: int
     output_tokens: int
     total_tokens: int
+    known: bool = True
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,7 @@ class DraftProviderResult:
     model: str
     usage: DraftProviderUsage
     latency_ms: int
+    service_tier: str | None = None
 
 
 class ApprovalDraftProvider(Protocol):

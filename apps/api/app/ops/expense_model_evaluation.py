@@ -222,7 +222,7 @@ def run(
             from tempfile import NamedTemporaryFile
 
             with NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=DIRECTORY, delete=False
+                mode="w", encoding="utf-8", dir=DIRECTORY, suffix=".json", delete=False
             ) as stream:
                 temporary = Path(stream.name)
                 try:

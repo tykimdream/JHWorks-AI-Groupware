@@ -170,3 +170,20 @@ def test_per_run_cost_guard_survives_calendar_rollover_independently_of_month_le
     assert report["errorCode"] == "EVAL_RUN_BUDGET_EXHAUSTED"
     assert provider.calls == 3 and report["pricedResponsesMicroUsd"] == 921600
     assert report["fullDatasetCompleted"] is False and report["promotionEligible"] is False
+
+
+def test_local_accounting_lock_and_partial_reports_are_excluded_from_git() -> None:
+    paths = [
+        "artifacts/evals/expense-model-ledger.sqlite3",
+        "artifacts/evals/expense-model-ledger.sqlite3-journal",
+        "artifacts/evals/expense-model.lock",
+        "artifacts/evals/temporary-report.json",
+    ]
+    completed = subprocess.run(
+        ["git", "check-ignore", "--no-index", *paths],
+        cwd=Path(__file__).resolve().parents[3],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert set(completed.stdout.splitlines()) == set(paths)

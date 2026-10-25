@@ -25,6 +25,8 @@ out/
 coverage/
 *.tsbuildinfo
 artifacts/evals/*.json
+artifacts/evals/expense-model-ledger.sqlite3*
+artifacts/evals/expense-model.lock
 artifacts/smoke/*.json
 
 # Editors and OS

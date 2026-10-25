@@ -64,7 +64,7 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 | 휴가 상담·신청 | 희망 기간 해석, 계산된 후보와 근거 설명 | 잔여 연차·일정·휴일 계산, 저장과 제출의 별도 확인, 변경 직전 재검증 |
 
 권한·금액·날짜·상태 전이는 서버가 검증합니다. AI를 통한 저장과 제출에는 각각 사용자 확인이 필요합니다. 휴가 신청은 상담 → 초안 확인 → 제출 확인의 진행 상태를 DB에 보존합니다.
-실제 모델 검증은 고정 합성 경비 사례 **2건**으로 제한했습니다. [평가 방식과 한계](docs/engineering/expense-model-smoke.md)에서 확인할 수 있습니다.
+추출 평가 사례는 **36개**이며 offline 데이터·채점 계약을 검증합니다. 이는 실제 모델 정확도가 아닙니다. 실제 모델 검증은 기존 고정 합성 경비 사례 **2건**으로 제한했습니다. [offline 평가 계약](docs/engineering/expense-evaluation-contracts.md)과 [실제 모델 평가의 한계](docs/engineering/expense-model-smoke.md)에서 확인할 수 있습니다.
 
 ## 아키텍처
 
@@ -107,6 +107,7 @@ pnpm db:seed
 
 ```bash
 pnpm validate                 # lint · 타입 · API 테스트 · Web production build
+pnpm eval:expense:offline     # 외부 호출 없는 경비 평가 데이터 계약
 pnpm test:e2e                 # 일반 업무 · 합성 AI · desktop/mobile
 pnpm test:e2e:public-demo     # AI OFF · 공개 방문자 작성/제출/승인
 ```

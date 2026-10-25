@@ -110,7 +110,7 @@ def interpret_result(
         parsed = json.loads(completed.stdout)
     except json.JSONDecodeError:
         parsed = None
-    if not isinstance(parsed, dict):
+    if not isinstance(parsed, dict) or parsed.get("evaluationKind", "model") != "model":
         return CapabilityOutcome(
             name=capability.name,
             module=capability.module,

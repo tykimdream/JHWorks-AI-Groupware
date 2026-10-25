@@ -131,3 +131,10 @@ pnpm --filter @jhworks/pattern pack --pack-destination ./artifacts/pattern
 앱은 Tailwind 4의 `tw:` 유틸리티와 JHW 토큰 bridge를 사용합니다. Preflight는 제외하며,
 사이드바부터 전환하고 기존 CSS는 영역별로 이전합니다. 공통 패키지는 CSS 진입점도 계속 제공합니다.
 [스타일 도구의 역할·적용 범위·Storybook 도입 기준](design/styling.md)을 참고하세요.
+
+## 경비 평가의 offline/실제 모델 구분
+
+`pnpm eval:expense:offline`은 36개 사례의 데이터 계약만 검사하며 설정·DB·모델 SDK를 불러오지 않습니다.
+보고서의 모델 정확도·지연·토큰은 null이고 providerCalls는 0입니다. 이 검사는 validate에도 포함됩니다.
+기존 `eval:approval-draft`와 `eval:all`은 외부 모델 평가 경로이며 비용이 발생할 수 있으므로 구분해서 사용하세요.
+[대표 경비 계약](product/expense-settlement-contract.md), [평가 범위와 재현](engineering/expense-evaluation-contracts.md)을 참고하세요.

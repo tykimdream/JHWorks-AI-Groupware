@@ -13,19 +13,35 @@
       "name": "approval-draft",
       "module": "app.evals.approval_draft",
       "minimumPassRate": 1.0,
-      "requiredCaseIds": ["past-spend-is-expense", "leave-intent"]
+      "requiredCaseIds": [
+        "past-spend-is-expense",
+        "leave-intent",
+        "expense-no-amount",
+        "expense-future-date-kept",
+        "expense-trip-period-is-not-payment",
+        "expense-attachment-claim-is-not-reference",
+        "expense-corrected-amount",
+        "expense-injection-no-invented-facts",
+        "unsupported-database-delete",
+        "expense-unknown-fx"
+      ]
     },
     {
       "name": "work-assistant",
       "module": "app.evals.work_assistant",
       "minimumPassRate": 1.0,
-      "requiredCaseIds": ["travel-lodging-policy", "expense-receipt-policy"]
+      "requiredCaseIds": [
+        "travel-lodging-policy",
+        "expense-receipt-policy"
+      ]
     },
     {
       "name": "policy-retrieval",
       "module": "app.evals.policy_retrieval",
       "minimumPassRate": 1.0,
-      "requiredCaseIds": ["leave-advance-notice"]
+      "requiredCaseIds": [
+        "leave-advance-notice"
+      ]
     },
     {
       "name": "leave-assistant",

@@ -45,7 +45,7 @@ export const AIReviewPanel = ({
   canReview,
   onApprovalUpdated,
 }: AIReviewPanelProps) => {
-  const { configuration } = useDemoConfiguration();
+  const { configuration, error: configurationError } = useDemoConfiguration();
   const [review, setReview] = useState<AIReview | null>(null);
   const [revisionContent, setRevisionContent] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -57,12 +57,16 @@ export const AIReviewPanel = ({
     return null;
   }
 
-  if (!configuration || configuration.enabled) {
+  if (!configuration?.aiCapabilities?.approvalReview) {
     return (
       <div className="ai-review-card" role="note">
         <p>{configuration?.enabled
           ? '공개 체험에서는 AI 검토를 제공하지 않습니다. 경비 사전 확인과 직접 수정을 이용해 주세요.'
-          : 'AI 사용 설정을 확인하고 있습니다. 직접 작성·제출은 계속할 수 있습니다.'}</p>
+          : configurationError
+            ? 'AI 사용 설정을 불러오지 못했습니다. 직접 작성·제출은 계속할 수 있습니다.'
+            : configuration
+              ? '현재 AI 검토를 사용할 수 없습니다. 경비 사전 확인과 직접 수정을 이용해 주세요.'
+              : 'AI 사용 설정을 확인하고 있습니다. 직접 작성·제출은 계속할 수 있습니다.'}</p>
       </div>
     );
   }

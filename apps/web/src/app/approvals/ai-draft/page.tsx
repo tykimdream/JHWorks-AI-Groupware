@@ -1,3 +1,4 @@
+import { AICapabilityGate } from '@/components/ai-capability-gate';
 import { AppShell } from '@/components/app-shell';
 import { ApprovalDraftAssistant } from '@/components/approval-draft-assistant';
 
@@ -14,7 +15,9 @@ export default function AIApprovalDraftPage() {
       <p className="draft-support-note">
         출장 신청·경비 정산·일반 결재를 지원합니다. 지출 내역과 규정 근거를 확인한 뒤 저장해 주세요.
       </p>
-      <ApprovalDraftAssistant />
+      <AICapabilityGate capability="approvalDraft">
+        <ApprovalDraftAssistant />
+      </AICapabilityGate>
     </AppShell>
   );
 }

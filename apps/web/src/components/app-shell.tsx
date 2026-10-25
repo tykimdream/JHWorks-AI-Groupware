@@ -92,13 +92,13 @@ export const AppShell = ({ children }: AppShellProps) => {
               {label}
             </Link>
           ))}
-          {configuration && !configuration.enabled && (
+          {configuration?.aiCapabilities?.workAssistant && (
             <Link href="/assistant" aria-current={pathname === '/assistant' ? 'page' : undefined}>
               <WorkspaceIcon name="search" />
               AI 업무 조회
             </Link>
           )}
-          {configuration && !configuration.enabled && (
+          {configuration?.aiCapabilities?.approvalDraft && (
             <Link
               href="/approvals/ai-draft"
               aria-current={pathname === '/approvals/ai-draft' ? 'page' : undefined}

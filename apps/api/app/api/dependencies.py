@@ -20,6 +20,7 @@ from app.core.database import get_db
 from app.core.errors import AuthenticationError
 from app.core.security import decode_session_token
 from app.models.employee import Employee
+from app.schemas.demo import AICapabilities
 from app.services.demo_workspace import require_demo_workspace
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -79,7 +80,7 @@ def get_approval_review_provider() -> ApprovalReviewProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.ai_enabled or not secret:
+    if not settings.allows_ai("approval_review") or not secret:
         return UnavailableApprovalReviewProvider()
     return OpenAIApprovalReviewProvider(
         api_key=secret,
@@ -95,7 +96,7 @@ def get_approval_draft_provider() -> ApprovalDraftProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.ai_enabled or not secret:
+    if not settings.allows_ai("approval_draft") or not secret:
         return UnavailableApprovalDraftProvider()
     return OpenAIApprovalDraftProvider(
         api_key=secret,
@@ -111,7 +112,7 @@ def get_leave_assistant_provider() -> LeaveAssistantProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.ai_enabled or not secret:
+    if not settings.allows_ai("leave_assistant") or not secret:
         return UnavailableLeaveAssistantProvider()
     return OpenAILeaveAssistantProvider(
         api_key=secret,
@@ -129,7 +130,7 @@ def get_work_assistant_provider() -> WorkAssistantProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.ai_enabled or not secret:
+    if not settings.allows_ai("work_assistant") or not secret:
         return UnavailableWorkAssistantProvider()
     return OpenAIWorkAssistantProvider(
         api_key=secret,
@@ -147,7 +148,7 @@ def get_policy_embedding_provider() -> PolicyEmbeddingProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.ai_enabled or not secret:
+    if not settings.allows_ai("policy_embedding") or not secret:
         return UnavailablePolicyEmbeddingProvider()
     return OpenAIPolicyEmbeddingProvider(
         api_key=secret,
@@ -160,3 +161,14 @@ def get_policy_embedding_provider() -> PolicyEmbeddingProvider:
 PolicyEmbeddingProviderDependency = Annotated[
     PolicyEmbeddingProvider, Depends(get_policy_embedding_provider)
 ]
+
+
+def get_ai_capabilities() -> AICapabilities:
+    settings = get_settings()
+    return AICapabilities(
+        approval_draft=settings.allows_ai("approval_draft"),
+        approval_review=settings.allows_ai("approval_review"),
+        leave_assistant=settings.allows_ai("leave_assistant"),
+        work_assistant=settings.allows_ai("work_assistant"),
+        policy_embedding=settings.allows_ai("policy_embedding"),
+    )

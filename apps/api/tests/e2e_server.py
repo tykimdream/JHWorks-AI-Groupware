@@ -23,6 +23,7 @@ from app.ai.approval_draft import (
 )
 from app.ai.leave_assistant import LeaveAssistantCandidate, LeaveAssistantIntent
 from app.api.dependencies import (
+    get_ai_capabilities,
     get_approval_draft_provider,
     get_leave_assistant_provider,
     get_policy_embedding_provider,
@@ -47,6 +48,16 @@ from tests.conftest import (  # noqa: E402
     FakeLeaveAssistantProvider,
     FakePolicyEmbeddingProvider,
 )
+
+# Advertise only synthetic provider capabilities; keep every real API key absent.
+if not settings.public_demo_enabled:
+    from app.schemas.demo import AICapabilities
+
+    app.dependency_overrides[get_ai_capabilities] = lambda: AICapabilities(
+        approval_draft=True,
+        leave_assistant=True,
+        policy_embedding=True,
+    )
 
 database_dir = TemporaryDirectory(prefix="jhworks-browser-")
 engine = create_engine(

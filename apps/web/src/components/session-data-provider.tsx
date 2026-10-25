@@ -1,7 +1,7 @@
 'use client';
 
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
@@ -59,6 +59,9 @@ function createSessionCache() {
 
 export const SessionDataProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
   const [scope, setScope] = useState<SessionScope>(() => ({ epoch: getSessionGeneration(), guest: false }));
   const scopeRef = useRef(scope);
   // Instance-local cache: never share server or persisted employee data.
@@ -81,7 +84,8 @@ export const SessionDataProvider = ({ children }: { children: ReactNode }) => {
     const expired = (event: Event) => {
       if (!(event instanceof CustomEvent) || event.detail?.generation !== getSessionGeneration()) return;
       reset(true);
-      router.replace('/login');
+      // Public feedback has its own expired-visit recovery; keep its form in memory.
+      if (pathnameRef.current !== '/feedback') router.replace('/login');
     };
     const refresh = () => {
       const queryKey = ['session', getSessionGeneration()];
@@ -109,7 +113,7 @@ export const SessionDataProvider = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider client={client}>
       <SessionScopeContext.Provider value={scope}>
-        <Fragment key={scope.epoch}>{children}</Fragment>
+        <Fragment key={pathname === '/feedback' ? 'public-feedback' : scope.epoch}>{children}</Fragment>
       </SessionScopeContext.Provider>
     </QueryClientProvider>
   );

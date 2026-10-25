@@ -3,7 +3,7 @@ import base from './playwright.config';
 
 export default defineConfig({
   ...base,
-  testMatch: ['**/web-security.spec.ts', '**/expense-flow.spec.ts', '**/brand-sharing.spec.ts'],
+  testMatch: ['**/web-security.spec.ts', '**/expense-flow.spec.ts', '**/brand-sharing.spec.ts', '**/approval-navigation.spec.ts'],
   webServer: [
     {
       command: 'cd apps/api && uv run uvicorn tests.e2e_server:app --port 8100',

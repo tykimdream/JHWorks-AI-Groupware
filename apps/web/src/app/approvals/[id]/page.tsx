@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DemoRoleSwitcher } from '@/components/demo-entry';
@@ -46,9 +46,14 @@ const leaveUnitLabels = {
 } as const;
 
 export default function ApprovalDetailPage() {
-  const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const leaveRunId = useSearchParams().get('leaveRunId');
+  const searchParams = useSearchParams();
+  const leaveRunId = searchParams.get('leaveRunId');
+  const from = searchParams.get('from');
+  // Only known list scopes can influence navigation; never accept a return URL.
+  const listHref = from === 'mine' || from === 'assigned'
+    ? `/approvals?scope=${from}#${encodeURIComponent(`approval-${id}`)}`
+    : '/approvals';
   const { employee } = useCurrentEmployee();
   const { configuration } = useDemoConfiguration();
   const [approval, setApproval] = useState<Approval | null>(null);
@@ -148,9 +153,9 @@ export default function ApprovalDetailPage() {
         onConfirm={runCommand}
       />
       <header className="detail-header">
-        <button className="text-button" onClick={() => router.push('/approvals')} type="button">
+        <Link className="text-button" href={listHref}>
           ← 목록으로
-        </button>
+        </Link>
         <div className="detail-title-row">
           <div>
             <div className="row-meta">

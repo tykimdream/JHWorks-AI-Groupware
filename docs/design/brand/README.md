@@ -27,7 +27,7 @@
 | 다크 로그인 | 흰색 `#ffffff`, 비율과 간격 유지 |
 | 홈 링크 | `aria-label="JHWorks 홈으로"`, 최소44px 클릭 높이, 키보드 포커스 표시 |
 | favicon | 보라색 `#6554cf` 바탕과 흰색 J. SVG와 ICO16/32/48px |
-| Apple touch icon | 같은 구성, 180 × 180 PNG |
+| Apple touch icon | 같은 J와 색상, 180 × 180 PNG. 모서리는 OS가 처리하도록 불투명 정사각 바탕 |
 | OG | 1200 × 630 PNG, 같은 보라색 워드마크와 ink·canvas 색상 |
 
 글자 높이의 절반 이상을 주변 요소와 띄운다. 워드마크 자체의 글자 간격·종횡비·대소문자를 바꾸지 않는다. 전체 이름을 정사각 favicon으로 축소하지 않는다. 단색은 ink·white·primary를 사용하고, 그림자나 그라디언트를 추가하지 않는다.
@@ -39,8 +39,10 @@
 ```sh
 python3 tools/sync_brand_assets.py
 python3 tools/sync_brand_assets.py --check
+pnpm exec playwright install chromium
+node tools/export-brand-icons.mjs
 ```
 
-CI는 원본과 생성 파일의 일치를 확인한다. ICO와 Apple PNG는 `apps/web/src/app/icon.svg`에서 각각16/32/48px,180px로 직접 렌더한다. 아이콘 원본을 수정하면 두 래스터 파일도 재생성하고 실제 크기로 확인해야 한다. Next.js 파일 규약을 통해 icon·favicon·apple-touch-icon 메타데이터가 제공된다.
+CI는 원본과 생성 파일의 일치를 확인한다. 저장소의 `export-brand-icons.mjs`가 ICO와 Apple PNG를 `apps/web/src/app/icon.svg`에서 각각16/32/48px,180px로 직접 렌더한다. 아이콘 원본을 수정하면 두 래스터 파일도 재생성하고 실제 크기로 확인해야 한다. Next.js 파일 규약을 통해 icon·favicon·apple-touch-icon 메타데이터가 제공된다.
 
 `e2e/brand-sharing.spec.ts`는 홈 링크·320px 화면·아이콘 응답과 크기·공유 PNG·크롤러 메타데이터를 검증한다. Pattern·피드백·로그인·OG 및 favicon 소형 렌더는 실제 이미지로 별도 검토한다. 브라우저 증거는 Git 제외 `artifacts/brand/`에 저장한다.

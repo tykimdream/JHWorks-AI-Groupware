@@ -89,6 +89,7 @@ jobs:
             playwright-report/
             playwright-public-demo-report/
             artifacts/feedback/*.png
+            artifacts/prototype/*.png
             docs/portfolio/screenshots/
 
   container-smoke:

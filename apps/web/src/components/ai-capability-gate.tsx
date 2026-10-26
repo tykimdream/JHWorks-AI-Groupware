@@ -24,6 +24,7 @@ export const AICapabilityGate = ({
             : '현재 이 AI 기능을 사용할 수 없습니다. 입력 내용을 직접 작성해 업무를 이어갈 수 있습니다.'}
       </p>
       <Link href="/approvals/new">직접 작성하기 →</Link>
+      {capability === 'approvalDraft' && <p><Link href="/explore">AI 작성 흐름 예시 체험 (실제 호출 없음)</Link></p>}
     </section>
   );
 };

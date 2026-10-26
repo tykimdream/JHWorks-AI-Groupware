@@ -90,7 +90,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
   const [expense, setExpense] = useState<ExpenseDetails>(
     initial?.details.kind === 'EXPENSE'
       ? initial.details
-      : {
+      : handoff?.expensePreset?.details ?? {
           kind: 'EXPENSE',
           expenseDate: '',
           merchant: '',
@@ -100,12 +100,12 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
         },
   );
   const [title, setTitle] = useState(
-    initial?.title ?? (preset ? `${preset.startDate} 휴가 신청` : ''),
+    initial?.title ?? handoff?.expensePreset?.title ?? (preset ? `${preset.startDate} 휴가 신청` : ''),
   );
   const [content, setContent] = useState(
     initial?.content ?? handoff?.content ?? (preset ? '업무 일정과 인수인계를 확인한 후 연차 사용을 신청합니다.' : ''),
   );
-  const [amount, setAmount] = useState(initial?.amount?.toString() ?? '');
+  const [amount, setAmount] = useState(initial?.amount?.toString() ?? handoff?.expensePreset?.amount.toString() ?? '');
   const [destination, setDestination] = useState(initialTrip.destination ?? '');
   const [tripStartDate, setTripStartDate] = useState(initialTrip.startDate ?? '');
   const [tripEndDate, setTripEndDate] = useState(initialTrip.endDate ?? '');
@@ -327,7 +327,9 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
 
       <fieldset disabled={isSaving} className="tw:contents">
       {manualHandoff && <p role="status" className="form-guidance">{handoff
-        ? 'AI 화면의 요청과 추가 답변을 업무 내용으로 옮겼습니다. 문서 유형과 실제 지출 정보를 직접 확인해주세요. 아직 저장되지 않았습니다.'
+        ? handoff.expensePreset
+          ? '예시 체험에서 확인한 정보를 옮겼습니다. 내용을 수정하고 초안 저장을 눌러주세요. 아직 저장되지 않았습니다.'
+          : 'AI 화면의 요청과 추가 답변을 업무 내용으로 옮겼습니다. 문서 유형과 실제 지출 정보를 직접 확인해주세요. 아직 저장되지 않았습니다.'
         : '이어받을 입력이 없거나 15분 보관 시간이 지났습니다. 직접 내용을 입력해주세요.'}</p>}
       <div className="form-section form-grid-two">
         <label>

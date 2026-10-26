@@ -498,3 +498,12 @@ export interface AttendanceOverview {
     status: string;
   }[];
 }
+
+export interface CompanyPolicy {
+  id: string;
+  type: 'TRAVEL' | 'EXPENSE' | 'LEAVE' | 'APPROVAL' | 'SECURITY';
+  title: string;
+  version: string;
+  effectiveFrom: string;
+  sections: { sectionId: string; title: string; content: string; order: number }[];
+}

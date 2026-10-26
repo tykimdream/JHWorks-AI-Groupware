@@ -21,6 +21,9 @@ const navigation: { href: string; label: string; icon: WorkspaceIconName }[] = [
   { href: '/', label: '업무 홈', icon: 'home' },
   { href: '/approvals', label: '전자결재', icon: 'document' },
   { href: '/attendance', label: '근태·휴가', icon: 'calendar' },
+  { href: '/policies', label: '회사 규정', icon: 'document' },
+  { href: '/organization', label: '내 조직', icon: 'organization' },
+  { href: '/explore', label: '업무 체험 안내', icon: 'sparkles' },
 ];
 
 interface AppShellProps {
@@ -171,7 +174,13 @@ export const AppShell = ({ children }: AppShellProps) => {
                 ? '전자결재'
                 : pathname.startsWith('/attendance')
                   ? '근태·휴가'
-                  : '업무 도구'}
+                  : pathname.startsWith('/policies')
+                    ? '회사 규정'
+                    : pathname.startsWith('/organization')
+                      ? '내 조직'
+                      : pathname.startsWith('/explore')
+                        ? '업무 체험 안내'
+                        : '업무 도구'}
           </span>
           <span className="environment-badge">
             <span className="online-dot" />

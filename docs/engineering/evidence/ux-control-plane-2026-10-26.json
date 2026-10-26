@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-26T03:07:24.163856+00:00",
+  "provenance": "Sanitized Cloud Shell final-check.json assertion output; full service configuration excluded.",
+  "webSource": "72316edb8a76d54da6ae628731ae3f9b38fb4ac4",
+  "revision": "jhworks-demo-web-72316edb8a76",
+  "webDigest": "sha256:9f3c19308e4412c327abaddcc3bff2ab3a7a01b90ec15d34364e0c3cf1703d2f",
+  "apiDigest": "sha256:5828c072c39d1803a5578de3234ce2ee914cb2fb4a5003f379c4f4f24210b8ca",
+  "trafficPercent": 100,
+  "temporaryTagRemoved": true,
+  "apiUnchanged": true,
+  "webRuntimeUnchanged": true,
+  "runtimeSpecUnchanged": true,
+  "aiEnabled": false,
+  "maxInstances": 1,
+  "concurrency": 4,
+  "rollbackRevision": "jhworks-demo-web-10f1412ab43a"
+}

@@ -121,7 +121,10 @@ test('approver sees read-only checks and rejection comments remain visible durin
   expect(manager.ok()).toBe(true);
   await page.goto(`/approvals/${draft.id}?from=assigned`);
   await expect(page.locator('.profile-card')).toContainText('최도윤');
-  await expect(page.getByRole('region', { name: '경비 사전 확인' })).toBeVisible();
+  const decisionBrief = page.getByRole('region', { name: '결재자 경비 검토 요약' });
+  await expect(decisionBrief).toBeVisible();
+  await expect(decisionBrief.getByText('추가 확인 필요', { exact: true })).toBeVisible();
+  await expect(decisionBrief).toContainText('원본 첨부·진위는 확인되지 않았습니다.');
   await expect(page.getByRole('link', { name: /보완하기/ })).toHaveCount(0);
   const note = '이동 구간과 증빙 참조를 보완해주세요.\n원본은 별도로 확인합니다.';
   const rejected = await page.request.post(`/api/v1/approvals/${draft.id}/reject`, { headers, data: { version: pending.version, comment: note } });

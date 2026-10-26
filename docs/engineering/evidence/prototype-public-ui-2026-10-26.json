@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-26",
+  "base": "https://groupware.pikan.dev/",
+  "method": "Manual in-app browser interaction against the deployed public domain; observations and screenshots, not an automated test report.",
+  "syntheticVisitSpacesCreated": 1,
+  "expenseDocumentsCreated": 1,
+  "expense": {
+    "title": "CES 출장 교통비 정산",
+    "amount": 170000,
+    "expenseDate": "2026-10-26",
+    "merchant": "공개 검증용 가상 교통 서비스",
+    "receiptReference": "PROTO-LIVE-20261026",
+    "confirmedStates": [
+      "unsaved preview",
+      "unsaved form prefill",
+      "DRAFT v1",
+      "SUBMITTED v2",
+      "APPROVED v3",
+      "author reads approved result"
+    ],
+    "confirmationDialogsChecked": [
+      "submit",
+      "approve"
+    ]
+  },
+  "policies": {
+    "policies": 3,
+    "sections": 10,
+    "version": "demo-1.0",
+    "expenseReceiptSearch": "1 policy, 1 matching section; 100000 KRW receipt threshold displayed"
+  },
+  "organization": {
+    "currentActor": true,
+    "manager": true,
+    "permittedDepartment": true
+  },
+  "attendance": {
+    "availableDays": 15,
+    "requestedDays": 2,
+    "candidateCount": 6,
+    "requiredHolidayExcluded": true,
+    "advisoryEventFlagged": true,
+    "leaveDocumentCreated": false
+  },
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 900,
+      "kind": "desktop"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "kind": "mobile",
+      "previewScrollWidth": 390,
+      "approvalListScrollWidth": 390
+    }
+  ],
+  "publicAiEnabled": false,
+  "limitations": [
+    "Fixed example flow, not live model quality evaluation.",
+    "One synthetic visitor space and successful approval path; not real employee data or a new-user study.",
+    "Browser model endpoint traffic was not independently instrumented; local E2E asserts zero model endpoint requests.",
+    "HTTP smoke businessWrites=0 applies only to those probes, not this UI workflow."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-26T01:25:41.058Z",
+  "base": "https://prototype---jhworks-demo-ti3vflu2vq-du.a.run.app",
+  "routes": [
+    {
+      "path": "/explore",
+      "status": 200,
+      "cspNonce": true
+    },
+    {
+      "path": "/policies",
+      "status": 200,
+      "cspNonce": true
+    },
+    {
+      "path": "/organization",
+      "status": 200,
+      "cspNonce": true
+    }
+  ],
+  "authenticatedUiChecked": false,
+  "businessWrites": 0,
+  "modelCalls": 0
+}

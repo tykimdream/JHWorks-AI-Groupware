@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-26T01:27:10.899743+00:00",
+  "provenance": "Sanitized output observed from authenticated Cloud Shell gcloud service-final.json assertions; full service configuration excluded.",
+  "revision": "jhworks-demo-web-10f1412ab43a",
+  "webSource": "10f1412ab43a915487655540ba576e21159175c8",
+  "webDigest": "sha256:df7a04b64903f53cf21c309bbc00d447cdd28b0c3e0826cfbd1a488f6e0694dc",
+  "apiDigest": "sha256:5828c072c39d1803a5578de3234ce2ee914cb2fb4a5003f379c4f4f24210b8ca",
+  "trafficPercent": 100,
+  "temporaryTagRemoved": true,
+  "apiUnchanged": true,
+  "webRuntimeUnchanged": true,
+  "runtimeSpecUnchanged": true,
+  "aiEnabled": false,
+  "maxInstances": 1,
+  "concurrency": 4,
+  "rollbackRevision": "jhworks-demo-web-cb26b8806dda"
+}

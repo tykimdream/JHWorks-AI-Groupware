@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-26T01:27:27.258Z",
+  "base": "https://groupware.pikan.dev/",
+  "faviconLinks": [
+    {
+      "path": "/favicon.ico",
+      "contentType": "image/x-icon",
+      "bytes": 2178,
+      "sha256": "51888b17bce593ed5efff6cac71a716e2719e143c1eda690e75f896b948cf48c"
+    },
+    {
+      "path": "/icon.svg",
+      "contentType": "image/svg+xml",
+      "bytes": 390,
+      "sha256": "4d591d9abc0fbf944302114f5d490f3167c820cf57c333b6600e48b56a814ee5"
+    },
+    {
+      "path": "/apple-icon.png",
+      "contentType": "image/png",
+      "bytes": 2170,
+      "sha256": "1efbad6e10bd9e08f150bede84dcccbb9a4378444c1521220b56822a0fe66450"
+    }
+  ],
+  "ogSize": [
+    1200,
+    630
+  ],
+  "health": "live/ready 200",
+  "businessWrites": 0,
+  "modelCalls": 0
+}

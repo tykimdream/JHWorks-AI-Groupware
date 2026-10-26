@@ -247,7 +247,33 @@ export interface ApprovalDraftQuestion {
   prompt: string;
 }
 
+export interface DraftExecution {
+  runId: string;
+  harnessVersion: string;
+  promptVersion: string;
+  model: string | null;
+  outcome: 'PREVIEW' | 'NEEDS_INPUT' | 'UNSUPPORTED' | 'FAILED';
+  stages: { stage: string; outcome: string; durationMs: number }[];
+  durationMs: number;
+}
+
+export interface ExpenseGrounding {
+  status: 'INPUT_MATCHED' | 'NEEDS_INPUT' | 'NOT_APPLICABLE';
+  checks: { field: string; status: 'INPUT_MATCHED' | 'MISSING' | 'UNVERIFIED' }[];
+}
+
+export interface ExpensePolicyValidation {
+  status: 'CATALOG_CHECKED' | 'UNAVAILABLE';
+  fingerprint: string;
+  retrievalChecked: boolean;
+  citations: PolicyCitation[];
+  checks: { citationKey: string; code: string; outcome: string; message: string }[];
+}
+
 export interface ApprovalDraftPrepareResponse {
+  execution?: DraftExecution;
+  grounding?: ExpenseGrounding;
+  policyValidation?: ExpensePolicyValidation | null;
   status: ApprovalDraftAIStatus;
   assistantMessage: string;
   candidate: ApprovalDraftCandidate;

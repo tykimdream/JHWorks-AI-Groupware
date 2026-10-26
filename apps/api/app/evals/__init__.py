@@ -1,1 +1,1 @@
-"""Explicit, non-CI evaluation entrypoints for AI capabilities."""
+"""Explicit evaluation entrypoints; actual model runs are separately budgeted."""

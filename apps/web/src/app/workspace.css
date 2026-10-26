@@ -710,7 +710,7 @@ textarea:focus {
 }
 .draft-support-note {
   margin: -14px 0 25px;
-  color: #9395a7;
+  color: var(--muted);
   font-size: var(--font-small);
 }
 .draft-progress {
@@ -719,7 +719,7 @@ textarea:focus {
   gap: 18px;
   margin: 0 0 var(--space-7);
   font-size: var(--font-small);
-  color: #b4b2c2;
+  color: var(--muted);
 }
 .draft-progress span {
   display: flex;
@@ -807,7 +807,7 @@ textarea:focus {
   border: 1px solid #e8d9b5;
   border-radius: var(--radius-sm);
   background: #fffbf1;
-  color: #87734b;
+  color: var(--ink);
   font-size: var(--font-small);
   line-height: 1.7;
 }

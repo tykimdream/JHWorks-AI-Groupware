@@ -3,10 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
-import { apiFetch, getUserErrorMessage } from '@/lib/api';
+import { ApiError, apiFetch, getUserErrorMessage } from '@/lib/api';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { formatCurrency } from '@/lib/format';
 import { approvalTypeLabels } from '@/lib/approval-labels';
+import { ExpenseVerification } from '@/components/expense-verification';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { useWorkspaceEmployee } from '@/components/app-shell';
 import { readDraftRequest, clearDraftRequest } from '@/lib/draft-handoff';
@@ -79,7 +80,7 @@ export const ApprovalDraftAssistant = () => {
   const handleInitialRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!request.trim()) return;
-    await prepare([]);
+    await prepare(answers);
   };
 
   const handleFollowUp = async (event: FormEvent<HTMLFormElement>) => {
@@ -89,8 +90,13 @@ export const ApprovalDraftAssistant = () => {
     await prepare([...answers, trimmed]);
   };
 
+  const expenseVerified = result?.preview?.type !== 'EXPENSE' || (
+    result.grounding?.status === 'INPUT_MATCHED'
+    && result.execution?.outcome === 'PREVIEW'
+    && Boolean(result.policyValidation?.fingerprint)
+  );
   const handleConfirm = async () => {
-    if (!result?.preview || !result.confirmationToken) return;
+    if (!result?.preview || !result.confirmationToken || !expenseVerified) return;
     setError(null);
     setIsConfirming(true);
     try {
@@ -104,6 +110,7 @@ export const ApprovalDraftAssistant = () => {
       router.push(`/approvals/${approval.id}`);
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '초안을 저장하지 못했습니다.'));
+      if (caught instanceof ApiError && caught.code === 'POLICY_CHANGED') setResult(null);
     } finally {
       setIsConfirming(false);
     }
@@ -127,8 +134,8 @@ export const ApprovalDraftAssistant = () => {
     <div className="draft-studio">
       <p className="draft-support-note">
         {expenseOnly
-          ? '공개 AI는 경비 초안과 추가 질문만 지원합니다. 지출 사실을 확인해 주세요. 정책 검색·AI 검토는 제공하지 않습니다.'
-          : '출장 신청·경비 정산·일반 결재를 지원합니다. 지출 내역과 규정 근거를 확인한 뒤 저장해 주세요.'}
+          ? '경비 입력을 원문과 대조하고 활성 규정의 지원 기준을 검사합니다. 영수증 원본 검증·규정 전체 판정은 제공하지 않습니다.'
+          : '출장·경비·일반 초안을 준비합니다. 경비는 필드·규정 검사 결과를 확인할 수 있으며, 저장과 제출은 별도입니다.'}
       </p>
       <div className="draft-progress" aria-label="초안 작성 단계">
         <span className={!result ? 'current' : ''}>
@@ -225,6 +232,8 @@ export const ApprovalDraftAssistant = () => {
                   </ul>
                 )}
               </div>
+
+              <ExpenseVerification result={result} />
 
               {result.status === 'NEEDS_INPUT' && (
                 <form className="draft-follow-up-form" onSubmit={handleFollowUp}>
@@ -386,9 +395,10 @@ export const ApprovalDraftAssistant = () => {
 
               <div className="draft-confirm-panel">
                 <p>저장하면 편집 가능한 초안이 저장됩니다. 자동 제출되지는 않습니다.</p>
+                {!expenseVerified && <p role="alert">이 서버 응답에는 경비 검증 정보가 없습니다. 직접 작성으로 이어가 주세요.</p>}
                 <button
                   className="primary-button"
-                  disabled={isConfirming}
+                  disabled={isConfirming || !expenseVerified}
                   onClick={handleConfirm}
                   type="button"
                 >

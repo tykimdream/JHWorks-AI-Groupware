@@ -3,8 +3,9 @@ import json
 import logging
 import math
 from collections.abc import Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -45,13 +46,13 @@ def _search_text_hash(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def _current_policies(db: Session, policy_type: PolicyType | None) -> list[CompanyPolicy]:
+def current_policies(db: Session, policy_type: PolicyType | None) -> list[CompanyPolicy]:
     statement = (
         select(CompanyPolicy)
         .options(selectinload(CompanyPolicy.sections))
         .where(
             CompanyPolicy.status == PolicyStatus.ACTIVE,
-            CompanyPolicy.effective_from <= date.today(),
+            CompanyPolicy.effective_from <= datetime.now(ZoneInfo("Asia/Seoul")).date(),
         )
         .order_by(
             CompanyPolicy.policy_id,
@@ -69,7 +70,7 @@ def _current_policies(db: Session, policy_type: PolicyType | None) -> list[Compa
 
 
 def active_policy_fingerprint(db: Session, policy_type: PolicyType) -> str:
-    policies = _current_policies(db, policy_type)
+    policies = current_policies(db, policy_type)
     canonical = [
         {
             "policyId": policy.policy_id,
@@ -89,7 +90,7 @@ def index_active_policy_sections(
     expected_model: str,
     expected_dimensions: int,
 ) -> tuple[int, int, str, int]:
-    policies = _current_policies(db, None)
+    policies = current_policies(db, None)
     pending: list[tuple[PolicySection, str, str]] = []
     skipped = 0
     for policy in policies:
@@ -259,7 +260,7 @@ def search_policy_sections(
     expected_model: str,
     expected_dimensions: int,
 ) -> PolicySearchResponse:
-    policies = _current_policies(db, policy_type)
+    policies = current_policies(db, policy_type)
     if not policies:
         return PolicySearchResponse(
             status=PolicyRetrievalStatus.NOT_APPLICABLE,

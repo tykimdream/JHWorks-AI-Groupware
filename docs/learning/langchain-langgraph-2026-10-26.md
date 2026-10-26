@@ -70,8 +70,8 @@ LangChain의 공개 설문은 1,340명 응답 중 57.3%가 운영 환경에서 A
 flowchart TD
     UI[웹: 요청 · 추가 답변 · 미리보기] --> API[FastAPI: 인증 · actor/run 소유권 · 만료 검사]
     API --> G[선택적 LangGraph 경비 조율]
-    G --> Extract[기존 provider adapter: 항목 추출]
-    Extract --> Budget[기존 호출 예산 · 횟수 제한]
+    G --> Budget[기존 호출 예산 · 횟수 제한]
+    Budget --> Extract[기존 provider adapter: 항목 추출]
     G --> Read[권한 범위의 규정 · 경비 조회]
     G --> Pause[누락 정보 질문: interrupt]
     Pause --> UI

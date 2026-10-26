@@ -81,6 +81,7 @@ export function ExpenseRevisionPanel({ approval, onUpdated }: { approval: Approv
     {error && <p role="alert" className="error-banner">{error}</p>}
     {stale && <p>문서를 새로고침해 최신 상태를 확인해 주세요. 작성한 추가 사실은 복사해 보관할 수 있습니다.</p>}
     {result && <>
+      {result.prepared.provider === 'fake' && <p role="note">시뮬레이션 응답 · 로컬 화면 검증용이며 실제 AI 모델을 호출하지 않습니다.</p>}
       <details><summary>제안에 사용한 반려 의견</summary><blockquote className="tw:mx-0 tw:whitespace-pre-wrap">{result.rejectionComment}</blockquote></details>
       <details className="tw:my-4"><summary>필드·규정 검사 상세 보기</summary><ExpenseVerification result={result.prepared} /></details>
       {result.prepared.questions.length > 0 && <ul>{result.prepared.questions.map((q) => <li key={q.field}>{q.prompt}</li>)}</ul>}

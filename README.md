@@ -127,3 +127,5 @@ pnpm test:storybook          # 정적 상태·접근성·키보드 검증
 [현재 로드맵](docs/engineering/roadmap.md) · [작업별 실행 계획](docs/engineering/execution-plan-2026-10-25.md) · [설계 결정](docs/adr) · [제품 명세](docs/product)
 
 목록 개선을 위한 [PostgreSQL 합성 baseline](docs/engineering/approval-list-baseline.md)과 [다음 목록 계약 검토](docs/engineering/approval-list-next-contract.md)를 보관합니다. 서비스 측정값과 HTTP·브라우저 측정 범위는 구분합니다.
+
+[LangChain·LangGraph 학습 보고서](docs/learning/langchain-langgraph-2026-10-26.md)에는 생태계·조사 근거·경비 Workflow 적용 제안과 API 키 없이 실행하는 독립 실습을 정리했습니다. 제품 도입·공개 AI 활성화는 별도 검증 단계입니다.

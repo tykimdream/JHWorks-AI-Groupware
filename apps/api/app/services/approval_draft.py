@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.approval_draft import (
     PROMPT_VERSION,
+    REVISION_PROMPT_VERSION,
     ApprovalDraftCandidate,
     ApprovalDraftProvider,
     ApprovalDraftProviderError,
@@ -309,10 +310,22 @@ def prepare_approval_draft(
     payload: ApprovalDraftPrepareRequest,
     provider: ApprovalDraftProvider,
     embedding_provider: PolicyEmbeddingProvider,
+    *,
+    revision_context: str | None = None,
+    issue_confirmation: bool = True,
 ) -> ApprovalDraftPrepareResponse:
-    execution = DraftExecution()
+    execution = DraftExecution(REVISION_PROMPT_VERSION if revision_context else PROMPT_VERSION)
     try:
-        result = _execute_prepare(db, actor, payload, provider, embedding_provider, execution)
+        result = _execute_prepare(
+            db,
+            actor,
+            payload,
+            provider,
+            embedding_provider,
+            execution,
+            revision_context,
+            issue_confirmation,
+        )
         result.execution = execution.finish(result.status.value)
         return result
     except Exception as exc:
@@ -341,6 +354,8 @@ def _execute_prepare(
     provider: ApprovalDraftProvider,
     embedding_provider: PolicyEmbeddingProvider,
     execution: DraftExecution,
+    revision_context: str | None = None,
+    issue_confirmation: bool = True,
 ) -> ApprovalDraftPrepareResponse:
     with execution.stage(DraftStage.INPUT):
         provider_input = ApprovalDraftProviderInput(
@@ -348,6 +363,7 @@ def _execute_prepare(
             answers=[answer.strip() for answer in payload.answers if answer.strip()],
             current_date=datetime.now(ZoneInfo("Asia/Seoul")).date(),
             timezone="Asia/Seoul",
+            revision_context=revision_context,
         )
         if len(provider_input.request) < 2:
             raise DomainValidationError("INVALID_DRAFT_REQUEST", "Enter a non-empty draft request.")
@@ -457,12 +473,13 @@ def _execute_prepare(
         if preview is None:
             preview_stage.outcome = DraftStageOutcome.NOT_APPLICABLE
         else:
-            confirmation_token = create_approval_draft_confirmation_token(
-                actor.id,
-                f"confirm_{uuid4().hex}",
-                preview_hash(preview),
-                policy_validation.fingerprint if policy_validation else None,
-            )
+            if issue_confirmation:
+                confirmation_token = create_approval_draft_confirmation_token(
+                    actor.id,
+                    f"confirm_{uuid4().hex}",
+                    preview_hash(preview),
+                    policy_validation.fingerprint if policy_validation else None,
+                )
     return ApprovalDraftPrepareResponse(
         execution=execution.report(status.value),
         grounding=grounding,
@@ -477,7 +494,7 @@ def _execute_prepare(
         policy_context=policy_context,
         provider=provider_result.provider,
         model=provider_result.model,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=execution.prompt_version,
         usage=ApprovalDraftUsage(
             input_tokens=provider_result.usage.input_tokens,
             output_tokens=provider_result.usage.output_tokens,

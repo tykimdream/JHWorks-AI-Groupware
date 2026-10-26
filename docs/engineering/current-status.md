@@ -17,6 +17,12 @@
 | 외부 조건 대기 중 | M1 증거 대조·M2 offline/예산·M3 로컬 개선 중 독립 작업 진행 |
 
 
+## 2026-10-26 반려 경비 수정·결재자 검토
+
+[검토한 대안·선택 이유·구현 계약](expense-rejection-decision-workflow.md)을 기록했다. 반려 의견을 별도 context로 전달하는 읽기 전용 AI 제안, 필드/규정 검사·변경 전후·작성자 확인·같은 문서 초안 반영을 구현했다. 현재 결재자는 추가 모델 호출 없이 중복 후보·활성 규정·미확인 증빙·이전 반려 의견을 모아 본다. 공개 AI 수정 제안은 서버에서 차단하며 직접 수정 흐름을 유지한다.
+
+로컬 API 634개 통과·34개 제외, mypy 207개 파일, production PC/모바일 10개 통과. 합성 provider이며 새 실제 모델 평가·공개 배포는 수행하지 않았다. 기존 v4 실제 모델 결과를 수정 prompt 품질로 재사용하지 않는다. V1~V4 소스는 PR #101~#103 병합 상태다.
+
 ## 2026-10-26 경비 정책 검사·평가 화면 — V3/V4
 
 V1 [PR #101](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/101), V2 [PR #102](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/102)는 필수 CI 6개 통과 후 병합했다. 후속 소스는 활성 규정 인용 원문 대조·지원 영수증 기준 계산·정책 변경 시 첫 저장 차단과 검증 결과 UI를 추가한다. [설계와 검증 범위](verifiable-expense-ai.md)를 따른다.

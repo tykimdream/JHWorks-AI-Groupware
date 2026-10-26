@@ -18,6 +18,11 @@ export function OrganizationOverview() {
     queryFn: ({ signal }) => apiFetch<Department[]>('/departments', { signal }),
   });
   if (!employee) return null;
+  // Only abbreviate the generated visitor-space name, never a real department.
+  const departmentLabel = (name: string) =>
+    configuration?.enabled && /^체험 조직 [a-f0-9]{32}$/.test(name)
+      ? '내 체험 조직'
+      : name;
   return (
     <div className="tw:grid tw:gap-6">
       <section
@@ -32,11 +37,17 @@ export function OrganizationOverview() {
             <span className="small-pill">내 프로필</span>
             <h3 className="tw:mb-1">{employee.name}</h3>
             <p className="tw:my-1">
-              {employee.department.name} · {employee.position}
+              {departmentLabel(employee.department.name)} · {employee.position}
             </p>
-            <p className="tw:break-all tw:text-sm tw:text-jhw-muted">
-              {employee.email}
-            </p>
+            <details className="tw:mt-3 tw:break-all tw:text-sm tw:text-jhw-muted">
+              <summary className="tw:cursor-pointer">원본 프로필 정보</summary>
+              <dl className="tw:grid tw:gap-1">
+                <dt>부서명</dt>
+                <dd className="tw:m-0">{employee.department.name}</dd>
+                <dt>이메일</dt>
+                <dd className="tw:m-0">{employee.email}</dd>
+              </dl>
+            </details>
           </div>
           <div className="tw:border-0 tw:border-l-2 tw:border-solid tw:border-jhw-border tw:pl-5">
             <span className="small-pill">직속 관리자</span>
@@ -91,9 +102,9 @@ export function OrganizationOverview() {
                 key={department.id}
                 className="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:rounded-lg tw:bg-jhw-canvas tw:p-4"
               >
-                <strong>{department.name}</strong>
+                <strong className="tw:min-w-0 tw:break-words">{departmentLabel(department.name)}</strong>
                 {department.id === employee.departmentId && (
-                  <span className="small-pill">내 부서</span>
+                  <span className="small-pill tw:shrink-0">내 부서</span>
                 )}
               </li>
             ))}

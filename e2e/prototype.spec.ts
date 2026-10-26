@@ -218,6 +218,13 @@ test('organization and prototype pages stay within the viewport and expose permi
         exact: true,
       }),
     ).toBeVisible();
+  if (/^체험 조직 [a-f0-9]{32}$/.test(employee.department.name)) {
+    await expect(profile.getByText('내 체험 조직', { exact: false })).toBeVisible();
+  }
+  await expect(profile.getByText(employee.email, { exact: true })).toBeHidden();
+  await profile.getByText('원본 프로필 정보', { exact: true }).click();
+  await expect(profile.getByText(employee.email, { exact: true })).toBeVisible();
+  await expect(profile.getByText(employee.department.name, { exact: true })).toBeVisible();
   await expect(
     page
       .getByRole('region', { name: '조회 가능한 부서', exact: true })

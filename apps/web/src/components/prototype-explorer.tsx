@@ -121,7 +121,7 @@ export function PrototypeExplorer() {
               후보는 문서를 저장한 뒤 실제 사전 점검에서 확인합니다.
             </p>
             <Link href="/policies">경비 규정 원문 확인</Link>
-            {configuration?.aiCapabilities.approvalDraft && (
+            {configuration?.aiCapabilities?.approvalDraft && (
               <p className="tw:mt-5">
                 <Link href="/approvals/ai-draft">
                   내 요청으로 실제 AI 초안 작성

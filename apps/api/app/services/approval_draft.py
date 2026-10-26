@@ -55,6 +55,7 @@ from app.schemas.policy import (
 from app.services import approval as approval_service
 from app.services import policy_retrieval
 from app.services.draft_execution import DraftExecution
+from app.services.expense_grounding import check_expense_input
 from app.services.expense_validation import expense_validation_errors
 
 QUESTION_PROMPTS = {
@@ -73,6 +74,7 @@ QUESTION_PROMPTS = {
     "details.merchant": "어느 사용처에 지출했나요? 상호 또는 결제 대상을 알려주세요.",
     "details.category": "교통비·숙박비·식비·기타 중 어떤 지출인가요?",
     "details.purpose": "어떤 업무를 위해 지출했나요?",
+    "details.receiptReference": "증빙 참조를 원문 그대로 알려주세요. 예: 증빙 참조: RCP-001",
     "expenseAmount": "실제로 지출한 금액을 0원보다 큰 원화 금액으로 알려주세요.",
 }
 
@@ -364,7 +366,19 @@ def _execute_prepare(
     confirmation_token: str | None = None
     policy_context = _not_applicable_policy_context()
     with execution.stage(DraftStage.VALIDATE) as validation:
+        candidate, grounding = check_expense_input(candidate, provider_input)
         missing = _missing_fields(candidate)
+        field_names = {
+            "amount": "expenseAmount",
+            "expense_date": "details.expenseDate",
+            "merchant": "details.merchant",
+            "expense_category": "details.category",
+            "expense_purpose": "details.purpose",
+            "receipt_reference": "details.receiptReference",
+        }
+        for check in grounding.checks:
+            if check.status == "UNVERIFIED" and field_names[check.field] not in missing:
+                missing.append(field_names[check.field])
         public_expense_only = get_settings().public_demo_enabled
         if (
             public_expense_only and candidate.intent != DraftIntent.EXPENSE
@@ -388,8 +402,29 @@ def _execute_prepare(
             assistant_message = (
                 "초안을 완성하려면 아래 정보를 알려주세요. 한 문장으로 함께 답해도 됩니다."
             )
+            formats = {
+                "expenseAmount": "금액: 170000원",
+                "details.expenseDate": "지출일: YYYY-MM-DD",
+                "details.merchant": "사용처: 실제 상호",
+                "details.category": "분류: 교통비",
+                "details.purpose": "목적: 실제 업무 목적",
+                "details.receiptReference": "증빙 참조: 실제 참조 번호",
+            }
+            unverified = {
+                field_names[check.field]
+                for check in grounding.checks
+                if check.status == "UNVERIFIED"
+            }
             questions = [
-                ApprovalDraftQuestion(field=field, prompt=QUESTION_PROMPTS[field])
+                ApprovalDraftQuestion(
+                    field=field,
+                    prompt=(
+                        "입력과 일치하는 값을 확인하지 못했습니다. "
+                        f"다음 형식으로 실제 값을 알려주세요: {formats[field]}"
+                        if field in unverified
+                        else QUESTION_PROMPTS[field]
+                    ),
+                )
                 for field in missing
             ]
         else:
@@ -422,6 +457,7 @@ def _execute_prepare(
             )
     return ApprovalDraftPrepareResponse(
         execution=execution.report(status.value),
+        grounding=grounding,
         status=status,
         assistant_message=assistant_message,
         candidate=_candidate_read(candidate),

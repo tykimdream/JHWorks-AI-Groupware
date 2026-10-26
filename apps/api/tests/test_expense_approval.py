@@ -120,7 +120,12 @@ def test_expense_preview_is_grounded_signed_and_idempotent(
     login(client, "seojin.yoon@jhworks.test")
     prepared = client.post(
         "/api/v1/approval-draft-assistant/prepare",
-        json={"request": "이번 CES 출장에서 쓴 17만원 정산"},
+        json={
+            "request": (
+                "금액: 17만원; 지출일: 오늘; 사용처: 코레일; 분류: 교통비; "
+                "목적: CES 출장 교통비; 증빙 참조: RCP-CES-001"
+            )
+        },
     ).json()
     assert prepared["status"] == "PREVIEW"
     assert prepared["preview"]["type"] == "EXPENSE"

@@ -54,4 +54,6 @@ API **634개 통과·34개 제외**, mypy **207개 파일 통과**, ruff와 web 
 
 전체 CI가 기존 결재자 테스트의 옛 패널 기대를 발견했다. 대체한 검토 요약의 규정 확인 필요·증빙 미검증 표시와 읽기 전용 계약을 검사하도록 수정했다. 별도로 기존 경비 점검·직접 재작성과 새 AI 수정 흐름을 묶은 production PC/모바일 8개를 통과했다. 테스트를 제거하거나 기존 반려 이력·본문 유지 검사를 완화하지 않았다.
 
+일반 브라우저 전체 112개가 CI에서 통과한 뒤, 공개 Swagger 검사의 고정 API 수(40)가 새 3개 API를 반영하지 못해 실패했다. 실제 OpenAPI의 HTTP operation 수와 화면을 대조하고 새 3개 경로의 표시도 명시적으로 확인하도록 변경했다. 도메인 분류·요청 실행 비활성화·반응형 검사는 유지한다. 공개 모드 로컬 PC/모바일 Swagger 2개를 통과했다.
+
 [결재자 PC](../portfolio/prototype/decision-brief-desktop.png) · [결재자 모바일](../portfolio/prototype/decision-brief-mobile.png) · [수정 제안 PC](../portfolio/prototype/expense-revision-desktop.png) · [수정 제안 모바일](../portfolio/prototype/expense-revision-mobile.png). 격리된 합성 조직·규정·provider와 실제 API의 전체 페이지 화면이다. 사용자 관찰이나 실제 AI 품질 측정 자료는 아니다.

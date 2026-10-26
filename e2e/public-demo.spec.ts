@@ -158,7 +158,17 @@ test('public Swagger renders the real schema with execution disabled', async ({ 
   for (const domain of domains) {
     await page.locator('.swagger-ui .opblock-tag').filter({ hasText: domain }).click();
   }
-  await expect(page.locator('.swagger-ui .opblock')).toHaveCount(40);
+  const schemaResponse = await page.request.get('/api/v1/openapi.json');
+  expect(schemaResponse.ok()).toBe(true);
+  const schema = await schemaResponse.json();
+  const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
+  const operationCount = Object.values(schema.paths as Record<string, Record<string, unknown>>)
+    .reduce((total, path) => total + Object.keys(path).filter((method) => methods.has(method)).length, 0);
+  expect(operationCount).toBeGreaterThan(0);
+  await expect(page.locator('.swagger-ui .opblock')).toHaveCount(operationCount);
+  for (const suffix of ['decision-brief', 'expense-revision/prepare', 'expense-revision/apply']) {
+    await expect(page.locator('.swagger-ui .opblock-summary').filter({ hasText: `/api/v1/approvals/{approval_id}/${suffix}` })).toHaveCount(1);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.locator('.swagger-ui .opblock-summary').filter({ hasText: '/api/v1/approvals' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try it out', exact: true })).toHaveCount(0);

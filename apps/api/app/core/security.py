@@ -293,3 +293,31 @@ def decode_leave_submit_confirmation_token(token: str) -> LeaveSubmitConfirmatio
         calendar_fingerprint=payload["calendar_fingerprint"],
         manager_id=payload["manager_id"],
     )
+
+
+def create_expense_revision_token(employee_id: str, snapshot_hash: str) -> str:
+    settings = get_settings()
+    now = datetime.now(UTC)
+    return jwt.encode(
+        {
+            "sub": employee_id,
+            "snapshot": snapshot_hash,
+            "type": "expense_revision",
+            "iat": now,
+            "exp": now + timedelta(minutes=settings.approval_draft_confirmation_ttl_minutes),
+        },
+        settings.jwt_secret,
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+def decode_expense_revision_token(token: str) -> tuple[str, str]:
+    try:
+        payload = _decode_timed_token(token)
+        if payload.get("type") != "expense_revision" or not isinstance(
+            payload.get("snapshot"), str
+        ):
+            raise jwt.InvalidTokenError("Wrong revision token")
+    except jwt.PyJWTError as exc:
+        raise ConflictError("INVALID_REVISION_TOKEN", "Prepare the correction again.") from exc
+    return payload["sub"], payload["snapshot"]

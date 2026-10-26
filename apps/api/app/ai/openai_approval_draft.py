@@ -5,6 +5,8 @@ from openai import OpenAI, OpenAIError, omit
 
 from app.ai.approval_draft import (
     PROMPT_VERSION,
+    REVISION_INSTRUCTIONS,
+    REVISION_PROMPT_VERSION,
     SYSTEM_PROMPT,
     ApprovalDraftCandidate,
     ApprovalDraftProviderError,
@@ -42,19 +44,22 @@ class OpenAIApprovalDraftProvider:
         try:
             response = self._client.responses.parse(
                 model=self._model,
-                instructions=SYSTEM_PROMPT,
+                instructions=SYSTEM_PROMPT
+                + ("\n" + REVISION_INSTRUCTIONS if provider_input.revision_context else ""),
                 input=[
                     {
                         "role": "user",
                         "content": json.dumps(
-                            provider_input.model_dump(mode="json"),
+                            provider_input.model_dump(mode="json", exclude_none=True),
                             ensure_ascii=False,
                         ),
                     }
                 ],
                 text_format=ApprovalDraftCandidate,
                 max_output_tokens=1600,
-                prompt_cache_key=PROMPT_VERSION,
+                prompt_cache_key=REVISION_PROMPT_VERSION
+                if provider_input.revision_context
+                else PROMPT_VERSION,
                 safety_identifier=safety_identifier,
                 store=False,
                 service_tier="default" if self._standard_tier else omit,

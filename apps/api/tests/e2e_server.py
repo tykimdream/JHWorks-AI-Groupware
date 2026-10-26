@@ -125,7 +125,21 @@ class BrowserDraftProvider(FakeApprovalDraftProvider):
         provider_input: ApprovalDraftProviderInput,
         safety_identifier: str,
     ) -> DraftProviderResult:
-        if "CES 출장에서 쓴 17만원" in provider_input.request:
+        if provider_input.revision_context:
+            # Explicitly synthetic correction scenario, not a model quality result.
+            source = provider_input.request + "; " + "; ".join(provider_input.answers)
+            dates = re.findall(r"\d{4}-\d{2}-\d{2}", source)
+            purposes = re.findall(r"목적:\s*([^;；\n]+)", source)
+            self.candidate = ApprovalDraftCandidate(
+                intent=DraftIntent.EXPENSE,
+                amount=170000,
+                expense_date=datetime.strptime(dates[-1], "%Y-%m-%d").date() if dates else None,
+                merchant="코레일",
+                expense_category=ExpenseCategory.TRANSPORTATION,
+                expense_purpose=purposes[-1] if purposes else None,
+                receipt_reference="RCP-CES-001",
+            )
+        elif "CES 출장에서 쓴 17만원" in provider_input.request:
             answer = " ".join(provider_input.answers)
             match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", answer)
             paid = None

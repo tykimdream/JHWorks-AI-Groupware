@@ -23,6 +23,7 @@ import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { ExpenseChecksPanel } from '@/components/expense-checks';
 import { latestRejectionComment } from '@/lib/expense-repair';
+import { ExpenseDecisionPanel, ExpenseRevisionPanel } from '@/components/expense-decision-workflow';
 import { RejectionContext } from '@/components/rejection-context';
 
 type Command = ApprovalCommandName;
@@ -182,6 +183,12 @@ export default function ApprovalDetailPage() {
           <DemoRoleSwitcher currentRole={employee.role} label="결재자로 전환해 계속하기" />
         </section>
       )}
+      {isAuthor && approval.type === 'EXPENSE' && approval.status === 'REJECTED' && (
+        <ExpenseRevisionPanel key={`${approval.id}-${approval.version}`} approval={approval} onUpdated={setApproval} />
+      )}
+      {isApprover && approval.type === 'EXPENSE' && approval.status === 'PENDING' && (
+        <ExpenseDecisionPanel key={`${approval.id}-${approval.version}`} approval={approval} />
+      )}
       <div className="detail-layout">
         <article className="document-card">
           <section>
@@ -195,7 +202,7 @@ export default function ApprovalDetailPage() {
             <ExpenseSummary expense={approval.details} amount={approval.amount} />
           )}
           {leave && <LeaveRequestDetails leave={leave} />}
-          {approval.type === 'EXPENSE' && (
+          {approval.type === 'EXPENSE' && !isApprover && (
             <ExpenseChecksPanel
               key={`${approval.id}-${approval.version}`}
               approvalId={approval.id}

@@ -558,3 +558,32 @@ def revise_approval(
     approval.updated_at = datetime.now(UTC)
     db.commit()
     return _get_approval(db, approval.id)
+
+
+def apply_rejected_expense(
+    db: Session,
+    actor: Employee,
+    approval_id: str,
+    expected_version: int,
+    preview: ApprovalCreate,
+) -> Approval:
+    """One transaction: retain history and turn the rejected expense into an edited draft."""
+    approval = _get_approval_for_update(db, approval_id)
+    _require_author(approval, actor)
+    _require_version(approval, expected_version)
+    if approval.status != ApprovalStatus.REJECTED or approval.type != ApprovalType.EXPENSE:
+        raise ConflictError("INVALID_STATUS", "Only a rejected expense can be corrected")
+    if preview.type != ApprovalType.EXPENSE:
+        raise DomainValidationError("NOT_AN_EXPENSE", "Correction must remain an expense")
+    approval.title = preview.title.strip()
+    approval.content = preview.content.strip()
+    approval.amount = preview.amount
+    approval.details = preview.details.model_dump(mode="json", by_alias=True)
+    # Existing attachment metadata and rejection history remain intact.
+    approval.status = ApprovalStatus.DRAFT
+    approval.submitted_at = None
+    approval.decided_at = None
+    approval.version += 1
+    approval.updated_at = datetime.now(UTC)
+    db.commit()
+    return _get_approval(db, approval.id)

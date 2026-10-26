@@ -9,6 +9,7 @@ from time import perf_counter
 from typing import Literal
 from uuid import uuid4
 
+from app.ai.approval_draft import PROMPT_VERSION
 from app.schemas.draft_execution import (
     DraftExecutionRead,
     DraftStage,
@@ -26,7 +27,8 @@ class StageResult:
 
 
 class DraftExecution:
-    def __init__(self) -> None:
+    def __init__(self, prompt_version: str = PROMPT_VERSION) -> None:
+        self.prompt_version = prompt_version
         self.run_id = f"draft_run_{uuid4().hex}"
         self._started = perf_counter()
         self._records: list[DraftStageRecord] = []
@@ -92,6 +94,7 @@ class DraftExecution:
                 raise RuntimeError("Unready draft cannot run policy or preview")
         return DraftExecutionRead(
             run_id=self.run_id,
+            prompt_version=self.prompt_version,
             provider=self._provider,
             model=self._model,
             outcome=outcome,

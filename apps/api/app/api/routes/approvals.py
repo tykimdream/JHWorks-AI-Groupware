@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Query
 
 from app.api.dependencies import (
+    AIApprovalDraftProvider,
     AIReviewProvider,
     CurrentEmployee,
     DbSession,
@@ -19,8 +20,15 @@ from app.schemas.approval import (
     ApprovalUpdate,
 )
 from app.schemas.expense_checks import ExpenseChecks, ExpenseInsights
+from app.schemas.expense_revision import (
+    ExpenseDecisionBrief,
+    ExpenseRevisionApply,
+    ExpenseRevisionRequest,
+    ExpenseRevisionResponse,
+)
 from app.services import approval as approval_service
 from app.services import approval_review as approval_review_service
+from app.services import expense_revision
 from app.services.expense_checks import check_expense, expense_insights
 from app.services.mappers import approval_read
 
@@ -204,4 +212,57 @@ def review_approval(
         payload.version,
         provider,
         embedding_provider,
+    )
+
+
+@router.get(
+    "/{approval_id}/decision-brief",
+    response_model=ExpenseDecisionBrief,
+    summary="결재자 경비 검토 근거",
+)
+def get_decision_brief(
+    approval_id: str, db: DbSession, current_employee: CurrentEmployee, version: int = Query(ge=1)
+) -> ExpenseDecisionBrief:
+    """현재 결재자에게 문서 버전·중복 후보·규정 원문 기준을 제공합니다.
+    AI 호출이나 승인 판정은 없습니다."""
+    return expense_revision.decision_brief(db, current_employee, approval_id, version)
+
+
+@router.post(
+    "/{approval_id}/expense-revision/prepare",
+    response_model=ExpenseRevisionResponse,
+    summary="반려 경비 AI 수정 제안 준비",
+)
+def prepare_expense_revision(
+    approval_id: str,
+    payload: ExpenseRevisionRequest,
+    db: DbSession,
+    current_employee: CurrentEmployee,
+    provider: AIApprovalDraftProvider,
+    embedding_provider: PolicyEmbeddingProviderDependency,
+) -> ExpenseRevisionResponse:
+    """작성자의 기존 필드와 추가 답변만 지출 근거로 사용합니다.
+    반려 의견은 수정 요청이며 사실 근거가 아닙니다.
+    문서를 변경하지 않고 질문 또는 변경 전후를 반환합니다. 공개 데모에서는 비활성화됩니다."""
+    return expense_revision.prepare_revision(
+        db, current_employee, approval_id, payload, provider, embedding_provider
+    )
+
+
+@router.post(
+    "/{approval_id}/expense-revision/apply",
+    response_model=ApprovalRead,
+    summary="확인한 경비 수정 제안을 같은 문서의 초안에 반영",
+)
+def apply_expense_revision(
+    approval_id: str,
+    payload: ExpenseRevisionApply,
+    db: DbSession,
+    current_employee: CurrentEmployee,
+) -> ApprovalRead:
+    """작성자·버전·제안 서명·규정 변경을 검사하고 초안으로 전환합니다.
+    반려 이력을 보존하며 제출하지 않습니다.
+    성공 후 재요청은 버전 충돌을 반환하므로 최신 문서를 조회하세요."""
+    return approval_read(
+        expense_revision.apply_revision(db, current_employee, approval_id, payload)
     )

@@ -83,6 +83,8 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 
 </details>
 
+반려된 경비에는 **AI 수정 제안·변경 전후·확인 후 같은 문서 초안 반영**을 추가했습니다. 반려 의견을 실제 지출의 근거로 사용하지 않고, 작성자의 추가 사실을 대조합니다. 결재자는 별도 모델 호출 없이 규정 기준·중복 후보·이전 반려 의견을 함께 확인합니다. [대안과 선택 이유·화면·검증 범위](docs/engineering/expense-rejection-decision-workflow.md)에 기록했으며, 공개 배포와 실제 모델 평가는 별도입니다.
+
 ## 아키텍처
 
 ```mermaid

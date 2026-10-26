@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import json
-import logging
 from datetime import UTC, datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -18,7 +17,13 @@ from app.ai.approval_draft import (
 )
 from app.ai.policy_embedding import PolicyEmbeddingProvider
 from app.core.config import get_settings
-from app.core.errors import AuthorizationError, ConflictError, ServiceUnavailableError
+from app.core.errors import (
+    AppError,
+    AuthorizationError,
+    ConflictError,
+    DomainValidationError,
+    ServiceUnavailableError,
+)
 from app.core.security import (
     create_approval_draft_confirmation_token,
     decode_approval_draft_confirmation_token,
@@ -41,6 +46,7 @@ from app.schemas.approval_draft_ai import (
     ApprovalDraftQuestion,
     ApprovalDraftUsage,
 )
+from app.schemas.draft_execution import DraftStage, DraftStageOutcome
 from app.schemas.policy import (
     PolicyEmbeddingUsage,
     PolicyRetrievalStatus,
@@ -48,9 +54,8 @@ from app.schemas.policy import (
 )
 from app.services import approval as approval_service
 from app.services import policy_retrieval
+from app.services.draft_execution import DraftExecution
 from app.services.expense_validation import expense_validation_errors
-
-logger = logging.getLogger("jhworks.approval_draft")
 
 QUESTION_PROMPTS = {
     "title": "결재 제목에 반드시 드러나야 할 핵심 업무는 무엇인가요?",
@@ -300,85 +305,123 @@ def prepare_approval_draft(
     provider: ApprovalDraftProvider,
     embedding_provider: PolicyEmbeddingProvider,
 ) -> ApprovalDraftPrepareResponse:
-    provider_input = ApprovalDraftProviderInput(
-        request=payload.request.strip(),
-        answers=[answer.strip() for answer in payload.answers if answer.strip()],
-        current_date=datetime.now(ZoneInfo("Asia/Seoul")).date(),
-        timezone="Asia/Seoul",
-    )
-    safety_identifier = hashlib.sha256(actor.id.encode()).hexdigest()
+    execution = DraftExecution()
     try:
-        provider_result = provider.prepare(provider_input, safety_identifier)
-    except ApprovalDraftProviderError as exc:
-        logger.warning(
-            "approval_draft_prepare_failed actor_id=%s prompt_version=%s",
-            actor.id,
-            PROMPT_VERSION,
+        result = _execute_prepare(db, actor, payload, provider, embedding_provider, execution)
+        result.execution = execution.finish(result.status.value)
+        return result
+    except Exception as exc:
+        trace = execution.finish("FAILED")
+        error = (
+            exc
+            if isinstance(exc, AppError)
+            else ServiceUnavailableError(
+                "AI_DRAFT_EXECUTION_FAILED",
+                "AI draft could not be validated. No approval was created.",
+            )
         )
-        raise ServiceUnavailableError(
-            "AI_DRAFT_UNAVAILABLE",
-            "AI draft creation is temporarily unavailable. No approval was created.",
-        ) from exc
+        error.details = {
+            **(error.details or {}),
+            "execution": trace.model_dump(mode="json", by_alias=True),
+        }
+        if error is exc:
+            raise
+        raise error from exc
 
-    candidate = _normalize_candidate(provider_result.candidate)
-    missing = _missing_fields(candidate)
+
+def _execute_prepare(
+    db: Session,
+    actor: Employee,
+    payload: ApprovalDraftPrepareRequest,
+    provider: ApprovalDraftProvider,
+    embedding_provider: PolicyEmbeddingProvider,
+    execution: DraftExecution,
+) -> ApprovalDraftPrepareResponse:
+    with execution.stage(DraftStage.INPUT):
+        provider_input = ApprovalDraftProviderInput(
+            request=payload.request.strip(),
+            answers=[answer.strip() for answer in payload.answers if answer.strip()],
+            current_date=datetime.now(ZoneInfo("Asia/Seoul")).date(),
+            timezone="Asia/Seoul",
+        )
+        if len(provider_input.request) < 2:
+            raise DomainValidationError("INVALID_DRAFT_REQUEST", "Enter a non-empty draft request.")
+        safety_identifier = hashlib.sha256(actor.id.encode()).hexdigest()
+    with execution.stage(DraftStage.PROVIDER):
+        try:
+            provider_result = provider.prepare(provider_input, safety_identifier)
+            execution.provider_metadata(provider_result.provider, provider_result.model)
+        except ApprovalDraftProviderError as exc:
+            raise ServiceUnavailableError(
+                "AI_DRAFT_UNAVAILABLE",
+                "AI draft creation is temporarily unavailable. No approval was created.",
+            ) from exc
+    with execution.stage(DraftStage.NORMALIZE):
+        candidate = _normalize_candidate(
+            ApprovalDraftCandidate.model_validate(provider_result.candidate.model_dump())
+        )
     preview: ApprovalCreate | None = None
     confirmation_token: str | None = None
     policy_context = _not_applicable_policy_context()
-    public_expense_only = get_settings().public_demo_enabled
-    if (
-        public_expense_only and candidate.intent != DraftIntent.EXPENSE
-    ) or candidate.intent not in {
-        DraftIntent.GENERAL,
-        DraftIntent.BUSINESS_TRIP,
-        DraftIntent.EXPENSE,
-    }:
-        status = ApprovalDraftAIStatus.UNSUPPORTED
-        assistant_message = (
-            "공개 AI는 경비 정산만 지원합니다. 출장·일반·휴가는 직접 작성해 주세요."
-            if public_expense_only
-            else _unsupported_message(candidate.intent)
-        )
-        missing = []
-        questions: list[ApprovalDraftQuestion] = []
-    elif missing:
-        status = ApprovalDraftAIStatus.NEEDS_INPUT
-        assistant_message = (
-            "초안을 완성하려면 아래 정보를 알려주세요. 한 문장으로 함께 답해도 됩니다."
-        )
-        questions = [
-            ApprovalDraftQuestion(field=field, prompt=QUESTION_PROMPTS[field]) for field in missing
-        ]
-    else:
-        status = ApprovalDraftAIStatus.PREVIEW
-        assistant_message = (
-            "JHWorks 양식에 맞춘 미리보기입니다. 내용을 확인한 뒤 Draft로 저장하세요."
-        )
-        questions = []
-        preview = _preview(candidate)
-        policy_context = _policy_context(db, preview, embedding_provider)
-        confirmation_id = f"confirm_{uuid4().hex}"
-        confirmation_token = create_approval_draft_confirmation_token(
-            actor.id,
-            confirmation_id,
-            preview_hash(preview),
-        )
-
-    logger.info(
-        "approval_draft_prepared actor_id=%s intent=%s status=%s missing_fields=%s "
-        "provider=%s model=%s prompt_version=%s latency_ms=%s input_tokens=%s output_tokens=%s",
-        actor.id,
-        candidate.intent.value,
-        status.value,
-        missing,
-        provider_result.provider,
-        provider_result.model,
-        PROMPT_VERSION,
-        provider_result.latency_ms,
-        provider_result.usage.input_tokens,
-        provider_result.usage.output_tokens,
-    )
+    with execution.stage(DraftStage.VALIDATE) as validation:
+        missing = _missing_fields(candidate)
+        public_expense_only = get_settings().public_demo_enabled
+        if (
+            public_expense_only and candidate.intent != DraftIntent.EXPENSE
+        ) or candidate.intent not in {
+            DraftIntent.GENERAL,
+            DraftIntent.BUSINESS_TRIP,
+            DraftIntent.EXPENSE,
+        }:
+            status = ApprovalDraftAIStatus.UNSUPPORTED
+            validation.outcome = DraftStageOutcome.UNSUPPORTED
+            assistant_message = (
+                "공개 AI는 경비 정산만 지원합니다. 출장·일반·휴가는 직접 작성해 주세요."
+                if public_expense_only
+                else _unsupported_message(candidate.intent)
+            )
+            missing = []
+            questions: list[ApprovalDraftQuestion] = []
+        elif missing:
+            status = ApprovalDraftAIStatus.NEEDS_INPUT
+            validation.outcome = DraftStageOutcome.NEEDS_INPUT
+            assistant_message = (
+                "초안을 완성하려면 아래 정보를 알려주세요. 한 문장으로 함께 답해도 됩니다."
+            )
+            questions = [
+                ApprovalDraftQuestion(field=field, prompt=QUESTION_PROMPTS[field])
+                for field in missing
+            ]
+        else:
+            status = ApprovalDraftAIStatus.PREVIEW
+            assistant_message = (
+                "JHWorks 양식에 맞춘 미리보기입니다. 내용을 확인한 뒤 Draft로 저장하세요."
+            )
+            questions = []
+            preview = _preview(candidate)
+    with execution.stage(DraftStage.POLICY) as policy:
+        if preview is None:
+            policy.outcome = DraftStageOutcome.NOT_APPLICABLE
+        else:
+            policy_context = _policy_context(db, preview, embedding_provider)
+            policy.outcome = (
+                DraftStageOutcome.PASSED
+                if policy_context.status == PolicyRetrievalStatus.READY
+                else DraftStageOutcome.NOT_APPLICABLE
+                if policy_context.status == PolicyRetrievalStatus.NOT_APPLICABLE
+                else DraftStageOutcome.UNAVAILABLE
+            )
+    with execution.stage(DraftStage.PREVIEW) as preview_stage:
+        if preview is None:
+            preview_stage.outcome = DraftStageOutcome.NOT_APPLICABLE
+        else:
+            confirmation_token = create_approval_draft_confirmation_token(
+                actor.id,
+                f"confirm_{uuid4().hex}",
+                preview_hash(preview),
+            )
     return ApprovalDraftPrepareResponse(
+        execution=execution.report(status.value),
         status=status,
         assistant_message=assistant_message,
         candidate=_candidate_read(candidate),

@@ -8,6 +8,7 @@ from app.ai.approval_draft import DraftIntent
 from app.core.schema import ApiSchema
 from app.models.enums import ExpenseCategory
 from app.schemas.approval import ApprovalCreate
+from app.schemas.draft_execution import DraftExecutionRead
 from app.schemas.policy import PolicySearchResponse
 
 
@@ -57,6 +58,7 @@ class ApprovalDraftUsage(ApiSchema):
 
 
 class ApprovalDraftPrepareResponse(ApiSchema):
+    execution: DraftExecutionRead
     status: ApprovalDraftAIStatus
     assistant_message: str
     candidate: ApprovalDraftCandidateRead

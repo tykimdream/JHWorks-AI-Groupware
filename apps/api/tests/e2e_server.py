@@ -140,7 +140,7 @@ class BrowserDraftProvider(FakeApprovalDraftProvider):
                 expense_date=paid,
                 merchant="코레일" if "코레일" in answer else None,
                 expense_category=ExpenseCategory.TRANSPORTATION if "교통비" in answer else None,
-                expense_purpose="CES 출장 교통비 정산",
+                expense_purpose="CES 출장",
                 receipt_reference="RCP-CES-001" if "RCP-CES-001" in answer else None,
             )
         elif "CES 협력사 미팅" in provider_input.request:

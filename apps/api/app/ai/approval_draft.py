@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.enums import ExpenseCategory
 
-PROMPT_VERSION = "approval-draft-v4-expense-settlement"
+PROMPT_VERSION = "approval-draft-v5-input-grounding"
 
 SYSTEM_PROMPT = """
 You extract a JHWorks approval draft candidate from a Korean user's request and follow-up answers.
@@ -36,6 +36,9 @@ turn an EXPENSE or LEAVE request into another intent. EXPENSE is a supported set
 extract expense_date (the actual payment date), merchant (the seller/payee), expense_category
 (TRANSPORTATION, LODGING, MEALS or OTHER), expense_purpose (business reason), and receipt_reference
 (an explicitly supplied document reference, never proof that a file was uploaded or verified).
+For EXPENSE, copy merchant, expense_purpose, and receipt_reference verbatim from supplied text;
+do not paraphrase those field values. Explicit labelled corrections in later answers
+supersede earlier values. The server rebuilds the title and content from input-matched fields.
 For a settlement do not invent the payment date from the trip dates or assume the category from
 the fact that it was a trip. Ask the server to handle missing fields by leaving them null.
 """.strip()

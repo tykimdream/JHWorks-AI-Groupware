@@ -168,7 +168,13 @@ def test_public_expense_preview_confirm_submit_and_role_approval_without_paid_po
     with session_factory() as db:
         before = db.scalar(select(func.count()).select_from(Approval))
     prepared = client.post(
-        "/api/v1/approval-draft-assistant/prepare", json={"request": "Synthetic CES expense"}
+        "/api/v1/approval-draft-assistant/prepare",
+        json={
+            "request": (
+                "금액: 170000원; 지출일: 2026-08-24; 사용처: Synthetic transport; "
+                "분류: TRANSPORTATION; 목적: Synthetic CES visit; 증빙 참조: SYNTHETIC-CES-001"
+            )
+        },
     )
     assert prepared.status_code == 200, prepared.text
     body = prepared.json()

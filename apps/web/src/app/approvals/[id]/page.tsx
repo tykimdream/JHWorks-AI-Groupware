@@ -23,6 +23,7 @@ import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { ExpenseChecksPanel } from '@/components/expense-checks';
 import { latestRejectionComment } from '@/lib/expense-repair';
+import { ExpenseWorkGuide } from '@/components/expense-work-guide';
 import { ExpenseDecisionPanel, ExpenseRevisionPanel } from '@/components/expense-decision-workflow';
 import { RejectionContext } from '@/components/rejection-context';
 
@@ -171,6 +172,8 @@ export default function ApprovalDetailPage() {
           <StatusBadge status={approval.status} />
         </div>
       </header>
+
+      {approval.type === 'EXPENSE' && <ExpenseWorkGuide key={`${approval.id}-${approval.version}`} approval={approval} />}
 
       {isAuthor && (approval.status === 'DRAFT' || approval.status === 'REJECTED') && <RejectionContext comment={latestRejectionComment(approval)} />}
 

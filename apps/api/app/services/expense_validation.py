@@ -4,6 +4,8 @@ from zoneinfo import ZoneInfo
 
 from app.models.enums import ExpenseCategory
 
+EXPENSE_REQUIRED_FIELDS = ("expenseDate", "merchant", "category", "purpose")
+
 
 def expense_validation_errors(
     details: Mapping[str, object],
@@ -11,7 +13,7 @@ def expense_validation_errors(
 ) -> dict[str, str]:
     """Drafts may be incomplete; prepared previews and submissions must be grounded."""
     errors: dict[str, str] = {}
-    for field in ("expenseDate", "merchant", "category", "purpose"):
+    for field in EXPENSE_REQUIRED_FIELDS:
         value = details.get(field)
         if value is None or (isinstance(value, str) and not value.strip()):
             errors[f"details.{field}"] = "This field is required for expense settlement"

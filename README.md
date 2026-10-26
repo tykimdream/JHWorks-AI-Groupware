@@ -87,6 +87,8 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 
 ## 아키텍처
 
+처음 사용하는 사람을 위한 **경비 업무 도움말 패널**을 소스에 추가했습니다. 단계·필수값·전제조건·선택형 Q&A를 제공하며, 저장된 문서의 경비 필드를 점검하고 작성 폼의 입력으로 이동할 수 있습니다. AI OFF에서도 동작하는 서버 계약 기반 안내이며 새 자유 대화 기능은 아닙니다. [설계·검증과 화면](docs/engineering/contextual-expense-guide.md)에 기록했습니다. 공개 배포는 별도입니다.
+
 ```mermaid
 flowchart LR
     Browser["방문자"] --> Hosting["Firebase Hosting"]

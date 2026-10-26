@@ -10,6 +10,7 @@ from app.models.enums import ExpenseCategory
 from app.schemas.approval import ApprovalCreate
 from app.schemas.draft_execution import DraftExecutionRead
 from app.schemas.expense_grounding import ExpenseGroundingRead
+from app.schemas.expense_policy import ExpensePolicyValidation
 from app.schemas.policy import PolicySearchResponse
 
 
@@ -61,6 +62,7 @@ class ApprovalDraftUsage(ApiSchema):
 class ApprovalDraftPrepareResponse(ApiSchema):
     execution: DraftExecutionRead
     grounding: ExpenseGroundingRead
+    policy_validation: ExpensePolicyValidation | None
     status: ApprovalDraftAIStatus
     assistant_message: str
     candidate: ApprovalDraftCandidateRead

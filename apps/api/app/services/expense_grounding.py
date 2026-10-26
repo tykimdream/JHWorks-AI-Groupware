@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from app.ai.approval_draft import ApprovalDraftCandidate, ApprovalDraftProviderInput, DraftIntent
-from app.models.enums import ExpenseCategory
+from app.core.enums import ExpenseCategory
 from app.schemas.expense_grounding import ExpenseFieldCheck, ExpenseGroundingRead
 
 FIELDS = {

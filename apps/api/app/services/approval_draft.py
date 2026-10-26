@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.approval_draft import (
@@ -47,6 +48,7 @@ from app.schemas.approval_draft_ai import (
     ApprovalDraftUsage,
 )
 from app.schemas.draft_execution import DraftStage, DraftStageOutcome
+from app.schemas.expense_policy import ExpensePolicyValidation
 from app.schemas.policy import (
     PolicyEmbeddingUsage,
     PolicyRetrievalStatus,
@@ -56,6 +58,7 @@ from app.services import approval as approval_service
 from app.services import policy_retrieval
 from app.services.draft_execution import DraftExecution
 from app.services.expense_grounding import check_expense_input
+from app.services.expense_policy import expense_policy_fingerprint, validate_expense_policy
 from app.services.expense_validation import expense_validation_errors
 
 QUESTION_PROMPTS = {
@@ -365,6 +368,7 @@ def _execute_prepare(
     preview: ApprovalCreate | None = None
     confirmation_token: str | None = None
     policy_context = _not_applicable_policy_context()
+    policy_validation: ExpensePolicyValidation | None = None
     with execution.stage(DraftStage.VALIDATE) as validation:
         candidate, grounding = check_expense_input(candidate, provider_input)
         missing = _missing_fields(candidate)
@@ -439,9 +443,12 @@ def _execute_prepare(
             policy.outcome = DraftStageOutcome.NOT_APPLICABLE
         else:
             policy_context = _policy_context(db, preview, embedding_provider)
+            if preview.type == ApprovalType.EXPENSE:
+                policy_validation = validate_expense_policy(db, preview, policy_context)
             policy.outcome = (
                 DraftStageOutcome.PASSED
-                if policy_context.status == PolicyRetrievalStatus.READY
+                if (policy_validation is not None and policy_validation.status == "CATALOG_CHECKED")
+                or policy_context.status == PolicyRetrievalStatus.READY
                 else DraftStageOutcome.NOT_APPLICABLE
                 if policy_context.status == PolicyRetrievalStatus.NOT_APPLICABLE
                 else DraftStageOutcome.UNAVAILABLE
@@ -454,10 +461,12 @@ def _execute_prepare(
                 actor.id,
                 f"confirm_{uuid4().hex}",
                 preview_hash(preview),
+                policy_validation.fingerprint if policy_validation else None,
             )
     return ApprovalDraftPrepareResponse(
         execution=execution.report(status.value),
         grounding=grounding,
+        policy_validation=policy_validation,
         status=status,
         assistant_message=assistant_message,
         candidate=_candidate_read(candidate),
@@ -496,6 +505,18 @@ def confirm_approval_draft(
             "PREVIEW_CHANGED",
             "The approval preview changed after confirmation was prepared.",
         )
+    if preview.type == ApprovalType.EXPENSE:
+        existing = db.scalar(
+            select(Approval.id).where(
+                Approval.source_confirmation_id == confirmation.confirmation_id,
+                Approval.author_id == actor.id,
+            )
+        )
+        if existing is None and confirmation.policy_fingerprint != expense_policy_fingerprint(db):
+            raise ConflictError(
+                "POLICY_CHANGED",
+                "Expense policies changed. Prepare the preview again.",
+            )
     return approval_service.create_draft(
         db,
         actor,

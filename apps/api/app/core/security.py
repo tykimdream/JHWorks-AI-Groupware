@@ -76,6 +76,7 @@ class ApprovalDraftConfirmation:
     employee_id: str
     confirmation_id: str
     preview_hash: str
+    policy_fingerprint: str | None = None
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,7 @@ def create_approval_draft_confirmation_token(
     employee_id: str,
     confirmation_id: str,
     preview_hash: str,
+    policy_fingerprint: str | None = None,
 ) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
@@ -117,6 +119,7 @@ def create_approval_draft_confirmation_token(
         "iat": now,
         "exp": now + timedelta(minutes=settings.approval_draft_confirmation_ttl_minutes),
         "type": "approval_draft_confirmation",
+        "policy_fingerprint": policy_fingerprint,
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
@@ -147,6 +150,9 @@ def decode_approval_draft_confirmation_token(token: str) -> ApprovalDraftConfirm
         employee_id=employee_id,
         confirmation_id=confirmation_id,
         preview_hash=preview_hash,
+        policy_fingerprint=payload.get("policy_fingerprint")
+        if isinstance(payload.get("policy_fingerprint"), str)
+        else None,
     )
 
 

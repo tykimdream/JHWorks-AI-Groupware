@@ -1,0 +1,41 @@
+{
+  "kind": "offline-injected-candidate-regression",
+  "version": "expense-verification-v1",
+  "modelCalls": 0,
+  "cases": [
+    {
+      "id": "supported-baseline",
+      "passed": true
+    },
+    {
+      "id": "injected-amount",
+      "passed": true
+    },
+    {
+      "id": "injected-expense_date",
+      "passed": true
+    },
+    {
+      "id": "injected-merchant",
+      "passed": true
+    },
+    {
+      "id": "injected-expense_category",
+      "passed": true
+    },
+    {
+      "id": "injected-expense_purpose",
+      "passed": true
+    },
+    {
+      "id": "injected-receipt_reference",
+      "passed": true
+    },
+    {
+      "id": "stale-amount-after-correction",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "limitations": "Not actual model accuracy, independent holdout, or receipt authenticity."
+}

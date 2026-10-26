@@ -66,6 +66,23 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 권한·금액·날짜·상태 전이는 서버가 검증합니다. AI를 통한 저장과 제출에는 각각 사용자 확인이 필요합니다. 휴가 신청은 상담 → 초안 확인 → 제출 확인의 진행 상태를 DB에 보존합니다.
 고정 합성 경비 **36개**를 승인된 로컬 실제 모델 평가에서 모두 통과했습니다. 개발 중 공개된 사례의 한 번 실행이며 일반화 정확도나 실사용 효과를 뜻하지 않습니다. [offline 평가 계약](docs/engineering/expense-evaluation-contracts.md)과 [실제 모델 결과·비용·한계](docs/engineering/expense-model-results-2026-10-25.md)를 구분해 기록했습니다. 공개 AI는 OFF입니다.
 
+## 검증 가능한 경비 AI — 소스 구현
+
+경비 초안은 `입력 → 모델 요청 → 응답 정규화 → 필드 대조 → 규정 검사 → 미리보기` 순서로 실행합니다. 원문과 대응하지 않는 금액·날짜·사용처 등은 제거하고 추가 질문으로 돌려보내며, 확인 토큰을 발급하지 않습니다. 규정 인용은 활성 원문과 대조하고, 준비 후 규정이 바뀌면 첫 저장을 차단합니다.
+
+화면에서 필드 대응·원본 영수증 확인 필요·자동 판정하지 않은 규칙·실행 단계를 구분합니다. 입력 대응은 실제 지출이나 영수증 진위를 인증하지 않습니다. [설계·한계·검증 기록](docs/engineering/verifiable-expense-ai.md), [오프라인 고정 평가](docs/engineering/evidence/expense-verification-offline-2026-10-26.json)를 제공합니다. 기존 실제 모델 36개 결과는 이전 v4 프롬프트 결과이며 새 v5 검증 결과로 재사용하지 않습니다. 공개 환경 반영·AI 활성화는 별도입니다.
+
+<details>
+<summary>로컬 검증 화면 보기 — 합성 provider, 실제 API</summary>
+
+![경비 필드와 규정 검사](docs/portfolio/prototype/expense-verification-desktop.jpg)
+
+[모바일 검증 화면](docs/portfolio/prototype/expense-verification-mobile.jpg)
+
+1440 × 900 / 390 × 844 뷰포트에서 촬영한 전체 페이지입니다. 데이터와 규정은 합성이며 실제 모델 호출은 없습니다.
+
+</details>
+
 ## 아키텍처
 
 ```mermaid

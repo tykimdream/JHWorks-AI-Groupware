@@ -17,6 +17,12 @@
 | 외부 조건 대기 중 | M1 증거 대조·M2 offline/예산·M3 로컬 개선 중 독립 작업 진행 |
 
 
+## 2026-10-26 경비 정책 검사·평가 화면 — V3/V4
+
+V1 [PR #101](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/101), V2 [PR #102](https://github.com/tykimdream/JHWorks-AI-Groupware/pull/102)는 필수 CI 6개 통과 후 병합했다. 후속 소스는 활성 규정 인용 원문 대조·지원 영수증 기준 계산·정책 변경 시 첫 저장 차단과 검증 결과 UI를 추가한다. [설계와 검증 범위](verifiable-expense-ai.md)를 따른다.
+
+로컬 API 623개 통과·34개 제외, mypy 204개 파일 통과, production PC/모바일 E2E 8개 통과. 8개 고정 변조 평가를 CI 필수 gate로 추가했다. 합성 provider이며 새 실제 모델 평가가 아니다. [PC 화면](../portfolio/prototype/expense-verification-desktop.jpg)과 [모바일 화면](../portfolio/prototype/expense-verification-mobile.jpg)을 확인했다. 공개 웹/API에는 아직 반영하지 않았고 공개 AI OFF다. 다음 V5는 새 v5 실제 모델 평가와 제한 공개 조건 확인이다.
+
 ## 2026-10-26 경비 입력 근거 — V2
 
 [입력 대응 검사](verifiable-expense-ai.md)의 금액·날짜·사용처·목적·분류·증빙 원문 대조와 불확실한 값 제거/질문 전환을 구현했다. 모델의 자유 제목·본문은 대조한 필드로 서버가 재구성한다. 원문 대응을 실제 사실/영수증 진위로 표시하지 않는다. 로컬 API 617개 통과·34개 제외, 경비 PC/모바일 E2E 2개 통과. v5 프롬프트는 새 실제 모델 평가 전이며 공개 OFF다. V1은 PR #101로 필수 CI 6개 통과 후 병합했다. 다음은 정책 출처·규칙 검사와 검증 결과 화면이다.

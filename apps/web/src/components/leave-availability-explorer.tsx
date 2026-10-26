@@ -97,7 +97,7 @@ export const LeaveAvailabilityExplorer = () => {
 
   return (
     <div className="availability-workspace">
-      <form aria-busy={isLoading} className="availability-search" id="manual-leave-search" onSubmit={handleSearch}>
+      <form aria-busy={isLoading} className="availability-search" id="manual-leave-search" tabIndex={-1} onSubmit={handleSearch}>
         <div className="section-heading">
           <div>
             <p className="eyebrow">DETERMINISTIC SEARCH</p>
@@ -302,7 +302,7 @@ const CandidateCard = ({
       </button>
     ) : (
       <Link className="secondary-button full-width" href={draftHref(candidate)}>
-        이 날짜로 휴가 Draft 작성
+        이 날짜로 휴가 결재 작성
       </Link>
     )}
   </article>

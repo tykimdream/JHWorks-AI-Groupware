@@ -53,7 +53,7 @@ test('provider failure offers the working manual path', async ({ page }) => {
   await expect(page.getByRole('alert').filter({ hasText: 'AI 휴가 상담' })).toBeVisible();
   await page.getByRole('link', { name: '수동 휴가 후보 탐색' }).click();
   await page.getByRole('button', { name: '가능한 날짜 찾기' }).click();
-  const manual = page.getByRole('link', { name: '이 날짜로 휴가 Draft 작성' }).first();
+  const manual = page.getByRole('link', { name: '이 날짜로 휴가 결재 작성' }).first();
   await expect(manual).toBeVisible();
   await manual.click();
   await expect(page).toHaveURL(/\/approvals\/new\?type=LEAVE/);
@@ -66,9 +66,9 @@ test('changed search removes old results and prevents overlapping requests', asy
   await expect(page.getByLabel('탐색 시작일')).toHaveValue(seoulToday);
   const search = page.getByRole('button', { name: '가능한 날짜 찾기' });
   await search.click();
-  await expect(page.getByRole('link', { name: '이 날짜로 휴가 Draft 작성' }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: '이 날짜로 휴가 결재 작성' }).first()).toBeVisible();
   await page.getByLabel('사용할 연차').selectOption('1.0');
-  await expect(page.getByRole('link', { name: '이 날짜로 휴가 Draft 작성' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '이 날짜로 휴가 결재 작성' })).toHaveCount(0);
   let release!: () => void;
   const hold = new Promise<void>((resolve) => { release = resolve; });
   await page.route('**/attendance/leave-availability?**', async (route) => {

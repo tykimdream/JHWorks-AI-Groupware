@@ -30,9 +30,9 @@ for (const legacy of [false, true]) {
     await expect(page.getByRole('textbox', { name: 'AI 업무 요청' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'AI 초안 작성', exact: true })).toHaveCount(0);
     await page.goto('/approvals/ai-draft');
-    await expect(page.getByText('현재 이 AI 기능을 사용할 수 없습니다.', { exact: false })).toBeVisible();
+    await expect(page.getByText('이 환경에서는 해당 AI 기능을 사용하지 않습니다.', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'AI로 초안 준비', exact: true })).toHaveCount(0);
-    await page.getByRole('link', { name: '직접 작성하기 →', exact: true }).click();
+    await page.getByRole('link', { name: '결재 직접 작성하기', exact: true }).click();
     await expect(page).toHaveURL(/\/approvals\/new$/);
     await expect(page.getByRole('textbox', { name: '제목', exact: true })).toBeVisible();
     expect(paidRequests).toBe(0);
@@ -47,11 +47,16 @@ test('each AI page uses its own server capability', async ({ page }) => {
   await page.getByRole('button', { name: 'Demo 로그인', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'AI 업무 요청' })).toBeVisible();
   await page.goto('/assistant');
-  await expect(page.getByText('현재 이 AI 기능을 사용할 수 없습니다.', { exact: false })).toBeVisible();
+  await expect(page.getByText('이 환경에서는 해당 AI 기능을 사용하지 않습니다.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /조회하기/ })).toHaveCount(0);
   await page.goto('/attendance');
-  await expect(page.getByText('현재 이 AI 기능을 사용할 수 없습니다.', { exact: false })).toBeVisible();
+  await expect(page.getByText('이 환경에서는 해당 AI 기능을 사용하지 않습니다.', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '자연어로 휴가 상담' })).toHaveCount(0);
+  const notice = page.getByRole('region', { name: 'AI 사용 안내', exact: true });
+  await expect(notice.getByRole('link', { name: '결재 직접 작성하기' })).toHaveCount(0);
+  await notice.getByRole('link', { name: '휴가 후보 찾아보기', exact: true }).click();
+  await expect(page).toHaveURL(/\/attendance#manual-leave-search$/);
+  await expect(page.locator('#manual-leave-search')).toBeFocused();
 });
 
 test('configuration failure offers manual entry without enabling AI', async ({ page }) => {
@@ -67,7 +72,7 @@ test('configuration failure offers manual entry without enabling AI', async ({ p
   await page.goto('/approvals/ai-draft');
   await expect(page.getByRole('alert').filter({ hasText: 'AI 사용 설정을 불러오지 못했습니다.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'AI로 초안 준비', exact: true })).toHaveCount(0);
-  await page.getByRole('link', { name: '직접 작성하기 →', exact: true }).click();
+  await page.getByRole('link', { name: '결재 직접 작성하기', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '제목', exact: true })).toBeVisible();
 });
 

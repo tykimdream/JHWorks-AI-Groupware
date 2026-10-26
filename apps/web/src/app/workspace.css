@@ -154,7 +154,7 @@ textarea:focus {
 }
 .workspace-label {
   margin: var(--space-3) 0 0 13px;
-  color: #9297a5;
+  color: var(--jhw-color-text-muted);
   font-size: var(--font-small);
 }
 .nav-list {
@@ -163,7 +163,7 @@ textarea:focus {
 }
 .nav-caption {
   padding: 0 14px 10px;
-  color: #9a9eac;
+  color: var(--jhw-color-text-muted);
   font-size: var(--font-caption);
   font-weight: 650;
   letter-spacing: 1.5px;
@@ -176,7 +176,7 @@ textarea:focus {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) 14px;
-  color: #73798a;
+  color: var(--jhw-color-text-muted);
   font-size: 13px;
   font-weight: 500;
 }
@@ -216,7 +216,7 @@ textarea:focus {
   margin-bottom: 34px;
   border-bottom: 1px solid var(--line);
   font-size: var(--font-small);
-  color: #858b99;
+  color: var(--jhw-color-text-muted);
 }
 .breadcrumb-divider {
   margin: 0 var(--space-3);
@@ -229,7 +229,7 @@ textarea:focus {
   background: #fff;
   font-size: 8px;
   letter-spacing: 1px;
-  color: #9499a8;
+  color: var(--jhw-color-text-muted);
 }
 .primary-button,
 .secondary-button,
@@ -309,8 +309,8 @@ textarea:focus {
   display: inline-block;
   padding: 3px 7px;
   border-radius: 5px;
-  background: #eeebf8;
-  color: #8a7fb1;
+  background: var(--jhw-color-primary-subtle);
+  color: var(--jhw-color-primary);
   font-size: var(--font-caption);
   font-weight: 500;
   white-space: nowrap;

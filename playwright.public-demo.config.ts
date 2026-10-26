@@ -3,7 +3,7 @@ import base from './playwright.config';
 
 export default defineConfig({
   ...base,
-  testMatch: '**/public-demo.spec.ts',
+  testMatch: ['**/public-demo.spec.ts', '**/prototype.spec.ts'],
   testIgnore: [],
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-public-demo-report' }]],
   webServer: [

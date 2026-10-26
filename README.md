@@ -129,3 +129,5 @@ pnpm test:storybook          # 정적 상태·접근성·키보드 검증
 목록 개선을 위한 [PostgreSQL 합성 baseline](docs/engineering/approval-list-baseline.md)과 [다음 목록 계약 검토](docs/engineering/approval-list-next-contract.md)를 보관합니다. 서비스 측정값과 HTTP·브라우저 측정 범위는 구분합니다.
 
 [LangChain·LangGraph 학습 보고서](docs/learning/langchain-langgraph-2026-10-26.md)에는 생태계·조사 근거·경비 Workflow 적용 제안과 API 키 없이 실행하는 독립 실습을 정리했습니다. 제품 도입·공개 AI 활성화는 별도 검증 단계입니다.
+
+프로토타입은 업무 홈에서 **업무 체험 안내 → 경비 작성·결재 / 근태·휴가 / 회사 규정·내 조직**으로 탐색할 수 있습니다. AI 작성 흐름 예시는 실제 호출 없는 고정 사례이며, 입력을 확인한 뒤 실제 결재 작성 폼으로 이어집니다. [프로토타입 범위와 검증](docs/engineering/prototype-checkpoint-2026-10-26.md)을 참고하세요.

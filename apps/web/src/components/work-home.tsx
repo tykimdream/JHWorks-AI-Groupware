@@ -165,6 +165,7 @@ export function WorkHome() {
             <Link className={buttonClass()} href="/approvals/new?type=EXPENSE">
               경비 정산 시작
             </Link>
+            <Link href="/explore">AI 작성 흐름 예시 체험</Link>
             <Link href="/attendance">휴가 일정 살펴보기 →</Link>
           </div>
           <p className="public-ai-note">

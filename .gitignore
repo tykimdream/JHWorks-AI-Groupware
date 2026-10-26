@@ -53,3 +53,6 @@ test-results-storybook/
 
 # Disposable list benchmark reports (curated evidence lives in docs)
 artifacts/performance/
+
+# Disposable prototype browser evidence
+artifacts/prototype/

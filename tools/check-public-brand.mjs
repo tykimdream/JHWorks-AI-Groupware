@@ -5,7 +5,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const base = new URL(process.argv[2] ?? 'https://groupware.pikan.dev/');
 assert(base.protocol === 'https:' && !base.username && !base.password && base.pathname === '/' && !base.search && !base.hash);
-assert(base.hostname === 'groupware.pikan.dev' || (base.hostname.startsWith('favicon---jhworks-demo-') && base.hostname.endsWith('.run.app')));
+const allowedHosts = new Set(['groupware.pikan.dev', 'favicon---jhworks-demo-ti3vflu2vq-du.a.run.app', 'prototype---jhworks-demo-ti3vflu2vq-du.a.run.app']);
+assert(allowedHosts.has(base.hostname), 'Target must be the public app or a known release candidate');
 const get = async (path, headers = {}) => {
   const result = await fetch(new URL(path, base), { headers, signal: AbortSignal.timeout(30000) });
   assert.equal(result.status, 200, `${path}: HTTP ${result.status}`);

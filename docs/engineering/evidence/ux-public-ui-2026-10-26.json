@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-26",
+  "base": "https://groupware.pikan.dev/",
+  "method": "Manual in-app browser observations against deployed public domain, not an automated test report or new-user study.",
+  "syntheticVisitSpacesCreated": 1,
+  "businessDocumentsCreated": 0,
+  "attendance": {
+    "taskSpecificNoticeVisible": true,
+    "nativeAnchorFocusedForm": "manual-leave-search",
+    "availableDays": 15,
+    "requestedDays": 2,
+    "candidates": 6,
+    "actionLabel": "이 날짜로 휴가 결재 작성",
+    "unsavedFormType": "LEAVE",
+    "unsavedFormStart": "2026-10-26",
+    "unsavedFormEnd": "2026-10-27"
+  },
+  "organization": {
+    "shortVisitorDepartmentLabel": "내 체험 조직",
+    "originalDepartmentAndEmailDisclosedOnExpand": true
+  },
+  "approvalDraft": {
+    "exampleLinkVisible": true,
+    "manualLinkVisible": true,
+    "exampleNavigationVerified": true
+  },
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "attendanceScrollWidth": 390,
+      "expandedOrganizationScrollWidth": 390
+    }
+  ],
+  "publicAiEnabled": false,
+  "limitations": [
+    "Public AI OFF; no actual model quality claim. Browser network was not independently instrumented.",
+    "Created one synthetic visit space; no expense/leave document saved in this release QA.",
+    "Full approval workflow was checked in the previous prototype public release; this release checks changed notices, organization disclosure, and unsaved leave handoff."
+  ]
+}

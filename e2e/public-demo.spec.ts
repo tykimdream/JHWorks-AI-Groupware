@@ -237,3 +237,22 @@ test('JHW Pattern is public, searchable and uses keyboard-accessible help', asyn
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `artifacts/workspace-preview/jhw-pattern-${testInfo.project.name}.png`, style: 'nextjs-portal { display: none; }' });
 });
+
+test('public demo expense help works with AI off and keeps the form intact', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: '체험 시작하기', exact: true }).click();
+  await expect(page.locator('.profile-card')).toBeVisible();
+  const welcome = page.getByRole('dialog', { name: '경비를 초안으로 저장해요' });
+  if (await welcome.isVisible()) await welcome.getByRole('button', { name: '나중에 볼게요' }).click();
+  await page.goto('/approvals/new?type=EXPENSE');
+  await page.getByLabel('제목', { exact: true }).fill('공개 도움말 입력 보존');
+  let writes = 0;
+  page.on('request', (request) => { if (['POST', 'PATCH', 'DELETE'].includes(request.method())) writes++; });
+  await page.getByRole('button', { name: '경비 업무 도움말', exact: true }).click();
+  const help = page.getByRole('dialog', { name: '경비 업무 도움말', exact: true });
+  await help.getByRole('button', { name: '누가 승인하고 어떤 것을 확인하나요?', exact: true }).click();
+  await expect(help.getByRole('status').filter({ hasText: '직속 관리자가 결재자로 지정됩니다.' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByLabel('제목', { exact: true })).toHaveValue('공개 도움말 입력 보존');
+  expect(writes).toBe(0);
+});

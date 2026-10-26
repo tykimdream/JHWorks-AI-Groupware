@@ -17,6 +17,7 @@ import type {
 } from '@/lib/types';
 import { useWorkspaceEmployee } from '@/components/app-shell';
 import { clearManualDraft, readManualDraft } from '@/lib/manual-draft-handoff';
+import { ExpenseWorkGuide } from '@/components/expense-work-guide';
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { useNavigationGuard } from '@/components/navigation-guard';
 import { clearFormRecovery, readFormRecovery, recoveryKey, storeFormRecovery, type ApprovalFormValues } from '@/lib/approval-form-recovery';
@@ -325,6 +326,12 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
         ? '이 브라우저에서는 입력을 임시 보관하지 못했습니다. 화면을 떠나기 전에 초안으로 저장해주세요.'
         : '입력을 이 탭에 최대 15분 임시 보관합니다. 서버에 저장하려면 초안 저장을 눌러주세요.'}</p>}
 
+      {type === 'EXPENSE' && <ExpenseWorkGuide approval={initial?.type === 'EXPENSE' ? initial : undefined} onFocusField={(field) => {
+        const name = field === 'amount' ? field : field.replace('details.', '');
+        const target = document.getElementById(`expense-field-${name}`);
+        target?.focus({ preventScroll: true });
+        target?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      }} />}
       <fieldset disabled={isSaving} className="tw:contents">
       {manualHandoff && <p role="status" className="form-guidance">{handoff
         ? handoff.expensePreset

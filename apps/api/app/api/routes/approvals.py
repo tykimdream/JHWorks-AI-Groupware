@@ -20,6 +20,7 @@ from app.schemas.approval import (
     ApprovalUpdate,
 )
 from app.schemas.expense_checks import ExpenseChecks, ExpenseInsights
+from app.schemas.expense_guide import ExpenseGuide
 from app.schemas.expense_revision import (
     ExpenseDecisionBrief,
     ExpenseRevisionApply,
@@ -30,6 +31,7 @@ from app.services import approval as approval_service
 from app.services import approval_review as approval_review_service
 from app.services import expense_revision
 from app.services.expense_checks import check_expense, expense_insights
+from app.services.expense_guide import expense_guide
 from app.services.mappers import approval_read
 
 router = APIRouter(prefix="/approvals", tags=["전자결재"])
@@ -84,6 +86,15 @@ def get_expense_checks(
     않습니다.
     """
     return check_expense(db, current_employee, approval_id)
+
+
+@router.get(
+    "/expense-guide", response_model=ExpenseGuide, summary="경비 단계·필수값·자주 묻는 질문"
+)
+def get_expense_guide(current_employee: CurrentEmployee) -> ExpenseGuide:
+    """로그인한 사용자에게 서버 경비 계약 기반 안내를 제공합니다.
+    문서 변경과 모델 호출은 없습니다."""
+    return expense_guide()
 
 
 @router.get("/{approval_id}", response_model=ApprovalRead, summary="결재 상세 조회")

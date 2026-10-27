@@ -107,3 +107,44 @@ def test_demo_requires_exact_full_commit(commit: str) -> None:
         public_demo_service_manifest(
             ReleaseSettings.model_validate(demo_settings()), API_IMAGE, WEB_IMAGE, commit
         )
+
+
+def test_demo_can_enable_budgeted_expense_ai_with_pinned_secret() -> None:
+    from app.core.ai_budget import AIBudgetLimits
+    from app.ops.cloud_run import SecretVersion
+
+    budget = AIBudgetLimits(
+        day_micro_usd=500000,
+        month_micro_usd=2000000,
+        day_admissions=10,
+        scope_day_admissions=5,
+        concurrent_requests=1,
+    )
+    secret = SecretVersion(name="demo-openai", version="1")
+    manifest = public_demo_service_manifest(
+        ReleaseSettings.model_validate(demo_settings()),
+        API_IMAGE,
+        WEB_IMAGE,
+        COMMIT,
+        expense_ai_secret=secret,
+        expense_ai_budget=budget,
+    )
+    env = {row["name"]: row for row in manifest["spec"]["template"]["spec"]["containers"][1]["env"]}
+    assert env["JHWORKS_PUBLIC_EXPENSE_AI_ENABLED"]["value"] == "true"
+    assert env["JHWORKS_PUBLIC_LEAVE_AI_ENABLED"]["value"] == "true"
+    assert env["JHWORKS_OPENAI_API_KEY"]["valueFrom"]["secretKeyRef"] == {
+        "name": "demo-openai",
+        "key": "1",
+    }
+    assert (
+        AIBudgetLimits.model_validate_json(env["JHWORKS_PUBLIC_EXPENSE_AI_BUDGET"]["value"])
+        == budget
+    )
+    with pytest.raises(ValueError, match="both"):
+        public_demo_service_manifest(
+            ReleaseSettings.model_validate(demo_settings()),
+            API_IMAGE,
+            WEB_IMAGE,
+            COMMIT,
+            expense_ai_secret=secret,
+        )

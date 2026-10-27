@@ -1,7 +1,7 @@
-"""Pinned standard text-only pricing; verified 2026-10-25, recheck before activation."""
+"""Pinned standard text-only pricing; verified 2026-10-28, recheck before activation."""
 
 MODEL = "gpt-5.4-mini-2026-03-17"
-PRICE_VERSION = "2026-10-25-standard"
+PRICE_VERSION = "2026-10-28-standard"
 MAX_INPUT_TOKENS = 400_000
 MAX_OUTPUT_TOKENS = 1600
 

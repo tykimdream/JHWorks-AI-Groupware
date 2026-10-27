@@ -15,7 +15,7 @@ import { storeManualDraft } from '@/lib/manual-draft-handoff';
 import type { Approval, ApprovalDraftPrepareResponse, BusinessTripDetails } from '@/lib/types';
 
 const starterExamples = [
-  '이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.',
+  'CES 2026에서 햄버거 30,000원 먹은 거 올려줘.',
   '다음 주 화요일 부산에서 열리는 CES 협력사 미팅 출장 신청을 준비해줘. 예상 교통비는 17만원이야.',
   '신규 파트너 온보딩을 위한 일반 업무 협조 결재 초안 작성해줘.',
 ];
@@ -107,7 +107,7 @@ export const ApprovalDraftAssistant = () => {
           confirmationToken: result.confirmationToken,
         }),
       });
-      router.push(`/approvals/${approval.id}`);
+      router.push(`/approvals/${approval.id}/edit`);
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '초안을 저장하지 못했습니다.'));
       if (caught instanceof ApiError && caught.code === 'POLICY_CHANGED') setResult(null);
@@ -404,7 +404,7 @@ export const ApprovalDraftAssistant = () => {
                 >
                   {isConfirming ? '초안 저장 중…' : '확인하고 초안으로 저장'}
                 </button>
-                <span>저장 후 문서 상세 화면에서 수정하고 제출할 수 있습니다.</span>
+                <span>저장 후 양식에서 수정하고 검수한 뒤 제출할 수 있습니다.</span>
               </div>
             </>
           )}

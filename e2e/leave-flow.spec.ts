@@ -19,7 +19,7 @@ test('request → select → inspect → explicitly save one DRAFT', async ({ pa
   await page.getByRole('button', { name: '휴가 상담 시작' }).click();
   const select = page.getByRole('button', { name: '이 날짜 선택하고 초안 확인' }).first();
   await expect(select).toBeVisible();
-  await expect(page.getByRole('textbox', { name: '휴가 질문' })).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: '휴가 질문' })).toBeEnabled();
   await mkdir('docs/portfolio/screenshots', { recursive: true });
   await page.locator('.candidate-grid').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `docs/portfolio/screenshots/leave-candidates-${testInfo.project.name}.png` });
@@ -96,4 +96,15 @@ test('an account change clears the previous employee consultation', async ({ pag
   await expect(page.locator('.profile-card')).toContainText('최도윤');
   await expect(page.getByRole('button', { name: '이 날짜 선택하고 초안 확인' })).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: '휴가 질문' })).toBeEmpty();
+});
+
+test('a follow-up request starts a refreshed consultation with prior context', async ({ page }) => {
+  await login(page);
+  await page.getByRole('textbox', { name: '휴가 질문' }).fill('다음 주 이틀 휴가');
+  await page.getByRole('button', { name: '휴가 상담 시작' }).click();
+  await expect(page.getByRole('button', { name: '이 날짜 선택하고 초안 확인' }).first()).toBeVisible();
+  const next = page.waitForRequest((request) => request.url().endsWith('/leave-agent/runs') && request.method() === 'POST');
+  await page.getByRole('textbox', { name: '휴가 질문' }).fill('주말을 끼고 3일로 바꿔줘');
+  await page.getByRole('button', { name: '추가 요청 반영' }).click();
+  expect((await next).postDataJSON()).toMatchObject({ request: '다음 주 이틀 휴가', answers: ['주말을 끼고 3일로 바꿔줘'] });
 });

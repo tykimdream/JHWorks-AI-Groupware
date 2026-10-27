@@ -35,9 +35,8 @@ export function PolicyLibrary() {
     queryFn: ({ signal }) => apiFetch<CompanyPolicy[]>('/policies', { signal }),
   });
   const term = search.trim().toLocaleLowerCase('ko-KR');
-  const terms = term
-    ? [term, ...(keywords[term.replace(/\s/g, '')] ?? [])]
-    : [];
+  const words = term.split(/\s+/).map((word) => word.replace(/(관련|에​?대해|에서|으로|에는|은|는|이|가|을|를|의|에)$/g, '')).filter((word) => word.length >= 2);
+  const terms = [...new Set([...words, ...Object.entries(keywords).filter(([key]) => term.includes(key)).flatMap(([key, aliases]) => [key, ...aliases])])];
   const policies = (query.data ?? []).filter(
     (policy) => type === 'ALL' || policy.type === type,
   );

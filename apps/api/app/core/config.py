@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     ai_enabled: bool = True
     public_expense_ai_enabled: bool = False
+    public_leave_ai_enabled: bool = False
     public_expense_ai_budget: AIBudgetLimits | None = None
     ai_capabilities: frozenset[AICapability] = frozenset(AI_CAPABILITIES)
     openai_model: str = "gpt-5.4-mini"
@@ -70,9 +71,11 @@ class Settings(BaseSettings):
         if self.public_demo_enabled:
             return (
                 not self.ai_enabled
-                and self.public_expense_ai_enabled
                 and self.public_expense_ai_budget is not None
-                and capability == "approval_draft"
+                and (
+                    (capability == "approval_draft" and self.public_expense_ai_enabled)
+                    or (capability == "leave_assistant" and self.public_leave_ai_enabled)
+                )
                 and capability in self.ai_capabilities
                 and key_present
             )
@@ -82,7 +85,7 @@ class Settings(BaseSettings):
     def validate_public_demo_safety(self) -> Self:
         if self.public_demo_enabled and self.ai_enabled:
             raise ValueError("Public demo requires JHWORKS_AI_ENABLED=false")
-        if self.public_expense_ai_enabled:
+        if self.public_expense_ai_enabled or self.public_leave_ai_enabled:
             budget = self.public_expense_ai_budget
             if not self.public_demo_enabled or budget is None:
                 raise ValueError("Public expense AI requires public demo and explicit budget")

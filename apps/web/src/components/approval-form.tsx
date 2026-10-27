@@ -351,10 +351,10 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
         {type !== 'LEAVE' && (
           <Field id="expense-field-amount" label={type === 'EXPENSE' ? '실제 지출 금액 (원)' : '예상 금액 (원)'}>
             <Input
-              min="0"
-              onChange={(event) => setAmount(event.target.value)}
-              type="number"
-              value={amount}
+              inputMode="numeric"
+              onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))}
+              type="text"
+              value={amount.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
             />
           </Field>
         )}
@@ -502,10 +502,10 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
               <label key={label as string}>
                 <span>{label as string}</span>
                 <input
-                  min="0"
-                  onChange={(event) => (setter as (next: string) => void)(event.target.value)}
-                  type="number"
-                  value={value as string}
+                  inputMode="numeric"
+                  onChange={(event) => (setter as (next: string) => void)(event.target.value.replace(/[^0-9]/g, ''))}
+                  type="text"
+                  value={(value as string).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                 />
               </label>
             ))}

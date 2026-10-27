@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload, sessionmaker
 from app.ai.approval_draft import ApprovalDraftProvider, UnavailableApprovalDraftProvider
 from app.ai.approval_review import ApprovalReviewProvider, UnavailableApprovalReviewProvider
 from app.ai.budgeted_expense_draft import BudgetedExpenseDraftProvider
+from app.ai.budgeted_leave_assistant import BudgetedLeaveAssistantProvider
 from app.ai.expense_pricing import MODEL as PUBLIC_EXPENSE_MODEL
 from app.ai.leave_assistant import LeaveAssistantProvider, UnavailableLeaveAssistantProvider
 from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
@@ -156,7 +157,7 @@ def get_leave_assistant_provider() -> LeaveAssistantProvider:
     settings = get_settings()
     api_key = settings.openai_api_key
     secret = api_key.get_secret_value() if api_key else ""
-    if not settings.allows_ai("leave_assistant") or not secret:
+    if settings.public_demo_enabled or not settings.allows_ai("leave_assistant") or not secret:
         return UnavailableLeaveAssistantProvider()
     return OpenAILeaveAssistantProvider(
         api_key=secret,
@@ -165,8 +166,47 @@ def get_leave_assistant_provider() -> LeaveAssistantProvider:
     )
 
 
+def get_scoped_leave_assistant_provider(
+    db: DbSession,
+    actor: CurrentEmployee,
+    provider: Annotated[LeaveAssistantProvider, Depends(get_leave_assistant_provider)],
+) -> LeaveAssistantProvider:
+    settings = get_settings()
+    if not settings.public_demo_enabled:
+        return provider
+    budget, api_key = settings.public_expense_ai_budget, settings.openai_api_key
+    if (
+        not settings.allows_ai("leave_assistant")
+        or budget is None
+        or api_key is None
+        or not actor.demo_workspace_id
+    ):
+        return UnavailableLeaveAssistantProvider()
+    actor_id, workspace_id = actor.id, actor.demo_workspace_id
+
+    def recheck_authorization(budget_db: Session) -> None:
+        employee = budget_db.get(Employee, actor_id)
+        if employee is None or not employee.is_active or employee.demo_workspace_id != workspace_id:
+            raise AuthenticationError("The demo workspace membership changed")
+        require_demo_workspace(budget_db, employee, admit=False)
+
+    return BudgetedLeaveAssistantProvider(
+        workspace_id=workspace_id,
+        factory=sessionmaker(bind=db.get_bind(), autoflush=False, expire_on_commit=False),
+        provider_factory=lambda: OpenAILeaveAssistantProvider(
+            api_key=api_key.get_secret_value(),
+            model=PUBLIC_EXPENSE_MODEL,
+            timeout_seconds=20.0,
+            max_retries=0,
+            standard_tier=True,
+        ),
+        limits=budget,
+        check_authorization=recheck_authorization,
+    )
+
+
 LeaveAssistantProviderDependency = Annotated[
-    LeaveAssistantProvider, Depends(get_leave_assistant_provider)
+    LeaveAssistantProvider, Depends(get_scoped_leave_assistant_provider)
 ]
 
 

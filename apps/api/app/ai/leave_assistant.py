@@ -73,6 +73,7 @@ class LeaveAssistantProviderResult:
     model: str
     usage: LeaveAssistantProviderUsage
     latency_ms: int
+    service_tier: str | None = None
 
 
 class LeaveAssistantProvider(Protocol):

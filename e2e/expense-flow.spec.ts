@@ -35,11 +35,9 @@ test('CES actual expense → missing facts → policy preview → save → edit 
     fullPage: true,
   });
   await page.getByRole('button', { name: '확인하고 초안으로 저장', exact: true }).click();
-  await expect(page).toHaveURL(/\/approvals\/[^/?]+$/);
-  await expect(page.locator('.detail-title-row .status-badge')).toContainText('초안');
-  await page.getByRole('link', { name: '수정', exact: true }).click();
+  await expect(page).toHaveURL(/\/approvals\/[^/?]+\/edit$/);
   await expect(page.getByLabel('결재 종류')).toHaveValue('EXPENSE');
-  await expect(page.getByLabel('실제 지출 금액 (원)')).toHaveValue('170000');
+  await expect(page.getByLabel('실제 지출 금액 (원)')).toHaveValue('170,000');
   await page.getByLabel('사용처', { exact: true }).fill('코레일 서울역');
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
   await expect(page.locator('.expense-summary')).toContainText('코레일 서울역');

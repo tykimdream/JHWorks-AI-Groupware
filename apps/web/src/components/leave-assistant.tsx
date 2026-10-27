@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
+import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { AvailabilityResult } from '@/components/leave-availability-explorer';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import type {
@@ -18,7 +19,7 @@ import type {
 
 const examples = [
   '다음 주에 이틀 휴가를 가고 싶은데, 우리 팀 일정과 겹치지 않는 날짜를 찾아주고 휴가 결재 초안도 만들어 줘.',
-  '다음 달에 이틀 쉴 날짜 추천해줘.',
+  '다음 달에 주말을 끼고 3일 쉬고 싶어.',
 ];
 
 interface ConversationItem {
@@ -33,6 +34,8 @@ const dateRangeLabel = (result: LeaveAssistantResponse) => {
 
 export const LeaveAssistant = () => {
   const router = useRouter();
+  const { configuration } = useDemoConfiguration();
+  const manualDraft = configuration?.enabled === true && !configuration.aiCapabilities.policyEmbedding;
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
     const pending = new AbortController();
@@ -55,6 +58,7 @@ export const LeaveAssistant = () => {
   const busy = useRef(false);
   const isBusy = isLoading || isPreparingDraft || isConfirmingDraft;
   const needsAnswer = agentRun?.status === 'NEEDS_INPUT';
+  const weekendRequested = [request, ...answers].some((text) => text?.includes('주말'));
 
   const reset = () => {
     if (busy.current) return;
@@ -72,7 +76,7 @@ export const LeaveAssistant = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const message = input.trim();
-    if (!message || busy.current || (agentRun && !needsAnswer)) return;
+    if (!message || busy.current) return;
     busy.current = true;
     const nextRequest = request ?? message;
     const nextAnswers = request ? [...answers, message] : [];
@@ -84,7 +88,7 @@ export const LeaveAssistant = () => {
     setDraftResult(null);
     setDraftError(null);
     try {
-      const response = request && agentRun
+      const response = request && agentRun && needsAnswer
         ? await apiFetch<LeaveAgentConsultation>(
             `/leave-agent/runs/${agentRun.id}/consultation/answer`,
             { method: 'POST', signal: controller.current?.signal, body: JSON.stringify({ answer: message }) },
@@ -107,6 +111,8 @@ export const LeaveAssistant = () => {
         setError('AI 구조화 단계가 일시적으로 실패했습니다. 저장된 workflow에서 다시 시도할 수 있습니다.');
       }
     } catch (caught: unknown) {
+      setInput(message);
+      setConversation((current) => current.slice(0, -1));
       setError(getUserErrorMessage(caught, '휴가 상담 결과를 만들지 못했습니다.'));
     } finally {
       busy.current = false;
@@ -226,10 +232,10 @@ export const LeaveAssistant = () => {
         <label>
           <span>{needsAnswer ? '추가 답변' : '휴가 질문'}</span>
           <textarea
-            disabled={isBusy || (!!agentRun && !needsAnswer)}
+            disabled={isBusy}
             maxLength={2000}
             onChange={(event) => setInput(event.target.value)}
-            placeholder={needsAnswer ? result?.questions[0]?.prompt : examples[0]}
+            placeholder={needsAnswer ? result?.questions[0]?.prompt : request ? '예: 주말을 끼고 3일 쉬는 일정으로 바꿔줘' : examples[0]}
             rows={3}
             value={input}
           />
@@ -240,8 +246,8 @@ export const LeaveAssistant = () => {
               새 상담
             </button>
           )}
-          <button className="ai-button" disabled={isBusy || !input.trim() || (!!agentRun && !needsAnswer)} type="submit">
-            {isLoading ? '정책과 일정 확인 중…' : needsAnswer ? '답변 보내기' : '휴가 상담 시작'}
+          <button className="ai-button" disabled={isBusy || !input.trim()} type="submit">
+            {isLoading ? '정책과 일정 확인 중…' : needsAnswer ? '답변 보내기' : request ? '추가 요청 반영' : '휴가 상담 시작'}
           </button>
         </div>
       </form>
@@ -293,11 +299,13 @@ export const LeaveAssistant = () => {
           </details>
         </div>
       )}
+      {result?.availability && weekendRequested && <p className="availability-notice" role="status">주말을 끼는 조건은 자동으로 판단하지 않습니다. 후보 날짜와 연차 차감 일수를 직접 확인해주세요.</p>}
+      {result?.availability && manualDraft && <p className="subtle">선택한 날짜를 결재 양식으로 옮겨 직접 확인하고 저장할 수 있습니다.</p>}
       {result?.availability && (
         <AvailabilityResult
           candidateActionDisabled={isBusy || !!draftResult}
           candidateActionLabel={isPreparingDraft ? '미리보기 준비 중…' : '이 날짜 선택하고 초안 확인'}
-          onCandidateSelect={prepareDraft}
+          onCandidateSelect={manualDraft ? undefined : prepareDraft}
           result={result.availability}
         />
       )}

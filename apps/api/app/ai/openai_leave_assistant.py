@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import StrEnum
 from time import perf_counter
 
-from openai import OpenAI, OpenAIError
+from openai import OpenAI, OpenAIError, omit
 from pydantic import BaseModel, ConfigDict
 
 from app.ai.leave_assistant import (
@@ -39,9 +39,7 @@ class LeaveAssistantStructuredOutput(BaseModel):
 
 def _to_candidate(output: LeaveAssistantStructuredOutput) -> LeaveAssistantCandidate:
     requested_days = (
-        Decimal(output.requested_days.value)
-        if output.requested_days is not None
-        else None
+        Decimal(output.requested_days.value) if output.requested_days is not None else None
     )
     return LeaveAssistantCandidate(
         intent=output.intent,
@@ -52,9 +50,23 @@ def _to_candidate(output: LeaveAssistantStructuredOutput) -> LeaveAssistantCandi
 
 
 class OpenAILeaveAssistantProvider:
-    def __init__(self, api_key: str, model: str, timeout_seconds: float) -> None:
-        self._client = OpenAI(api_key=api_key, timeout=timeout_seconds, max_retries=1)
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        timeout_seconds: float,
+        *,
+        max_retries: int = 1,
+        standard_tier: bool = False,
+    ) -> None:
+        self._client = OpenAI(
+            api_key=api_key,
+            timeout=timeout_seconds,
+            max_retries=max_retries,
+            base_url="https://api.openai.com/v1" if standard_tier else None,
+        )
         self._model = model
+        self._standard_tier = standard_tier
 
     def structure(
         self,
@@ -80,6 +92,7 @@ class OpenAILeaveAssistantProvider:
                 prompt_cache_key=PROMPT_VERSION,
                 safety_identifier=safety_identifier,
                 store=False,
+                service_tier="default" if self._standard_tier else omit,
             )
         except OpenAIError as exc:
             raise LeaveAssistantProviderError(
@@ -96,11 +109,12 @@ class OpenAILeaveAssistantProvider:
         return LeaveAssistantProviderResult(
             candidate=candidate,
             provider="openai",
-            model=response.model or self._model,
+            model=response.model if self._standard_tier else (response.model or self._model),
             usage=LeaveAssistantProviderUsage(
                 input_tokens=usage.input_tokens if usage else 0,
                 output_tokens=usage.output_tokens if usage else 0,
                 total_tokens=usage.total_tokens if usage else 0,
             ),
             latency_ms=round((perf_counter() - started_at) * 1000),
+            service_tier=response.service_tier,
         )

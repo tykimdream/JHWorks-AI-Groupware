@@ -46,7 +46,7 @@ test('reload offers explicit recovery of expense values without an API write', a
   await page.getByRole('button', { name: '이전 입력 이어쓰기' }).click();
   await expect(title(page)).toHaveValue('복원할 합성 경비');
   await expect(page.getByLabel('사용처', { exact: true })).toHaveValue('합성 코레일');
-  await expect(page.getByLabel('실제 지출 금액 (원)')).toHaveValue('170000');
+  await expect(page.getByLabel('실제 지출 금액 (원)')).toHaveValue('170,000');
   expect(writes).toBe(0);
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
   await expect(page).toHaveURL(/\/approvals\/[^/?]+$/);

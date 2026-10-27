@@ -104,5 +104,5 @@ test('public expense-only UI keeps the request when budget is exhausted', async 
   await page.getByRole('button', { name: '직접 작성으로 계속 →', exact: true }).click();
   await expect(page.getByRole('combobox', { name: '결재 종류', exact: true })).toHaveValue('EXPENSE');
   await expect(page.getByRole('textbox', { name: '업무 내용', exact: true })).toHaveValue(/17만원/);
-  await expect(page.getByRole('spinbutton', { name: '실제 지출 금액 (원)', exact: true })).toBeEmpty();
+  await expect(page.getByRole('textbox', { name: '실제 지출 금액 (원)', exact: true })).toBeEmpty();
 });

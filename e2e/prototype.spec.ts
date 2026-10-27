@@ -87,7 +87,7 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
   );
   await expect(
     page.getByLabel('실제 지출 금액 (원)', { exact: true }),
-  ).toHaveValue('170000');
+  ).toHaveValue('170,000');
   await expect(
     page.getByLabel('증빙 참조 (선택)', { exact: true }),
   ).toHaveValue('PROTO-RECEIPT-001');

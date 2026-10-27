@@ -46,8 +46,8 @@ test('home → request → missing information → policy preview → explicit s
     fullPage: true,
   });
   await page.getByRole('button', { name: '확인하고 초안으로 저장', exact: true }).click();
-  await expect(page).toHaveURL(/\/approvals\/[^/?]+$/);
-  await expect(page.locator('.detail-title-row .status-badge')).toContainText('초안');
+  await expect(page).toHaveURL(/\/approvals\/[^/?]+\/edit$/);
+  await expect(page.getByRole('heading', { name: '결재 문서 수정' })).toBeVisible();
   expect(saves).toBe(1);
   await page.getByRole('link', { name: '업무 홈', exact: true }).click();
   await expect(

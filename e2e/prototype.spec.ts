@@ -78,7 +78,7 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
   await expect(page).toHaveURL(/\/approvals\/new\?handoff=manual$/);
   await expect(
     page.getByRole('textbox', { name: '제목', exact: true }),
-  ).toHaveValue('CES 출장 교통비 정산');
+  ).toHaveValue('코엑스 전시회 출장 교통비 정산');
   await expect(page.getByLabel('사용처', { exact: true })).toHaveValue(
     '수정한 합성 교통 서비스',
   );
@@ -97,7 +97,7 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
   await expect(page).toHaveURL(/\/approvals\/[^/]+(?:\?.*)?$/);
   await expect(
-    page.getByRole('heading', { name: 'CES 출장 교통비 정산', exact: true }),
+    page.getByRole('heading', { name: '코엑스 전시회 출장 교통비 정산', exact: true }),
   ).toBeVisible();
   expect(writes).toBe(1);
   if (configuration.enabled) {
@@ -116,7 +116,7 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
       .click();
     await page.getByRole('tab', { name: '내가 결재할 문서' }).click();
     await expect(
-      page.getByRole('link').filter({ hasText: 'CES 출장 교통비 정산' }),
+      page.getByRole('link').filter({ hasText: '코엑스 전시회 출장 교통비 정산' }),
     ).toBeVisible();
     expect(
       await page.evaluate(
@@ -125,7 +125,7 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
     ).toBe(true);
     await page
       .getByRole('link')
-      .filter({ hasText: 'CES 출장 교통비 정산' })
+      .filter({ hasText: '코엑스 전시회 출장 교통비 정산' })
       .click();
     await page
       .getByLabel('결재 의견')

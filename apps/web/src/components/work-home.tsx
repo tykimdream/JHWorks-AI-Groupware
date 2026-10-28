@@ -15,19 +15,19 @@ import { formatDate } from '@/lib/format';
 import type { ApprovalListResponse } from '@/lib/types';
 import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseInsightPanel } from '@/components/expense-checks';
+import { expenseExamples } from '@/lib/expense-examples';
 import { storeDraftRequest } from '@/lib/draft-handoff';
 
 const examples = [
-  { label: 'CES 경비 정산', request: '이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.' },
   {
     label: '출장 결재 준비',
     request:
-      '다음 주 화요일 부산에서 열리는 CES 협력사 미팅 출장 신청을 준비해줘. 예상 교통비는 17만원이야.',
+      '다음 주 화요일 부산에서 열리는 협력사 미팅 출장 신청을 준비해줘. 예상 교통비는 17만원이야.',
   },
   {
     label: '업무 협조 요청',
     request:
-      'CES 참가 준비를 위해 디자인팀에 전시 부스 제작 협조를 요청하는 일반 결재 초안을 만들어줘.',
+      '전시회 참가 준비를 위해 디자인팀에 전시 부스 제작 협조를 요청하는 일반 결재 초안을 만들어줘.',
   },
 ];
 
@@ -217,7 +217,7 @@ export function WorkHome() {
               disabled={!aiAvailable}
               placeholder={
                 configuration?.enabled
-                  ? '예: 이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.'
+                  ? '예: 코엑스 전시회 출장에 사용한 교통비 38,000원 정산해줘.'
                   : '예: 다음 주 부산 고객사 미팅 출장 결재를 준비해줘. 교통비는 17만 원이야.'
               }
               onKeyDown={(event) => {
@@ -251,7 +251,7 @@ export function WorkHome() {
           )}
           <div className="home-examples">
             <span>이렇게 시작해 보세요</span>
-            {(configuration.enabled ? examples.slice(0, 1) : examples).map((example) => (
+            {([...expenseExamples, ...(configuration.enabled ? [] : examples)]).map((example) => (
               <button
                 key={example.label}
                 type="button"

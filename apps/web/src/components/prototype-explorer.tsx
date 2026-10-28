@@ -46,7 +46,7 @@ export function PrototypeExplorer() {
   const latestDate = new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Asia/Seoul',
   }).format(new Date());
-  const purpose = 'CES 출장 행사장 이동 교통비 정산';
+  const purpose = '코엑스 전시회 출장 교통비 정산';
   function prepare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!merchant.trim() || !date || date > latestDate) {
@@ -65,7 +65,7 @@ export function PrototypeExplorer() {
       type: 'EXPENSE',
       content: `${purpose}\n지출일: ${date}\n사용처: ${merchant.trim()}\n금액: 170,000원\n${receipt.trim() ? `증빙 참조: ${receipt.trim()}` : '증빙 참조는 아직 입력하지 않았습니다.'}`,
       expensePreset: {
-        title: 'CES 출장 교통비 정산',
+        title: '코엑스 전시회 출장 교통비 정산',
         amount: 170000,
         details: {
           kind: 'EXPENSE',
@@ -97,7 +97,7 @@ export function PrototypeExplorer() {
             한 문장에서 경비 양식까지
           </h2>
           <p className="tw:m-0 tw:max-w-2xl tw:text-sm tw:leading-7 tw:text-jhw-muted">
-            정해진 CES 경비 사례로 ‘요청 → 부족한 정보 확인 → 미리보기’를
+            정해진 전시회 출장 경비 사례로 ‘요청 → 부족한 정보 확인 → 미리보기’를
             체험합니다. 질문과 금액은 고정된 예시이며, 입력한 정보만 양식에
             옮깁니다.
           </p>
@@ -106,7 +106,7 @@ export function PrototypeExplorer() {
           <div className="tw:min-w-0 tw:bg-jhw-canvas tw:p-5 tw:md:p-7">
             <h3 className="tw:mt-0 tw:text-base">업무 요청</h3>
             <blockquote className="tw:mx-0 tw:my-4 tw:border-0 tw:border-l-2 tw:border-solid tw:border-jhw-primary tw:pl-4 tw:text-lg tw:leading-8">
-              “이번 CES 출장 교통비 17만원 쓴 거, 경비 결재 준비해줘.”
+              “코엑스 전시회 출장 교통비 17만원 쓴 거, 경비 결재 준비해줘.”
             </blockquote>
             <dl className="tw:grid tw:grid-cols-[80px_minmax(0,1fr)] tw:gap-x-3 tw:gap-y-4 tw:text-sm">
               <dt className="tw:text-jhw-muted">요청의 금액</dt>
@@ -215,7 +215,7 @@ export function PrototypeExplorer() {
                 </h3>
                 <dl className="tw:grid tw:grid-cols-[72px_minmax(0,1fr)] tw:gap-x-4 tw:gap-y-4 tw:text-sm tw:leading-6">
                   <dt className="tw:text-jhw-muted">제목</dt>
-                  <dd className="tw:m-0">CES 출장 교통비 정산</dd>
+                  <dd className="tw:m-0">코엑스 전시회 출장 교통비 정산</dd>
                   <dt className="tw:text-jhw-muted">지출일</dt>
                   <dd className="tw:m-0">{date}</dd>
                   <dt className="tw:text-jhw-muted">사용처</dt>

@@ -7,6 +7,7 @@ import { ApiError, apiFetch, getUserErrorMessage } from '@/lib/api';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { formatCurrency } from '@/lib/format';
 import { approvalTypeLabels } from '@/lib/approval-labels';
+import { expenseExamples } from '@/lib/expense-examples';
 import { ExpenseVerification } from '@/components/expense-verification';
 import { ExpenseSummary } from '@/components/expense-summary';
 import { useWorkspaceEmployee } from '@/components/app-shell';
@@ -15,8 +16,7 @@ import { storeManualDraft } from '@/lib/manual-draft-handoff';
 import type { Approval, ApprovalDraftPrepareResponse, BusinessTripDetails } from '@/lib/types';
 
 const starterExamples = [
-  'CES 2026에서 햄버거 30,000원 먹은 거 올려줘.',
-  '다음 주 화요일 부산에서 열리는 CES 협력사 미팅 출장 신청을 준비해줘. 예상 교통비는 17만원이야.',
+  '다음 주 화요일 부산에서 열리는 협력사 미팅 출장 신청을 준비해줘. 예상 교통비는 17만원이야.',
   '신규 파트너 온보딩을 위한 일반 업무 협조 결재 초안 작성해줘.',
 ];
 
@@ -174,7 +174,7 @@ export const ApprovalDraftAssistant = () => {
                     maxLength={2000}
                     onChange={(event) => setRequest(event.target.value)}
                     placeholder={expenseOnly
-                      ? '예: 이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.'
+                      ? '예: 코엑스 전시회 출장에 사용한 교통비 38,000원 정산해줘.'
                       : '예: 다음 주 화요일 부산 고객사 미팅 출장 결재 만들어줘.'}
                     rows={5}
                     value={request}
@@ -190,7 +190,7 @@ export const ApprovalDraftAssistant = () => {
               </form>
               <div className="draft-examples">
                 <span>예시로 시작하기</span>
-                {(expenseOnly ? starterExamples.slice(0, 1) : starterExamples).map((example) => (
+                {([...expenseExamples.map((example) => example.request), ...(expenseOnly ? [] : starterExamples)]).map((example) => (
                   <button
                     key={example}
                     disabled={isPreparing}

@@ -2,8 +2,11 @@ import logging
 import re
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any, Literal, TypedDict, cast
 from zoneinfo import ZoneInfo
 
+from langgraph.graph import END, START, StateGraph
+from langsmith import tracing_context
 from sqlalchemy.orm import Session
 
 from app.ai.leave_assistant import (
@@ -13,6 +16,7 @@ from app.ai.leave_assistant import (
     LeaveAssistantProvider,
     LeaveAssistantProviderError,
     LeaveAssistantProviderInput,
+    LeaveAssistantProviderResult,
 )
 from app.ai.policy_embedding import PolicyEmbeddingProvider
 from app.core.config import get_settings
@@ -196,105 +200,153 @@ def consult_leave_availability(
     provider: LeaveAssistantProvider,
     embedding_provider: PolicyEmbeddingProvider,
 ) -> LeaveAssistantResponse:
-    current_date = datetime.now(SEOUL).date()
-    try:
-        provider_result = provider.structure(
-            LeaveAssistantProviderInput(
-                request=payload.request.strip(),
-                answers=[answer.strip() for answer in payload.answers],
-                current_date=current_date,
-                timezone="Asia/Seoul",
-            ),
-            safety_identifier=actor.id,
-        )
-    except LeaveAssistantProviderError as exc:
-        logger.warning("leave_assistant_provider_failed actor_id=%s", actor.id)
-        raise ServiceUnavailableError(
-            "LEAVE_ASSISTANT_UNAVAILABLE",
-            "The AI leave assistant is temporarily unavailable",
-        ) from exc
+    class GraphState(TypedDict, total=False):
+        provider_result: LeaveAssistantProviderResult
+        candidate: LeaveAssistantCandidate
+        missing_fields: list[str]
+        result: LeaveAssistantResponse
 
-    candidate = provider_result.candidate
-    correction = _explicit_duration_correction(payload)
-    if correction is not None:
-        candidate = candidate.model_copy(update={"requested_days": correction})
-    common = {
-        "query": _query(candidate),
-        "provider": provider_result.provider,
-        "model": provider_result.model,
-        "prompt_version": PROMPT_VERSION,
-        "usage": LeaveAssistantUsage(
-            input_tokens=provider_result.usage.input_tokens,
-            output_tokens=provider_result.usage.output_tokens,
-            total_tokens=provider_result.usage.total_tokens,
-        ),
-        "latency_ms": provider_result.latency_ms,
-        "generated_at": datetime.now(UTC),
-    }
-    if candidate.intent == LeaveAssistantIntent.UNSUPPORTED:
-        return LeaveAssistantResponse(
-            status=LeaveAssistantStatus.UNSUPPORTED,
-            assistant_message="연차 가능일 확인이나 날짜 추천 요청을 알려주세요.",
+    current_date = datetime.now(SEOUL).date()
+
+    def extract(state: GraphState) -> GraphState:
+        del state
+        try:
+            provider_result = provider.structure(
+                LeaveAssistantProviderInput(
+                    request=payload.request.strip(),
+                    answers=[answer.strip() for answer in payload.answers],
+                    current_date=current_date,
+                    timezone="Asia/Seoul",
+                ),
+                safety_identifier=actor.id,
+            )
+        except LeaveAssistantProviderError as exc:
+            logger.warning("leave_assistant_provider_failed actor_id=%s", actor.id)
+            raise ServiceUnavailableError(
+                "LEAVE_ASSISTANT_UNAVAILABLE",
+                "The AI leave assistant is temporarily unavailable",
+            ) from exc
+
+        return {"provider_result": provider_result}
+
+    def validate(state: GraphState) -> GraphState:
+        candidate = state["provider_result"].candidate
+        correction = _explicit_duration_correction(payload)
+        if correction is not None:
+            candidate = candidate.model_copy(update={"requested_days": correction})
+        missing_fields = _missing_fields(candidate)
+        if _relative_date_mismatch(payload, candidate, current_date):
+            missing_fields.append("relativeDate")
+        return {"candidate": candidate, "missing_fields": missing_fields}
+
+    def common_fields(state: GraphState) -> dict[str, Any]:
+        candidate = state["candidate"]
+        provider_result = state["provider_result"]
+        return {
+            "query": _query(candidate),
+            "provider": provider_result.provider,
+            "model": provider_result.model,
+            "prompt_version": PROMPT_VERSION,
+            "usage": LeaveAssistantUsage(
+                input_tokens=provider_result.usage.input_tokens,
+                output_tokens=provider_result.usage.output_tokens,
+                total_tokens=provider_result.usage.total_tokens,
+            ),
+            "latency_ms": provider_result.latency_ms,
+            "generated_at": datetime.now(UTC),
+        }
+
+    def route(state: GraphState) -> Literal["unsupported", "questions", "availability"]:
+        if state["candidate"].intent == LeaveAssistantIntent.UNSUPPORTED:
+            return "unsupported"
+        return "questions" if state["missing_fields"] else "availability"
+
+    def unsupported(state: GraphState) -> GraphState:
+        return {
+            "result": LeaveAssistantResponse(
+                status=LeaveAssistantStatus.UNSUPPORTED,
+                assistant_message="연차 가능일 확인이나 날짜 추천 요청을 알려주세요.",
+                missing_fields=[],
+                questions=[],
+                availability=None,
+                policy_context=_empty_policy_context(),
+                **common_fields(state),
+            )
+        }
+
+    def questions(state: GraphState) -> GraphState:
+        missing_fields = state["missing_fields"]
+        prompts = _questions(missing_fields)
+        return {
+            "result": LeaveAssistantResponse(
+                status=LeaveAssistantStatus.NEEDS_INPUT,
+                assistant_message=prompts[0].prompt,
+                missing_fields=missing_fields,
+                questions=prompts,
+                availability=None,
+                policy_context=_empty_policy_context(),
+                **common_fields(state),
+            )
+        }
+
+    def availability_node(state: GraphState) -> GraphState:
+        candidate = state["candidate"]
+        provider_result = state["provider_result"]
+        common = common_fields(state)
+        if (
+            candidate.search_start is None
+            or candidate.search_end is None
+            or candidate.requested_days is None
+        ):
+            raise AssertionError("validated leave candidate is incomplete")
+        availability = leave_availability.find_leave_availability(
+            db,
+            actor,
+            candidate.search_start,
+            candidate.search_end,
+            candidate.requested_days,
+            limit=6,
+        )
+        policy_context = _policy_context(db, candidate, embedding_provider)
+        logger.info(
+            "leave_assistant_completed actor_id=%s status=%s range=%s..%s requested_days=%s "
+            "candidate_count=%s policy_status=%s model=%s prompt_version=%s latency_ms=%s "
+            "input_tokens=%s output_tokens=%s",
+            actor.id,
+            availability.status,
+            candidate.search_start,
+            candidate.search_end,
+            candidate.requested_days,
+            len(availability.candidates),
+            policy_context.status,
+            provider_result.model,
+            PROMPT_VERSION,
+            provider_result.latency_ms,
+            provider_result.usage.input_tokens,
+            provider_result.usage.output_tokens,
+        )
+        result = LeaveAssistantResponse(
+            status=LeaveAssistantStatus.READY,
+            assistant_message=_ready_message(availability),
             missing_fields=[],
             questions=[],
-            availability=None,
-            policy_context=_empty_policy_context(),
+            availability=availability,
+            policy_context=policy_context,
             **common,
         )
+        return {"result": result}
 
-    missing_fields = _missing_fields(candidate)
-    if _relative_date_mismatch(payload, candidate, current_date):
-        missing_fields.append("relativeDate")
-    if missing_fields:
-        questions = _questions(missing_fields)
-        return LeaveAssistantResponse(
-            status=LeaveAssistantStatus.NEEDS_INPUT,
-            assistant_message=questions[0].prompt,
-            missing_fields=missing_fields,
-            questions=questions,
-            availability=None,
-            policy_context=_empty_policy_context(),
-            **common,
-        )
-
-    if (
-        candidate.search_start is None
-        or candidate.search_end is None
-        or candidate.requested_days is None
-    ):
-        raise AssertionError("validated leave candidate is incomplete")
-    availability = leave_availability.find_leave_availability(
-        db,
-        actor,
-        candidate.search_start,
-        candidate.search_end,
-        candidate.requested_days,
-        limit=6,
-    )
-    policy_context = _policy_context(db, candidate, embedding_provider)
-    logger.info(
-        "leave_assistant_completed actor_id=%s status=%s range=%s..%s requested_days=%s "
-        "candidate_count=%s policy_status=%s model=%s prompt_version=%s latency_ms=%s "
-        "input_tokens=%s output_tokens=%s",
-        actor.id,
-        availability.status,
-        candidate.search_start,
-        candidate.search_end,
-        candidate.requested_days,
-        len(availability.candidates),
-        policy_context.status,
-        provider_result.model,
-        PROMPT_VERSION,
-        provider_result.latency_ms,
-        provider_result.usage.input_tokens,
-        provider_result.usage.output_tokens,
-    )
-    return LeaveAssistantResponse(
-        status=LeaveAssistantStatus.READY,
-        assistant_message=_ready_message(availability),
-        missing_fields=[],
-        questions=[],
-        availability=availability,
-        policy_context=policy_context,
-        **common,
-    )
+    graph = StateGraph(GraphState)
+    graph.add_node("extract", extract)
+    graph.add_node("validate", validate)
+    graph.add_node("unsupported", unsupported)
+    graph.add_node("questions", questions)
+    graph.add_node("availability", availability_node)
+    graph.add_edge(START, "extract")
+    graph.add_edge("extract", "validate")
+    graph.add_conditional_edges("validate", route)
+    for node in ("unsupported", "questions", "availability"):
+        graph.add_edge(node, END)
+    with tracing_context(enabled=False):
+        result_state = graph.compile().invoke({})
+    return cast(LeaveAssistantResponse, result_state["result"])

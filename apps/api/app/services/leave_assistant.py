@@ -75,9 +75,8 @@ def _missing_fields(candidate: LeaveAssistantCandidate) -> list[str]:
         if candidate.search_end < candidate.search_start:
             missing.append("dateOrder")
         elif (
-            (candidate.search_end - candidate.search_start).days > 92
-            or candidate.search_start.year != candidate.search_end.year
-        ):
+            candidate.search_end - candidate.search_start
+        ).days > 92 or candidate.search_start.year != candidate.search_end.year:
             missing.append("dateRange")
     if (
         candidate.requested_days is not None
@@ -89,7 +88,9 @@ def _missing_fields(candidate: LeaveAssistantCandidate) -> list[str]:
 
 
 def _relative_date_mismatch(
-    payload: LeaveAssistantRequest, candidate: LeaveAssistantCandidate, current_date: date,
+    payload: LeaveAssistantRequest,
+    candidate: LeaveAssistantCandidate,
+    current_date: date,
 ) -> bool:
     # Validate a narrow, explicit phrase. Other natural-language expressions still
     # require the user to inspect the displayed absolute dates before confirming.
@@ -106,6 +107,18 @@ def _relative_date_mismatch(
     monday = current_date + timedelta(days=7 - current_date.weekday())
     sunday = monday + timedelta(days=6)
     return not (monday <= candidate.search_start <= candidate.search_end <= sunday)
+
+
+def _explicit_duration_correction(payload: LeaveAssistantRequest) -> Decimal | None:
+    # Only a single, explicit numeric correction in the latest follow-up is authoritative.
+    if not payload.answers:
+        return None
+    answer = payload.answers[-1].strip()
+    match = re.fullmatch(
+        r"\s*([1-5])\s*일\s*(?:로|으로)\s*(?:바꿔\s*줘|변경\s*해\s*줘|수정\s*해\s*줘)[.!]?\s*",
+        answer,
+    )
+    return Decimal(match.group(1)) if match else None
 
 
 def _query(candidate: LeaveAssistantCandidate) -> LeaveAssistantQuery:
@@ -202,6 +215,9 @@ def consult_leave_availability(
         ) from exc
 
     candidate = provider_result.candidate
+    correction = _explicit_duration_correction(payload)
+    if correction is not None:
+        candidate = candidate.model_copy(update={"requested_days": correction})
     common = {
         "query": _query(candidate),
         "provider": provider_result.provider,

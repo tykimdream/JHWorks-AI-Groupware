@@ -37,7 +37,16 @@ class Source(NamedTuple):
 
 
 def _labelled(sources: list[str], labels: tuple[str, ...]) -> list[Source]:
-    pattern = re.compile(r"(?:^|[;；\n])\s*(?:" + "|".join(labels) + r")\s*[:：=]\s*([^;；\n]+)")
+    all_labels = "|".join(re.escape(label) for group in FIELDS.values() for label in group)
+    pattern = re.compile(
+        r"(?:^|[;；\n]|,\s*(?=(?:"
+        + all_labels
+        + r")\s*[:：=]))\s*(?:"
+        + "|".join(re.escape(label) for label in labels)
+        + r")\s*[:：=]\s*(.*?)(?=\s*(?:[;；\n]|,\s*(?:"
+        + all_labels
+        + r")\s*[:：=])|$)"
+    )
     for index in range(len(sources) - 1, -1, -1):
         found = [
             Source(index, m.start(1), m.start(1) + len(m[1].rstrip()), m[1].strip())

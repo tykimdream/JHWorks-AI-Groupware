@@ -32,9 +32,7 @@ def test_openai_structured_output_uses_supported_leave_day_values() -> None:
 
     assert candidate.requested_days == Decimal("0.5")
     schema = LeaveAssistantStructuredOutput.model_json_schema()
-    requested_days_reference = schema["properties"]["requested_days"]["anyOf"][0][
-        "$ref"
-    ]
+    requested_days_reference = schema["properties"]["requested_days"]["anyOf"][0]["$ref"]
     definition_name = requested_days_reference.rsplit("/", maxsplit=1)[-1]
     assert schema["$defs"][definition_name]["enum"] == [
         "0.5",
@@ -170,9 +168,7 @@ def test_insufficient_balance_is_grounded_in_current_account(
     fake_leave_assistant_provider: FakeLeaveAssistantProvider,
 ) -> None:
     with session_factory() as db:
-        account = db.scalar(
-            select(LeaveAccount).where(LeaveAccount.employee_id == "emp_sales_001")
-        )
+        account = db.scalar(select(LeaveAccount).where(LeaveAccount.employee_id == "emp_sales_001"))
         assert account is not None
         account.used_days = Decimal("15.5")
         db.commit()
@@ -286,7 +282,8 @@ def test_wrong_relative_dates_require_clarification_without_candidates(
 ) -> None:
     fake_leave_assistant_provider.candidate = LeaveAssistantCandidate(
         intent=LeaveAssistantIntent.RECOMMEND_DATES,
-        search_start=date(2000, 1, 3), search_end=date(2000, 1, 7),
+        search_start=date(2000, 1, 3),
+        search_end=date(2000, 1, 7),
         requested_days=Decimal("2.0"),
     )
     login(client, "seojin.yoon@jhworks.test")
@@ -312,3 +309,16 @@ def test_unsupported_request_never_becomes_a_leave_candidate(
     assert response.status_code == 200
     assert response.json()["status"] == "UNSUPPORTED"
     assert response.json()["availability"] is None
+
+
+def test_explicit_followup_duration_overrides_stale_model_output() -> None:
+    from app.schemas.leave_assistant import LeaveAssistantRequest
+
+    payload = LeaveAssistantRequest(request="다음 달 2일", answers=["3일로 바꿔줘"])
+    assert leave_assistant._explicit_duration_correction(payload) == Decimal("3")
+    assert (
+        leave_assistant._explicit_duration_correction(
+            LeaveAssistantRequest(request="휴가", answers=["3일 말고 2일로 바꿔줘"])
+        )
+        is None
+    )

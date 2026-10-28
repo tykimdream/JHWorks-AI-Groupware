@@ -136,3 +136,10 @@ def test_literal_input_can_be_used_without_requiring_retyping_labels() -> None:
     value = inputs("2026-08-24 코레일 교통비 17만원 CES 출장 RCP-001 정산")
     _, report = check_expense_input(candidate(), value)
     assert report.status == "INPUT_MATCHED"
+
+
+def test_comma_separated_labels_keep_amount_commas_and_field_evidence() -> None:
+    text = "금액: 170,000원, 지출일: 2026-08-24, 사용처: 코레일, 분류: 교통비, 목적: CES 출장"
+    result, report = check_expense_input(candidate(receipt_reference=None), inputs(text))
+    assert report.status == "INPUT_MATCHED"
+    assert result.expense_date == date(2026, 8, 24) and result.amount == 170000

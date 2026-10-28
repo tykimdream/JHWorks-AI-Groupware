@@ -157,7 +157,7 @@ class BrowserDraftProvider(FakeApprovalDraftProvider):
                 expense_purpose="CES 출장",
                 receipt_reference="RCP-CES-001" if "RCP-CES-001" in answer else None,
             )
-        elif "CES 협력사 미팅" in provider_input.request:
+        elif "협력사 미팅" in provider_input.request:
             today = provider_input.current_date
             tuesday = today + timedelta(days=7 - today.weekday() + 1)
             self.candidate = ApprovalDraftCandidate(

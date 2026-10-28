@@ -18,11 +18,11 @@ test('home → request → missing information → policy preview → explicit s
     await expect(request).toBeFocused();
   }
   await page.getByRole('button', { name: '출장 결재 준비', exact: true }).click();
-  await expect(request).toHaveValue(/CES 협력사 미팅/);
+  await expect(request).toHaveValue(/협력사 미팅/);
   await request.press('Control+Enter');
   await expect(page).toHaveURL('http://localhost:3100/approvals/ai-draft');
   await expect(page.getByRole('textbox', { name: '업무 요청', exact: true })).toHaveValue(
-    /CES 협력사 미팅/,
+    /협력사 미팅/,
   );
   let saves = 0;
   page.on('request', (sent) => {
@@ -142,9 +142,9 @@ test('AI failure retains the request and offers a usable manual form', async ({ 
     page.getByRole('alert').filter({ hasText: 'AI 초안을 준비하지 못했습니다.' }),
   ).toBeVisible();
   await expect(page.getByRole('textbox', { name: '업무 요청', exact: true })).toHaveValue(
-    /CES 협력사 미팅/,
+    /협력사 미팅/,
   );
   await page.getByRole('button', { name: '직접 작성으로 계속 →', exact: true }).click();
   await expect(page.getByRole('heading', { name: '결재 문서 작성', exact: true })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: '업무 내용', exact: true })).toHaveValue(/CES 협력사 미팅/);
+  await expect(page.getByRole('textbox', { name: '업무 내용', exact: true })).toHaveValue(/협력사 미팅/);
 });

@@ -6,7 +6,7 @@ test('CES actual expense → missing facts → policy preview → save → edit 
 }, testInfo) => {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Demo 로그인', exact: true }).click();
-  await page.getByRole('button', { name: 'CES 경비 정산', exact: true }).click();
+  await page.getByRole('textbox', { name: 'AI 업무 요청' }).fill('이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.');
   await page.getByRole('button', { name: 'AI 초안 작성으로 이동', exact: true }).click();
   await page.getByRole('button', { name: 'AI로 초안 준비', exact: true }).click();
   await expect(

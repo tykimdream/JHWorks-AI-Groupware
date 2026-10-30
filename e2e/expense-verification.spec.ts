@@ -23,7 +23,7 @@ test('expense verification separates input matches, rule actions and execution c
   await expect(region.getByText('자동 판정하지 않음', { exact: true })).toHaveCount(2);
   await expect(region).toContainText('참조 번호는 첨부·진위 확인을 대신하지 않습니다.');
   await region.getByText(/^근거:.*EXPENSE-2/).click();
-  await expect(region.getByText('Expenses of KRW 100,000 or more require a receipt.', { exact: true })).toBeVisible();
+  await expect(region.getByText('100,000원 이상의 경비에는 영수증이 필요합니다.', { exact: true })).toBeVisible();
   await region.getByText('검사 실행 정보', { exact: true }).click();
   await expect(region.getByText(/실행 ID: draft_run_/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

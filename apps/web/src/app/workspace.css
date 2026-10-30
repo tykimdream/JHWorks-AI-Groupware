@@ -862,6 +862,19 @@ textarea:focus {
   }
 }
 @media (max-width: 900px) {
+  /* Put identity beside the brand; navigation remains a full-width horizontal rail. */
+  .sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 12px;
+  }
+  .sidebar-brand { grid-column: 1; grid-row: 1; }
+  .sidebar-footer { display: contents; }
+  .sidebar-footer .profile-card { grid-column: 2; grid-row: 1; }
+  .sidebar-footer .profile-card > div:nth-child(2) span { display: none; }
+  .sidebar-role-switch { grid-column: 1 / -1; grid-row: 3; }
+  .nav-list { scrollbar-width: thin; }
   .app-frame {
     grid-template-columns: 1fr;
   }

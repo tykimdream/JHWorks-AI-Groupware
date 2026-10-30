@@ -180,3 +180,32 @@ def test_work_assistant_eval_dataset_covers_every_read_only_tool() -> None:
 
     assert len(cases) >= 5
     assert covered == {tool["name"] for tool in TOOL_DEFINITIONS}
+
+
+def test_approval_tool_filters_before_limit_and_reports_total(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    fake_work_assistant_provider: FakeWorkAssistantProvider,
+) -> None:
+    login(client, "seojin.yoon@jhworks.test")
+    for title in ("Alpha", "Beta", "Gamma"):
+        response = client.post("/api/v1/approvals", json={
+            "type": "GENERAL", "title": title, "content": "Synthetic",
+            "details": {"kind": "GENERAL"},
+        })
+        assert response.status_code == 201
+    fake_work_assistant_provider.planned_calls = [
+        ("list_my_approvals", {"status": "DRAFT", "limit": 2})
+    ]
+    response = client.post("/api/v1/work-assistant/query", json={"message": "내 초안"})
+    assert response.status_code == 200
+    result = response.json()["toolExecutions"][0]["result"]
+    assert result["total"] == 3
+    assert len(result["items"]) == 2
+    assert all(item["status"] == "DRAFT" for item in result["items"])
+    fake_work_assistant_provider.planned_calls = [
+        ("list_my_approvals", {"status": "APPROVED", "limit": 2})
+    ]
+    response = client.post("/api/v1/work-assistant/query", json={"message": "내 승인"})
+    result = response.json()["toolExecutions"][0]["result"]
+    assert result == {"total": 0, "items": []}

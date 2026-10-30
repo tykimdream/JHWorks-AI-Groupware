@@ -133,16 +133,24 @@ export function ExpenseDecisionPanel({ approval }: { approval: Approval }) {
       {brief.checks.duplicateMatches.length ? <ul>{brief.checks.duplicateMatches.map((item) => <li key={item.id}><Link href={`/approvals/${item.id}`}>{item.title}</Link></li>)}</ul> : <p>조회 가능한 문서에서 같은 지출일·사용처·금액의 후보를 찾지 못했습니다.</p>}
       <p className="tw:text-sm tw:text-jhw-muted">중복 후보는 실제 중복 지출의 증명이 아닙니다.{brief.checks.moreMatches && ' 최근 후보 3건만 표시합니다.'}</p>
       </div><div><h3>규정 기준과 증빙</h3>
-      <p>증빙 참조: {brief.receiptReference ?? '미입력'} · 원본 첨부·진위는 확인되지 않았습니다.</p>
+      <p>증빙 참조: {brief.receiptReference?.trim() || '등록된 참조 없음'} · 원본 첨부·진위는 확인되지 않았습니다.</p>
       {brief.policy.status === 'UNAVAILABLE' && <p>활성 규정을 조회하지 못했습니다. 규정 준수 여부는 확인되지 않았습니다.</p>}
-      <ul className="tw:list-none tw:p-0">{[...brief.policy.checks].sort((a, b) => Number(b.outcome === 'ACTION_REQUIRED') - Number(a.outcome === 'ACTION_REQUIRED')).map((check) => {
-        const source = brief.policy.citations.find((c) => c.citationKey === check.citationKey);
-        return <li key={check.citationKey} className="tw:my-4 tw:border-0 tw:border-l-2 tw:border-solid tw:border-jhw-border tw:pl-3">
-          <strong>{check.outcome === 'ACTION_REQUIRED' ? '추가 확인 필요' : check.outcome === 'NOT_APPLICABLE' ? '이 기준의 대상 아님' : '자동 판정하지 않음'}</strong>
-          <p>{check.message}</p>
-          {source && <details><summary>근거: {source.sectionTitle} · {source.version}</summary><p>{source.excerpt}</p><Link href="/policies">규정 전체 보기</Link></details>}
-        </li>;
-      })}</ul></div></div>
+      {(() => {
+        const evaluated = brief.policy.checks.filter((check) => check.outcome !== 'NOT_EVALUATED');
+        const unevaluated = brief.policy.checks.filter((check) => check.outcome === 'NOT_EVALUATED');
+        const renderCheck = (check: Brief['policy']['checks'][number]) => {
+          const source = brief.policy.citations.find((c) => c.citationKey === check.citationKey);
+          return <li key={check.citationKey} className="tw:my-4 tw:border-0 tw:border-l-2 tw:border-solid tw:border-jhw-border tw:pl-3">
+            <strong>{check.outcome === 'ACTION_REQUIRED' ? '추가 확인 필요' : check.outcome === 'NOT_APPLICABLE' ? '이 기준의 대상 아님' : '자동 판정하지 않음'}</strong>
+            <p>{check.message}</p>
+            {source && <details><summary>근거: {source.sectionTitle} · {source.version}</summary><p>{source.excerpt}</p><Link href="/policies">규정 전체 보기</Link></details>}
+          </li>;
+        };
+        return <>
+          <ul className="tw:list-none tw:p-0">{evaluated.sort((a, b) => Number(b.outcome === 'ACTION_REQUIRED') - Number(a.outcome === 'ACTION_REQUIRED')).map(renderCheck)}</ul>
+          {unevaluated.length > 0 && <details><summary>자동 판정하지 않은 규정 {unevaluated.length}개</summary><p>관련성과 준수 여부는 직접 확인해 주세요.</p><ul className="tw:list-none tw:p-0">{unevaluated.map(renderCheck)}</ul></details>}
+        </>;
+      })()}</div></div>
       {brief.rejectionComment && <><h3>이전 회차의 반려 의견</h3><blockquote className="tw:mx-0 tw:whitespace-pre-wrap tw:break-words">{brief.rejectionComment}</blockquote><p>보완 완료 여부는 아래 현재 문서와 비교해 확인해 주세요. 과거 문서 snapshot과의 자동 비교는 제공하지 않습니다.</p></>}
     </>}
   </section>;

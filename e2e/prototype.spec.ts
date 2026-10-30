@@ -114,7 +114,7 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
       .getByRole('region', { name: '체험 다음 단계' })
       .getByRole('button', { name: '결재자로 전환해 계속하기' })
       .click();
-    await page.getByRole('tab', { name: '내가 결재할 문서' }).click();
+    await page.getByRole('tab', { name: '내게 배정된 문서' }).click();
     await expect(
       page.getByRole('link').filter({ hasText: '코엑스 전시회 출장 교통비 정산' }),
     ).toBeVisible();

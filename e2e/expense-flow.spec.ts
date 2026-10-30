@@ -51,6 +51,8 @@ test('CES actual expense → missing facts → policy preview → save → edit 
   await page.getByRole('button', { name: '로그아웃', exact: true }).click();
   await page.getByRole('button', { name: /결재자 · 최도윤/ }).click();
   await page.getByRole('button', { name: 'Demo 로그인', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /검토할 결재/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: '결재 검토하기' })).toHaveAttribute('href', /from=assigned/);
   await page.getByRole('link', { name: /내가 처리할 결재/ }).click();
   await page.locator('.approval-row').filter({ hasText: 'CES 출장 경비 정산' }).first().click();
   await expect(page.locator('.expense-summary')).toContainText('RCP-CES-001');

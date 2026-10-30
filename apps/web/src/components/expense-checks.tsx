@@ -82,12 +82,14 @@ export function ExpenseChecksPanel({
   status = 'DRAFT',
   canEdit = false,
   listScope,
+  onChecked,
 }: {
   approvalId: string;
   version: number;
   status?: ApprovalStatus;
   canEdit?: boolean;
   listScope?: 'mine' | 'assigned';
+  onChecked?: (version: number, missingFields: string[]) => void;
 }) {
   const [checks, setChecks] = useState<ExpenseChecks | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +106,7 @@ export function ExpenseChecksPanel({
           return;
         }
         setChecks(result);
+        onChecked?.(result.version, result.missingFields);
         setError(null);
       })
       .catch((caught: unknown) => {
@@ -111,7 +114,7 @@ export function ExpenseChecksPanel({
           setError(getUserErrorMessage(caught, '경비 확인 정보를 불러오지 못했습니다.'));
       });
     return () => controller.abort();
-  }, [approvalId, version, attempt]);
+  }, [approvalId, version, attempt, onChecked]);
   return (
     <section className="expense-check-panel" aria-label="경비 사전 확인">
       <div className="expense-check-heading">

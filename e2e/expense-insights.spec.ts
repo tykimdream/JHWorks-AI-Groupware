@@ -53,6 +53,8 @@ test('home proactively offers missing facts and duplicate evidence that opens an
   await expect(page).toHaveURL(new RegExp(`/approvals/${currentId}$`));
   const checks = page.getByRole('region', { name: '경비 사전 확인' });
   await expect(checks).toContainText('업무 목적');
+  await expect(page.getByRole('button', { name: '제출', exact: true })).toBeDisabled();
+  await expect(page.getByText('필수 지출 정보를 보완해 주세요')).toBeVisible();
   await expect(
     checks.getByRole('link', { name: 'CES 교통비 · 기존 정산', exact: true }),
   ).toBeVisible();
@@ -76,6 +78,7 @@ test('home proactively offers missing facts and duplicate evidence that opens an
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/approvals/${currentId}\\?from=mine$`));
   await expect(checks).not.toContainText('업무 목적 보완하기');
+  await expect(page.getByRole('button', { name: '제출', exact: true })).toBeEnabled();
   expect(patches).toBe(1);
   await checks.getByRole('link', { name: 'CES 교통비 · 기존 정산', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/approvals/${oldId}$`));
@@ -142,4 +145,16 @@ test('approver sees read-only checks and rejection comments remain visible durin
   await expect(page.getByRole('textbox', { name: '업무 내용', exact: true })).toHaveValue('합성 검증');
   await mkdir('artifacts/workspace-preview', { recursive: true });
   await page.screenshot({ path: `artifacts/workspace-preview/rejection-edit-${testInfo.project.name}.png` });
+});
+
+test('required title remains visible above sticky form actions', async ({ page }) => {
+  await page.goto('/approvals/new?type=EXPENSE');
+  await page.getByRole('button', { name: '초안 저장', exact: true }).click();
+  const title = page.getByRole('textbox', { name: '제목', exact: true });
+  await expect(title).toBeFocused();
+  const field = await title.boundingBox();
+  const actions = await page.locator('.sticky-actions').boundingBox();
+  expect(field).not.toBeNull();
+  expect(actions).not.toBeNull();
+  expect(field!.y + field!.height).toBeLessThanOrEqual(actions!.y);
 });

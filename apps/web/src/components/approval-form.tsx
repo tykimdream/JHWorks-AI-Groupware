@@ -306,7 +306,12 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
   };
 
   return (
-    <form className="document-form" onSubmit={handleSubmit} aria-busy={isSaving} onChange={() => { if (recovery) setRecovery(null); }}>
+    <form className="document-form" onSubmit={handleSubmit} aria-busy={isSaving} onChange={() => { if (recovery) setRecovery(null); }} onInvalid={(event) => {
+      const field = event.target as HTMLElement;
+      requestAnimationFrame(() => {
+        if (document.activeElement === field) field.scrollIntoView({ block: 'center', behavior: 'instant' });
+      });
+    }}>
       <ConfirmationDialog open={pendingNavigation !== null} title="저장하지 않고 이동할까요?" description="변경한 내용과 이 탭의 임시 입력을 지우고 이동합니다. 저장하려면 계속 작성을 선택해주세요." confirmLabel="저장하지 않고 이동" cancelLabel="계속 작성" onCancel={() => setPendingNavigation(null)} onConfirm={() => {
         const navigate = pendingNavigation;
         if (!navigate || saving.current) return;

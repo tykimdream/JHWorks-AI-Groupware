@@ -858,6 +858,11 @@ textarea:focus {
   text-align: right;
 }
 
+/* Keep focused fields visible above the sticky form controls. */
+.document-form input, .document-form select, .document-form textarea {
+  scroll-margin-bottom: 120px;
+}
+
 .sticky-actions {
   position: sticky;
   bottom: 18px;

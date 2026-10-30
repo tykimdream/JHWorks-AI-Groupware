@@ -271,6 +271,14 @@ export interface ExpensePolicyValidation {
 }
 
 export interface ApprovalDraftPrepareResponse {
+  generalVerification?: 'INPUT_MATCHED' | 'REBUILT_FROM_INPUT' | 'STRUCTURED_INPUT_MATCHED' | 'NATURAL_INPUT_MATCHED' | 'NOT_APPLICABLE';
+  generalEvidence?: { field: string; sourceIndex: number; start: number; end: number; text: string; draftText?: string | null; transformation?: 'EXACT' | 'POLITE_PAST' | 'POLITE_COPULA' | null }[];
+  generalExampleTitle?: string | null;
+  generalMissingFields?: string[];
+  exampleStatus?: 'READY' | 'NOT_INDEXED' | 'UNAVAILABLE' | 'NOT_APPLICABLE';
+  exampleRetrieval?: 'LOCAL' | 'SAFE_TOPICS' | 'SAFE_TOPICS_AFTER_LOCAL_FAILURE' | 'NOT_APPLICABLE';
+  examples?: { id: string; title: string; content: string; outline: string[] }[];
+  approverSuggestion?: { name: string; position: string; reason: string } | null;
   execution?: DraftExecution;
   grounding?: ExpenseGrounding;
   policyValidation?: ExpensePolicyValidation | null;

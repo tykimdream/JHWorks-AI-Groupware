@@ -5,6 +5,7 @@ import pytest
 
 from app.ai import openai_approval_draft
 from app.ai.expense_pricing import MODEL
+from app.services.draft_privacy import mask_draft_input, restore_text
 from tests.test_budgeted_expense_draft import provider_input, result
 
 
@@ -41,9 +42,10 @@ def test_public_sdk_parameters_pin_endpoint_tier_and_output_without_retry(
         max_retries=0,
         standard_tier=True,
     )
-    output = provider.prepare(
-        provider_input().model_copy(update={"revision_context": revision_context}), "opaque"
-    )
+    masked = mask_draft_input(
+        provider_input().model_copy(update={"revision_context": revision_context})
+    ).value
+    output = provider.prepare(masked, "opaque")
     assert len(calls) == len(constructions) == 1
     assert constructions[0]["base_url"] == "https://api.openai.com/v1"
     assert constructions[0]["max_retries"] == 0 and constructions[0]["timeout"] == 20.0
@@ -62,7 +64,10 @@ def test_public_sdk_parameters_pin_endpoint_tier_and_output_without_retry(
         REVISION_PROMPT_VERSION if revision_context else PROMPT_VERSION
     )
     if revision_context:
-        assert supplied["revision_context"] == revision_context
+        assert supplied["revision_context"] != revision_context
+        assert (
+            restore_text(supplied["revision_context"], masked.private_token_map) == revision_context
+        )
         assert "NOT expense evidence" in calls[0]["instructions"]
         assert revision_context not in calls[0]["instructions"]
     else:

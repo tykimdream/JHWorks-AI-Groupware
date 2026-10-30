@@ -9,6 +9,7 @@ from app.ai.approval_draft import ApprovalDraftProviderError, ApprovalDraftProvi
 from app.ai.openai_approval_draft import OpenAIApprovalDraftProvider
 from app.core.config import get_settings
 from app.evals.draft_contract import grade_candidate, load_cases
+from app.services.draft_privacy import mask_draft_input
 
 CASE_IDS = ("past-spend-is-expense", "multi-turn-ces-expense")
 MODEL = "gpt-5.4-mini"
@@ -40,12 +41,14 @@ def run(*, execute: bool) -> dict[str, Any]:
         report["attempted"] += 1
         try:
             result = provider.prepare(
-                ApprovalDraftProviderInput(
-                    request=case.request,
-                    answers=case.answers,
-                    current_date=case.current_date,
-                    timezone="Asia/Seoul",
-                ),
+                mask_draft_input(
+                    ApprovalDraftProviderInput(
+                        request=case.request,
+                        answers=case.answers,
+                        current_date=case.current_date,
+                        timezone="Asia/Seoul",
+                    )
+                ).value,
                 hashlib.sha256(b"jhworks-synthetic-expense-smoke").hexdigest(),
             )
         except (ApprovalDraftProviderError, ValueError):

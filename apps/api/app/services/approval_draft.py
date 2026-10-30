@@ -18,6 +18,7 @@ from app.ai.approval_draft import (
     ApprovalDraftProvider,
     ApprovalDraftProviderError,
     ApprovalDraftProviderInput,
+    DraftExampleReference,
     DraftIntent,
     DraftProviderResult,
 )
@@ -36,7 +37,7 @@ from app.core.security import (
 )
 from app.models.approval import Approval
 from app.models.employee import Employee
-from app.models.enums import ApprovalStatus, ApprovalType
+from app.models.enums import ApprovalType
 from app.schemas.approval import (
     ApprovalCreate,
     BusinessTripDetails,
@@ -51,6 +52,9 @@ from app.schemas.approval_draft_ai import (
     ApprovalDraftPrepareResponse,
     ApprovalDraftQuestion,
     ApprovalDraftUsage,
+    ApprovalExampleReference,
+    ApprovalLineSuggestion,
+    GeneralDraftEvidence,
 )
 from app.schemas.draft_execution import DraftStage, DraftStageOutcome
 from app.schemas.expense_policy import ExpensePolicyValidation
@@ -61,10 +65,16 @@ from app.schemas.policy import (
 )
 from app.services import approval as approval_service
 from app.services import policy_retrieval
+from app.services.approval_examples import search_examples
 from app.services.draft_execution import DraftExecution
+from app.services.draft_privacy import mask_draft_input
 from app.services.expense_grounding import check_expense_input
 from app.services.expense_policy import expense_policy_fingerprint, validate_expense_policy
 from app.services.expense_validation import expense_validation_errors
+from app.services.general_draft_verification import verify_general_draft
+from app.services.grounded_general_draft import structured_general_draft
+from app.services.local_example_search import LocalSearchUnavailable, search_local_examples
+from app.services.natural_general_draft import natural_general_draft
 
 QUESTION_PROMPTS = {
     "title": "결재 제목에 반드시 드러나야 할 핵심 업무는 무엇인가요?",
@@ -278,21 +288,14 @@ def _policy_context(
     policy_type = policy_retrieval.APPROVAL_POLICY_TYPES.get(preview.type)
     if policy_type is None:
         return _not_applicable_policy_context()
-    draft = Approval(
-        id="preview",
-        type=preview.type,
-        title=preview.title,
-        content=preview.content,
-        author_id="preview",
-        status=ApprovalStatus.DRAFT,
-        amount=preview.amount,
-        details=preview.details.model_dump(mode="json", by_alias=True),
-        attachment_metadata=[],
-    )
     settings = get_settings()
     return policy_retrieval.search_policy_sections(
         db=db,
-        query=policy_retrieval.approval_policy_query(draft),
+        query=(
+            "출장 신청 여비 규정"
+            if preview.type == ApprovalType.BUSINESS_TRIP
+            else "경비 정산 영수증 규정"
+        ),
         policy_type=policy_type,
         top_k=settings.policy_retrieval_top_k,
         min_score=settings.policy_retrieval_min_score,
@@ -364,7 +367,11 @@ def _execute_prepare(
     class GraphState(TypedDict, total=False):
         provider_input: ApprovalDraftProviderInput
         provider_result: DraftProviderResult
+        masked_provider_input: ApprovalDraftProviderInput
         result: ApprovalDraftPrepareResponse
+        example_status: str
+        examples: list[ApprovalExampleReference]
+        example_retrieval: str
 
     def extract(state: GraphState) -> GraphState:
         del state
@@ -380,17 +387,63 @@ def _execute_prepare(
                 raise DomainValidationError(
                     "INVALID_DRAFT_REQUEST", "Enter a non-empty draft request."
                 )
-            safety_identifier = hashlib.sha256(actor.id.encode()).hexdigest()
+            safety_identifier = hmac.new(
+                get_settings().jwt_secret.encode(),
+                b"draft-safety:" + actor.id.encode(),
+                hashlib.sha256,
+            ).hexdigest()
+        masked_input = mask_draft_input(provider_input)
+        example_status = "NOT_APPLICABLE"
+        examples: list[ApprovalExampleReference] = []
+        example_retrieval = "NOT_APPLICABLE"
+        if not revision_context and not get_settings().public_demo_enabled:
+            settings = get_settings()
+            rows = []
+            example_retrieval = "SAFE_TOPICS"
+            if settings.local_example_search_enabled:
+                try:
+                    rows = search_local_examples(
+                        db, "\n".join([provider_input.request, *provider_input.answers])
+                    )
+                    example_status = "READY"
+                    example_retrieval = "LOCAL"
+                except LocalSearchUnavailable:
+                    example_retrieval = "SAFE_TOPICS_AFTER_LOCAL_FAILURE"
+            if example_retrieval != "LOCAL":
+                example_status, rows = search_examples(
+                    db,
+                    embedding_provider,
+                    masked_input.topic_query or "일반 업무 기안",
+                    settings.policy_embedding_model,
+                    settings.policy_embedding_dimensions,
+                )
+            examples = [
+                ApprovalExampleReference(
+                    id=row.id, title=row.title, content=row.content, outline=row.outline
+                )
+                for row in rows
+            ]
+            masked_input.value.example_references = [
+                DraftExampleReference(title=example.title, content=example.content)
+                for example in examples
+            ]
         with execution.stage(DraftStage.PROVIDER):
             try:
-                provider_result = provider.prepare(provider_input, safety_identifier)
+                provider_result = provider.prepare(masked_input.value, safety_identifier)
                 execution.provider_metadata(provider_result.provider, provider_result.model)
             except ApprovalDraftProviderError as exc:
                 raise ServiceUnavailableError(
                     "AI_DRAFT_UNAVAILABLE",
                     "AI draft creation is temporarily unavailable. No approval was created.",
                 ) from exc
-        return {"provider_input": provider_input, "provider_result": provider_result}
+        return {
+            "provider_input": provider_input,
+            "masked_provider_input": masked_input.value,
+            "provider_result": provider_result,
+            "example_status": example_status,
+            "example_retrieval": example_retrieval,
+            "examples": examples,
+        }
 
     def validate_and_prepare(state: GraphState) -> GraphState:
         provider_input = state["provider_input"]
@@ -404,6 +457,55 @@ def _execute_prepare(
         policy_context = _not_applicable_policy_context()
         policy_validation: ExpensePolicyValidation | None = None
         with execution.stage(DraftStage.VALIDATE) as validation:
+            general_evidence: list[GeneralDraftEvidence] = []
+            general_example_title: str | None = None
+            general_missing_fields: list[str] = []
+            structured = structured_general_draft(
+                candidate,
+                provider_input,
+                [(example.title, example.outline) for example in state["examples"]],
+            )
+            if structured:
+                candidate = structured.candidate
+                general_verification = "STRUCTURED_INPUT_MATCHED"
+                general_evidence = [
+                    GeneralDraftEvidence(
+                        field=fact.field,
+                        source_index=fact.source_index,
+                        start=fact.start,
+                        end=fact.end,
+                        text=fact.value,
+                    )
+                    for fact in structured.facts
+                ]
+                general_example_title = structured.example_title
+                general_missing_fields = structured.missing_fields
+            else:
+                natural = natural_general_draft(
+                    candidate,
+                    provider_input,
+                    [(example.title, example.outline) for example in state["examples"]],
+                )
+                if natural:
+                    candidate = natural.candidate
+                    general_verification = "NATURAL_INPUT_MATCHED"
+                    general_evidence = [
+                        GeneralDraftEvidence(
+                            field=fact.field,
+                            source_index=fact.source_index,
+                            start=fact.start,
+                            end=fact.end,
+                            text=fact.text,
+                            draft_text=fact.draft_text,
+                            transformation=fact.transformation,
+                        )
+                        for fact in natural.facts
+                    ]
+                    general_example_title = natural.example_title
+                else:
+                    candidate, general_verification = verify_general_draft(
+                        candidate, provider_input
+                    )
             candidate, grounding = check_expense_input(candidate, provider_input)
             missing = _missing_fields(candidate)
             field_names = {
@@ -468,7 +570,16 @@ def _execute_prepare(
             else:
                 status = ApprovalDraftAIStatus.PREVIEW
                 assistant_message = (
-                    "JHWorks 양식에 맞춘 미리보기입니다. 내용을 확인한 뒤 Draft로 저장하세요."
+                    (
+                        "모델 문장을 원문과 대조하지 못해 입력 내용으로 미리보기를 구성했습니다. "
+                        "내용을 확인해 주세요."
+                    )
+                    if general_verification == "REBUILT_FROM_INPUT"
+                    else "입력한 항목을 원문 근거와 함께 구성했습니다. 내용을 확인해 주세요."
+                    if general_verification == "STRUCTURED_INPUT_MATCHED"
+                    else "입력 문장을 순서대로 반영했습니다. 바뀐 표현과 근거를 확인해 주세요."
+                    if general_verification == "NATURAL_INPUT_MATCHED"
+                    else "JHWorks 양식에 맞춘 미리보기입니다. 내용을 확인한 뒤 Draft로 저장하세요."
                 )
                 questions = []
                 preview = _preview(candidate)
@@ -501,7 +612,30 @@ def _execute_prepare(
                         preview_hash(preview),
                         policy_validation.fingerprint if policy_validation else None,
                     )
+        manager = db.get(Employee, actor.manager_id) if actor.manager_id else None
+        suggestion = (
+            ApprovalLineSuggestion(
+                name=manager.name,
+                position=manager.position,
+                reason="현재 조직 정보의 직속 상급자입니다. 제출 시 서버가 다시 확인합니다.",
+            )
+            if manager
+            and manager.is_active
+            and manager.id != actor.id
+            and manager.demo_workspace_id == actor.demo_workspace_id
+            else None
+        )
         result = ApprovalDraftPrepareResponse(
+            example_retrieval=state["example_retrieval"],
+            general_verification=general_verification,
+            general_evidence=general_evidence,
+            general_example_title=general_example_title,
+            general_missing_fields=general_missing_fields,
+            example_status=state["example_status"]
+            if candidate.intent == DraftIntent.GENERAL
+            else "NOT_APPLICABLE",
+            examples=state["examples"] if candidate.intent == DraftIntent.GENERAL else [],
+            approver_suggestion=suggestion,
             execution=execution.report(status.value),
             grounding=grounding,
             policy_validation=policy_validation,

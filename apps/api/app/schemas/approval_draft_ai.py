@@ -59,7 +59,38 @@ class ApprovalDraftUsage(ApiSchema):
     total_tokens: int = Field(ge=0)
 
 
+class ApprovalExampleReference(ApiSchema):
+    id: str
+    title: str
+    content: str
+    outline: list[str]
+
+
+class ApprovalLineSuggestion(ApiSchema):
+    name: str
+    position: str
+    reason: str
+
+
+class GeneralDraftEvidence(ApiSchema):
+    field: str
+    source_index: int
+    start: int
+    end: int
+    text: str
+    draft_text: str | None = None
+    transformation: str | None = None
+
+
 class ApprovalDraftPrepareResponse(ApiSchema):
+    general_verification: str = "NOT_APPLICABLE"
+    general_evidence: list[GeneralDraftEvidence] = Field(default_factory=list)
+    general_example_title: str | None = None
+    general_missing_fields: list[str] = Field(default_factory=list)
+    example_status: str = "NOT_APPLICABLE"
+    example_retrieval: str = "NOT_APPLICABLE"
+    examples: list[ApprovalExampleReference] = Field(default_factory=list)
+    approver_suggestion: ApprovalLineSuggestion | None = None
     execution: DraftExecutionRead
     grounding: ExpenseGroundingRead
     policy_validation: ExpensePolicyValidation | None

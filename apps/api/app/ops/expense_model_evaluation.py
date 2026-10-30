@@ -23,6 +23,7 @@ from app.evals.draft_contract import (
     grade_candidate,
     load_cases,
 )
+from app.services.draft_privacy import mask_draft_input
 
 ROOT = Path(__file__).resolve().parents[4]
 DIRECTORY = ROOT / "artifacts/evals"
@@ -121,12 +122,14 @@ def evaluate_cases(
         save(report)
         try:
             result = provider.prepare(
-                ApprovalDraftProviderInput(
-                    request=case.request,
-                    answers=case.answers,
-                    current_date=case.current_date,
-                    timezone="Asia/Seoul",
-                ),
+                mask_draft_input(
+                    ApprovalDraftProviderInput(
+                        request=case.request,
+                        answers=case.answers,
+                        current_date=case.current_date,
+                        timezone="Asia/Seoul",
+                    )
+                ).value,
                 safety_id,
             )
         except (ApprovalDraftProviderError, AppError) as exc:

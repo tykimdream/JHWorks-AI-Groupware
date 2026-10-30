@@ -8,6 +8,7 @@
     "build:web": "pnpm --filter @jhworks/web build",
     "db:migrate": "cd apps/api && uv run alembic upgrade head",
     "db:seed": "cd apps/api && uv run python -m app.scripts.seed",
+    "examples:index": "cd apps/api && uv run python -m app.scripts.index_approval_examples",
     "policy:index": "cd apps/api && uv run python -m app.scripts.index_policies",
     "lint:api": "cd apps/api && uv run ruff check app tests alembic",
     "lint:web": "pnpm --filter @jhworks/web lint",

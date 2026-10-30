@@ -25,7 +25,7 @@ test('CES actual expense → missing facts → policy preview → save → edit 
   ).toBeVisible();
   await expect(page.locator('.expense-summary')).toContainText('170,000');
   await expect(page.locator('.expense-summary')).toContainText('코레일');
-  await expect(page.locator('.draft-policy-card')).toContainText('Receipts');
+  await expect(page.locator('.draft-policy-card').filter({ hasText: '정책 검색' })).toContainText('Receipts');
   await expect(page.locator('.expense-summary')).toContainText('원본 검증은 지원하지 않으며');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.evaluate(() => window.scrollTo(0, 0));

@@ -17,7 +17,7 @@ import type { Approval, ApprovalDraftPrepareResponse, BusinessTripDetails } from
 
 const starterExamples = [
   '다음 주 화요일 부산에서 열리는 협력사 미팅 출장 신청을 준비해줘. 예상 교통비는 17만원이야.',
-  '신규 파트너 온보딩을 위한 일반 업무 협조 결재 초안 작성해줘.',
+  '문서 유형: 일반\n제목: 가상 서비스 인터뷰 결과 보고\n개요: 가상 서비스 기획을 위한 인터뷰를 진행했습니다.\n업무 내용: 기능 범위와 권한 구조를 논의했습니다.\n업무 기간: 2026년 3월\n주요 산출물: 인터뷰 정리 문서\n참여 인원: 기획팀과 개발팀',
 ];
 
 const policyStatusLabels = {
@@ -188,6 +188,11 @@ export const ApprovalDraftAssistant = () => {
                   {isPreparing ? '내용 파악 중…' : 'AI로 초안 준비'}
                 </button>
               </form>
+              {!expenseOnly && (
+                <p className="draft-support-note">
+                  일반 업무를 자연어로 적어 주세요. 입력 문장을 순서대로 보존하고 지원하는 표현만 다듬습니다. 제목이나 항목을 직접 지정할 수도 있습니다.
+                </p>
+              )}
               <div className="draft-examples">
                 <span>예시로 시작하기</span>
                 {([...expenseExamples.map((example) => example.request), ...(expenseOnly ? [] : starterExamples)]).map((example) => (
@@ -257,6 +262,24 @@ export const ApprovalDraftAssistant = () => {
                 </form>
               )}
 
+              {result.status === 'PREVIEW' && result.preview?.type === 'GENERAL' && (
+                <form className="draft-follow-up-form" onSubmit={handleFollowUp}>
+                  <label>
+                    <span>추가하거나 정정할 내용</span>
+                    <textarea
+                      maxLength={2000}
+                      onChange={(event) => setAnswer(event.target.value)}
+                      placeholder="기간, 산출물, 참여 인원 등 확인한 내용을 알려주세요."
+                      rows={3}
+                      value={answer}
+                    />
+                  </label>
+                  <button className="ai-button" disabled={isPreparing || !answer.trim()} type="submit">
+                    {isPreparing ? '초안 갱신 중…' : '추가 내용 반영'}
+                  </button>
+                </form>
+              )}
+
               {result.status === 'UNSUPPORTED' && (
                 <div className="unsupported-actions">
                   <button className="secondary-button" type="button" onClick={continueManually}>
@@ -311,6 +334,24 @@ export const ApprovalDraftAssistant = () => {
                   <span>저장 전 미리보기</span>
                   <strong>{approvalTypeLabels[result.preview.type]}</strong>
                 </div>
+                {result.generalVerification === 'NATURAL_INPUT_MATCHED' && (
+                  <div className="policy-review-status">
+                    <strong>입력 문장에 근거한 기안</strong>
+                    <span>문장 순서를 유지하고 일부 말투만 바꿨습니다. 실제 사실과 맥락은 직접 확인해 주세요.</span>
+                  </div>
+                )}
+                {result.generalVerification === 'STRUCTURED_INPUT_MATCHED' && (
+                  <div className="policy-review-status">
+                    <strong>입력 근거를 확인한 기안</strong>
+                    <span>입력한 항목을 서버가 그대로 구성했습니다. 실제 사실과 맥락은 직접 확인해 주세요.</span>
+                  </div>
+                )}
+                {result.generalVerification === 'REBUILT_FROM_INPUT' && (
+                  <p role="status">AI 문장이 입력과 정확히 대응하지 않아 사용자 입력으로 초안을 구성했습니다. 내용을 직접 다듬고 확인해 주세요.</p>
+                )}
+                {result.generalVerification === 'INPUT_MATCHED' && (
+                  <p>기안 문장을 입력 내용과 대조했습니다. 실제 사실과 맥락은 직접 확인해 주세요.</p>
+                )}
                 <h2>{result.preview.title}</h2>
                 <p className="preview-content">{result.preview.content}</p>
                 {result.preview.details.kind === 'EXPENSE' && (
@@ -363,6 +404,57 @@ export const ApprovalDraftAssistant = () => {
                 )}
               </section>
 
+              {result.generalEvidence && result.generalEvidence.length > 0 && (
+                <section className="draft-policy-card">
+                  <div className="policy-review-status">
+                    <strong>기안 내용의 입력 근거</strong>
+                    <span>{result.generalExampleTitle
+                      ? `항목명은 가상 사례 ‘${result.generalExampleTitle}’를 참고했습니다.`
+                      : '입력 항목을 기준으로 구성했습니다.'}</span>
+                  </div>
+                  {Boolean(result.generalMissingFields?.length) && (
+                    <p>사례에 있으나 입력되지 않은 항목: {result.generalMissingFields?.join(', ')}. 필요한 경우 내용을 추가해 주세요.</p>
+                  )}
+                  {result.generalEvidence.map((fact) => (
+                    <article className="policy-citation" key={`${fact.sourceIndex}-${fact.start}-${fact.end}`}>
+                      <strong>{fact.field} · {fact.sourceIndex === 0 ? '업무 요청' : `추가 답변 ${fact.sourceIndex}`}</strong>
+                      <p>입력: {fact.text}</p>
+                      {fact.transformation && fact.transformation !== 'EXACT' && <p>기안: {fact.draftText}</p>}
+                    </article>
+                  ))}
+                </section>
+              )}
+              <section className="draft-policy-card">
+                <div className="policy-review-status">
+                  <strong>결재선 안내</strong>
+                  <span>{result.approverSuggestion
+                    ? `${result.approverSuggestion.name} · ${result.approverSuggestion.position} — ${result.approverSuggestion.reason}`
+                    : '현재 지정 가능한 직속 상급자가 없습니다. 제출 전 조직 정보를 확인해 주세요.'}</span>
+                </div>
+                <p>현재 결재선은 직속 상급자 1명이며 제출할 때 지정됩니다.</p>
+              </section>
+              {result.preview.type === 'GENERAL' && (
+                <section className="draft-policy-card">
+                  <div className="policy-review-status">
+                    <strong>참고한 가상 기안 사례</strong>
+                    <span>{result.exampleStatus === 'READY'
+                      ? (result.examples?.length ? '가상 사례를 검색했습니다. 기안의 사실과 확인 필요 항목을 검토해 주세요.' : '관련 사례를 찾지 못했습니다.')
+                      : '사례 검색을 사용할 수 없어 사용자 입력으로만 작성했습니다.'}</span>
+                  </div>
+                  {result.exampleRetrieval === 'LOCAL' && <p>업무 내용은 이 서버의 로컬 모델에서 검색했습니다.</p>}
+                  {result.exampleRetrieval === 'SAFE_TOPICS_AFTER_LOCAL_FAILURE' && <p>로컬 검색을 사용할 수 없어 업무 유형으로 검색했습니다.</p>}
+                  {result.examples?.map((example) => (
+                    <article className="policy-citation" key={example.id}>
+                      <strong>{example.title}</strong>
+                      <p>{example.outline.join(' · ')}</p>
+                      <details>
+                        <summary>가상 예시 본문 보기</summary>
+                        <p className="preview-content">{example.content}</p>
+                      </details>
+                    </article>
+                  ))}
+                </section>
+              )}
               <section className="draft-policy-card">
                 <div
                   className={`policy-review-status policy-status-${result.policyContext.status.toLowerCase()}`}

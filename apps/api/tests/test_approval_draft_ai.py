@@ -86,10 +86,9 @@ def test_follow_up_answers_are_sent_with_a_grounded_date(
 
     assert response.status_code == 200, response.text
     provider_input = fake_draft_provider.inputs[-1]
-    assert provider_input.answers == [
-        "복귀는 수요일이고 총 35만원이야",
-        "하버랩 프로젝트 협의야",
-    ]
+    assert len(provider_input.answers) == 2
+    assert "35만원" not in str(provider_input.model_dump())
+    assert "하버랩" not in str(provider_input.model_dump())
     assert provider_input.current_date == datetime.now(ZoneInfo("Asia/Seoul")).date()
     assert provider_input.timezone == "Asia/Seoul"
 

@@ -1,5 +1,6 @@
 from app.models.ai_budget import AIBudgetCounter, AIBudgetReservation
 from app.models.approval import Approval, ApprovalLine
+from app.models.approval_example import ApprovalExample
 from app.models.attendance import LeaveAccount, WorkCalendarEvent
 from app.models.demo_feedback import DemoFeedback, DemoFeedbackGate
 from app.models.demo_start_budget import DemoStartBudget
@@ -15,6 +16,7 @@ __all__ = [
     "DemoFeedback",
     "DemoFeedbackGate",
     "Approval",
+    "ApprovalExample",
     "ApprovalLine",
     "CompanyPolicy",
     "Credential",

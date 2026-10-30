@@ -12,6 +12,7 @@ from app.evals.draft_contract import (
     grade_candidate,
     load_cases,
 )
+from app.services.draft_privacy import mask_draft_input
 
 # Preserve existing dataset imports used by tooling and tests.
 __all__ = ["DATASET_PATH", "ApprovalDraftEvalCase", "load_cases"]
@@ -28,12 +29,14 @@ def main() -> int:
     for case in cases:
         try:
             result = provider.prepare(
-                ApprovalDraftProviderInput(
-                    request=case.request,
-                    answers=case.answers,
-                    current_date=case.current_date,
-                    timezone="Asia/Seoul",
-                ),
+                mask_draft_input(
+                    ApprovalDraftProviderInput(
+                        request=case.request,
+                        answers=case.answers,
+                        current_date=case.current_date,
+                        timezone="Asia/Seoul",
+                    )
+                ).value,
                 safety_identifier,
             )
         except ApprovalDraftProviderError:

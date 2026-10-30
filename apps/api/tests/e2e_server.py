@@ -35,6 +35,7 @@ from app.models.enums import ExpenseCategory
 from app.schemas.approval import ApprovalCreate
 from app.scripts.seed import seed_database
 from app.services.approval import create_draft
+from app.services.draft_privacy import restore_text
 from app.services.policy_retrieval import index_active_policy_sections
 
 settings = get_settings()
@@ -125,6 +126,17 @@ class BrowserDraftProvider(FakeApprovalDraftProvider):
         provider_input: ApprovalDraftProviderInput,
         safety_identifier: str,
     ) -> DraftProviderResult:
+        # Only the isolated fake reconstructs fixtures locally; it never calls a provider.
+        token_map = provider_input.private_token_map
+        provider_input = provider_input.model_copy(
+            update={
+                "request": restore_text(provider_input.request, token_map),
+                "answers": [restore_text(answer, token_map) for answer in provider_input.answers],
+                "revision_context": restore_text(provider_input.revision_context, token_map)
+                if provider_input.revision_context
+                else None,
+            }
+        )
         if provider_input.revision_context:
             # Explicitly synthetic correction scenario, not a model quality result.
             source = provider_input.request + "; " + "; ".join(provider_input.answers)

@@ -2,13 +2,14 @@ from datetime import date
 from typing import Any
 
 from pydantic import Field, ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.policy_embedding import PolicyEmbeddingProvider
 from app.ai.work_assistant import ToolExecutionError
 from app.core.config import get_settings
 from app.core.schema import ApiSchema
+from app.models.approval import Approval
 from app.models.attendance import LeaveAccount
 from app.models.employee import Employee
 from app.models.enums import ApprovalStatus, PolicyType
@@ -98,12 +99,22 @@ class ReadOnlyEnterpriseToolExecutor:
         }
 
     def _approvals(self, arguments: ListMyApprovalsArguments) -> dict[str, Any]:
-        approvals = approval_service.list_approvals(self._db, self._actor, "mine")
+        # Reuse the same actor/workspace visibility predicate as the full list.
+        visible = approval_service.visible_approval_query(self._actor).where(
+            Approval.author_id == self._actor.id
+        )
         if arguments.status is not None:
-            approvals = [item for item in approvals if item.status == arguments.status]
-        limited = approvals[: arguments.limit]
+            visible = visible.where(Approval.status == arguments.status)
+        scoped = visible.subquery()
+        total = self._db.scalar(select(func.count()).select_from(scoped)) or 0
+        rows = self._db.execute(
+            select(scoped.c.id, scoped.c.type, scoped.c.title, scoped.c.status,
+                   scoped.c.amount, scoped.c.version, scoped.c.updated_at)
+            .order_by(scoped.c.updated_at.desc(), scoped.c.id.desc())
+            .limit(arguments.limit)
+        ).all()
         return {
-            "total": len(approvals),
+            "total": total,
             "items": [
                 {
                     "id": item.id,
@@ -114,7 +125,7 @@ class ReadOnlyEnterpriseToolExecutor:
                     "version": item.version,
                     "updatedAt": item.updated_at.isoformat(),
                 }
-                for item in limited
+                for item in rows
             ],
         }
 

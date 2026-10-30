@@ -173,7 +173,7 @@ export default function ApprovalDetailPage() {
         </div>
       </header>
 
-      {approval.type === 'EXPENSE' && <ExpenseWorkGuide key={`${approval.id}-${approval.version}`} approval={approval} />}
+      {approval.type === 'EXPENSE' && <ExpenseWorkGuide key={`guide-${approval.id}-${approval.version}`} approval={approval} />}
 
       {isAuthor && (approval.status === 'DRAFT' || approval.status === 'REJECTED') && <RejectionContext comment={latestRejectionComment(approval)} />}
 
@@ -187,10 +187,10 @@ export default function ApprovalDetailPage() {
         </section>
       )}
       {isAuthor && approval.type === 'EXPENSE' && approval.status === 'REJECTED' && (
-        <ExpenseRevisionPanel key={`${approval.id}-${approval.version}`} approval={approval} onUpdated={setApproval} />
+        <ExpenseRevisionPanel key={`revision-${approval.id}-${approval.version}`} approval={approval} onUpdated={setApproval} />
       )}
       {isApprover && approval.type === 'EXPENSE' && approval.status === 'PENDING' && (
-        <ExpenseDecisionPanel key={`${approval.id}-${approval.version}`} approval={approval} />
+        <ExpenseDecisionPanel key={`decision-${approval.id}-${approval.version}`} approval={approval} />
       )}
       <div className="detail-layout">
         <article className="document-card">

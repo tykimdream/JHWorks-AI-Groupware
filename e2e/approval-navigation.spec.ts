@@ -28,15 +28,15 @@ test.beforeEach(async ({ page }) => {
 test('list scope follows URL, reload and browser back/forward', async ({ page }) => {
   await page.goto('/approvals');
   await expect(page.getByRole('tab', { name: '내가 작성한 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
-  await page.getByRole('tab', { name: '내가 결재할 문서', exact: true }).click();
+  await page.getByRole('tab', { name: '내게 배정된 문서', exact: true }).click();
   await expect(page).toHaveURL(/\/approvals\?scope=assigned$/);
-  await expect(page.getByRole('tab', { name: '내가 결재할 문서', exact: true })).toBeFocused();
+  await expect(page.getByRole('tab', { name: '내게 배정된 문서', exact: true })).toBeFocused();
   await page.reload();
-  await expect(page.getByRole('tab', { name: '내가 결재할 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: '내게 배정된 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: '내가 작성한 문서', exact: true }).click();
   await expect(page).toHaveURL(/scope=mine$/);
   await page.goBack();
-  await expect(page.getByRole('tab', { name: '내가 결재할 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: '내게 배정된 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('heading', { name: 'assigned 문서 nav-0', exact: true })).toBeVisible();
   await page.goForward();
   await expect(page.getByRole('tab', { name: '내가 작성한 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -51,7 +51,7 @@ test('detail returns to the selected scope and visible focused row after async l
   const back = page.getByRole('link', { name: '← 목록으로', exact: true });
   await expect(back).toHaveAttribute('href', '/approvals?scope=assigned#approval-nav-30');
   await back.click();
-  await expect(page.getByRole('tab', { name: '내가 결재할 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: '내게 배정된 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
   const row = page.locator('#approval-nav-30');
   await expect(row).toBeFocused();
   await expect(row).toBeInViewport();

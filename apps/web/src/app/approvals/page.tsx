@@ -60,7 +60,7 @@ function ApprovalListContent({ scope }: { scope: Scope }) {
         <div>
           <p className="eyebrow">APPROVAL WORKSPACE</p>
           <h1>전자결재</h1>
-          <p>내가 작성한 문서와 결재가 필요한 문서를 분리해 확인합니다.</p>
+          <p>내가 작성한 문서와 배정된 결재 문서를 분리해 확인합니다.</p>
         </div>
         <div className="page-header-actions">
           <Link
@@ -86,7 +86,7 @@ function ApprovalListContent({ scope }: { scope: Scope }) {
           onClick={() => changeScope('assigned')}
           role="tab"
         >
-          내가 결재할 문서
+          내게 배정된 문서
         </button>
       </div>
 

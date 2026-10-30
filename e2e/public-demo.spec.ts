@@ -113,7 +113,7 @@ test('real public visitor can switch roles, approve, and leave one private feedb
   await expect(page.getByRole('button', { name: '작성자로 돌아가기' })).toBeVisible();
   const manager = await (await page.request.get('/api/v1/employees/me')).json();
   expect(manager.id).toBe(original.manager.id);
-  await page.getByRole('tab', { name: '내가 결재할 문서' }).click();
+  await page.getByRole('tab', { name: '내게 배정된 문서' }).click();
   await page.getByRole('link').filter({ hasText: title }).click();
   await expect(badge).toHaveText('결재 대기');
   await page.getByLabel('결재 의견').fill('업무 목적과 증빙 참조를 확인했습니다.');

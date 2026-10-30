@@ -100,6 +100,11 @@ def test_postgres_multiple_rounds_preserve_json_without_duplicate_or_leaked_item
     result = assigned.json()
     assert result["total"] == 1
     assert [item["id"] for item in result["items"]] == [draft["id"]]
+    summary = client.get("/api/v1/approvals/summaries", params={"scope": "assigned", "limit": 1})
+    assert summary.status_code == 200
+    assert summary.json()["total"] == 1
+    assert summary.json()["items"][0]["id"] == draft["id"]
+    assert summary.json()["items"][0]["lineCount"] == 2
     item = result["items"][0]
     assert item["details"] == {"kind": "GENERAL"}
     assert item["attachmentMetadata"] == [{"name": "synthetic.txt", "contentType": "text/plain"}]
@@ -110,6 +115,9 @@ def test_postgres_multiple_rounds_preserve_json_without_duplicate_or_leaked_item
     hidden = client.get("/api/v1/approvals", params={"scope": "assigned"})
     assert hidden.status_code == 200
     assert hidden.json() == {"items": [], "total": 0}
+    hidden_summary = client.get("/api/v1/approvals/summaries", params={"scope": "assigned"})
+    assert hidden_summary.status_code == 200
+    assert hidden_summary.json()["total"] == 0
     assert client.get(path).status_code == 403
 
 

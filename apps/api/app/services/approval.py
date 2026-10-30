@@ -282,6 +282,26 @@ def list_approvals(db: Session, actor: Employee, scope: str) -> list[Approval]:
     return list(db.scalars(query).unique())
 
 
+def list_approval_page(
+    db: Session, actor: Employee, scope: str, limit: int, offset: int,
+    status: ApprovalStatus | None = None,
+) -> tuple[list[Approval], int]:
+    query = visible_approval_query(actor)
+    if scope == "mine":
+        query = query.where(Approval.author_id == actor.id)
+    elif scope == "assigned":
+        query = query.where(Approval.lines.any(ApprovalLine.approver_id == actor.id))
+    else:
+        raise DomainValidationError("INVALID_SCOPE", "scope must be 'mine' or 'assigned'")
+    if status is not None:
+        query = query.where(Approval.status == status)
+    total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    rows = db.scalars(
+        query.order_by(Approval.updated_at.desc(), Approval.id.desc()).limit(limit).offset(offset)
+    ).unique()
+    return list(rows), total
+
+
 def get_approval(db: Session, actor: Employee, approval_id: str) -> Approval:
     approval = _get_approval(db, approval_id)
     if not _can_view(approval, actor):

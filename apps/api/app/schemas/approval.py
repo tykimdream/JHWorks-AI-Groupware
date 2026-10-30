@@ -143,3 +143,23 @@ class ApprovalRead(ApiSchema):
 class ApprovalListResponse(ApiSchema):
     items: list[ApprovalRead]
     total: int
+
+
+class ApprovalSummary(ApiSchema):
+    id: str
+    type: ApprovalType
+    title: str
+    content_preview: str
+    author: EmployeeSummary
+    status: ApprovalStatus
+    amount: int | None
+    leave_days: Decimal | None
+    line_count: int
+    updated_at: datetime
+
+
+class ApprovalSummaryPage(ApiSchema):
+    items: list[ApprovalSummary]
+    total: int
+    limit: int
+    offset: int

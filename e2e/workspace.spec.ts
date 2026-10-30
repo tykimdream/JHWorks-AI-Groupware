@@ -149,3 +149,19 @@ test('AI failure retains the request and offers a usable manual form', async ({ 
   await expect(page.getByRole('heading', { name: '결재 문서 작성', exact: true })).toBeVisible();
   await expect(page.getByRole('textbox', { name: '업무 내용', exact: true })).toHaveValue(/협력사 미팅/);
 });
+
+test('mobile header keeps identity beside brand and navigation above content', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile');
+  const brand = await page.locator('.sidebar-brand').boundingBox();
+  const profile = await page.locator('.profile-card').boundingBox();
+  const navigation = await page.getByRole('navigation', { name: '주 메뉴' }).boundingBox();
+  const content = await page.locator('.workspace-topbar').boundingBox();
+  expect(brand).not.toBeNull();
+  expect(profile).not.toBeNull();
+  expect(navigation).not.toBeNull();
+  expect(content).not.toBeNull();
+  expect(Math.abs(brand!.y - profile!.y)).toBeLessThan(10);
+  expect(navigation!.y).toBeGreaterThan(brand!.y);
+  expect(content!.y).toBeGreaterThanOrEqual(navigation!.y + navigation!.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

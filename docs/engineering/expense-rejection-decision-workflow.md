@@ -57,3 +57,9 @@ API **634개 통과·34개 제외**, mypy **207개 파일 통과**, ruff와 web 
 일반 브라우저 전체 112개가 CI에서 통과한 뒤, 공개 Swagger 검사의 고정 API 수(40)가 새 3개 API를 반영하지 못해 실패했다. 실제 OpenAPI의 HTTP operation 수와 화면을 대조하고 새 3개 경로의 표시도 명시적으로 확인하도록 변경했다. 도메인 분류·요청 실행 비활성화·반응형 검사는 유지한다. 공개 모드 로컬 PC/모바일 Swagger 2개를 통과했다.
 
 [결재자 PC](../portfolio/prototype/decision-brief-desktop.png) · [결재자 모바일](../portfolio/prototype/decision-brief-mobile.png) · [수정 제안 PC](../portfolio/prototype/expense-revision-desktop.png) · [수정 제안 모바일](../portfolio/prototype/expense-revision-mobile.png). 격리된 합성 조직·규정·provider와 실제 API의 전체 페이지 화면이다. 사용자 관찰이나 실제 AI 품질 측정 자료는 아니다.
+
+## 결재자 검토 가독성 후속 변경
+
+결재자 검토에서 조치가 필요한 자동 규칙을 먼저 보여주고, 자동 판정하지 않은 규정은 별도로 펼쳐 확인한다. 증빙 참조가 빈 문자열이어도 미등록 상태를 명시한다. 자동 판정하지 않은 규정은 관련성이나 준수를 검증한 것으로 표시하지 않는다.
+
+새 로컬 합성 DB의 seed 규정은 한국어로 작성한다. 기존 DB의 규정 원문을 소급 수정하지 않으며, 별도로 원문을 교체하는 환경에서는 정책 버전과 검색 색인을 함께 확인해야 한다.

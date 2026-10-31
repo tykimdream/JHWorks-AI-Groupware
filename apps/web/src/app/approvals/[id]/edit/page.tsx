@@ -14,6 +14,10 @@ export default function EditApprovalPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
+  const rawPage = searchParams.get('fromPage');
+  const rawStatus = searchParams.get('fromStatus');
+  const fromPage = rawPage && /^\d+$/.test(rawPage) && Number(rawPage) > 1 && Number(rawPage) <= 501 ? Number(rawPage) : undefined;
+  const fromStatus = ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED'].includes(rawStatus ?? '') ? rawStatus : null;
   const focusField = parseExpenseRepairField(searchParams.get('focus'));
   const [approval, setApproval] = useState<Approval | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +42,7 @@ export default function EditApprovalPage() {
       {error && <p className="error-banner">{error}</p>}
       {!approval && !error && <div className="empty-card">초안을 불러오는 중입니다.</div>}
       {approval && <RejectionContext comment={latestRejectionComment(approval)} />}
-      {approval && <ApprovalForm key={`${approval.id}:${approval.version}`} initial={approval} listScope={from === 'mine' || from === 'assigned' ? from : undefined} focusField={focusField} />}
+      {approval && <ApprovalForm key={`${approval.id}:${approval.version}`} initial={approval} listScope={from === 'mine' || from === 'assigned' ? from : undefined} focusField={focusField} fromPage={fromPage} fromStatus={fromStatus} />}
     </AppShell>
   );
 }

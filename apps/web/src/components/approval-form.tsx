@@ -30,6 +30,8 @@ interface ApprovalFormProps {
   initialType?: ApprovalType;
   manualHandoff?: boolean;
   listScope?: 'mine' | 'assigned';
+  fromPage?: number;
+  fromStatus?: string | null;
   focusField?: ExpenseRepairField;
   preset?: ApprovalFormPreset;
 }
@@ -69,7 +71,7 @@ const blankLeaveDetails: LeaveDetails = {
 
 const numberOrNull = (value: string): number | null => (value === '' ? null : Number(value));
 
-export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false, listScope, focusField }: ApprovalFormProps) => {
+export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = false, listScope, focusField, fromPage, fromStatus }: ApprovalFormProps) => {
   const router = useRouter();
   const employee = useWorkspaceEmployee();
   const [handoff] = useState(() => !initial && manualHandoff && employee ? readManualDraft(employee.id) : null);
@@ -201,8 +203,9 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
     setHandoverNote(recovery.handoverNote);
     setRecovery(null);
   };
+  const detailContext = listScope ? `?from=${listScope}${fromPage ? `&fromPage=${fromPage}` : ''}${fromStatus ? `&fromStatus=${fromStatus}` : ''}` : '';
   const cancelEditing = () => {
-    const navigate = () => router.push(initial ? `/approvals/${initial.id}${listScope ? `?from=${listScope}` : ''}` : '/approvals');
+    const navigate = () => router.push(initial ? `/approvals/${initial.id}${detailContext}` : '/approvals');
     if (dirty) setPendingNavigation(() => navigate);
     else navigate();
   };
@@ -296,7 +299,7 @@ export const ApprovalForm = ({ initial, preset, initialType, manualHandoff = fal
       if (requestGeneration !== getSessionGeneration()) return;
       saved.current = true;
       if (key) clearFormRecovery(key);
-      if (mounted.current) router.push(`/approvals/${approval.id}${listScope ? `?from=${listScope}` : ''}`);
+      if (mounted.current) router.push(`/approvals/${approval.id}${detailContext}`);
     } catch (caught: unknown) {
       setError(getUserErrorMessage(caught, '초안을 저장하지 못했습니다.'));
     } finally {

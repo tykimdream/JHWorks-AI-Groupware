@@ -83,10 +83,10 @@ test('a late response from the previous approval scope never replaces the active
     lines: [],
     author: { name: '합성 작성자' },
     amount: null,
-    content: '테스트 문서',
+    contentPreview: '테스트 문서', lineCount: 0, leaveDays: null,
   });
-  await page.route('**/api/v1/approvals?scope=*', async (route) => {
-    const mine = route.request().url().endsWith('scope=mine');
+  await page.route('**/api/v1/approvals/summaries?*', async (route) => {
+    const mine = new URL(route.request().url()).searchParams.get('scope') === 'mine';
     if (mine) {
       started();
       await held;

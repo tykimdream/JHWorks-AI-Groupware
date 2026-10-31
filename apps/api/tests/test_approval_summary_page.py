@@ -5,7 +5,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models.approval import Approval
+from app.models.approval import Approval, ApprovalLine
+from app.models.employee import Employee
+from app.models.enums import ApprovalLineStatus
 
 
 def test_summary_page_limits_sorts_and_respects_scope(
@@ -41,3 +43,34 @@ def test_summary_page_limits_sorts_and_respects_scope(
     assert client.get("/api/v1/approvals/summaries").json()["total"] == 0
     assigned = client.get("/api/v1/approvals/summaries", params={"scope": "assigned"})
     assert assigned.json()["total"] == 0
+
+
+def test_assigned_pending_only_includes_current_pending_approver(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+    session_factory: sessionmaker[Session],
+) -> None:
+    login(client, "seojin.yoon@jhworks.test")
+    draft = client.post("/api/v1/approvals", json={
+        "type": "GENERAL", "title": "검토할 문서", "content": "합성 자료",
+        "details": {"kind": "GENERAL"},
+    }).json()
+    submitted = client.post(f"/api/v1/approvals/{draft['id']}/submit", json={
+        "version": draft["version"],
+    })
+    assert submitted.status_code == 200
+    login(client, "doyun.choi@jhworks.test")
+    params = {"scope": "assigned", "status": "PENDING"}
+    assert client.get("/api/v1/approvals/summaries", params=params).json()["total"] == 1
+    # The actor participated in an earlier round, but another approver is pending now.
+    with session_factory() as db:
+        line = db.scalar(select(ApprovalLine).where(ApprovalLine.approval_id == draft["id"]))
+        other = db.scalar(select(Employee).where(Employee.email == "garam.han@jhworks.test"))
+        assert line is not None and other is not None
+        line.status = ApprovalLineStatus.REJECTED
+        db.add(ApprovalLine(id="synthetic-next-line", approval_id=draft["id"], step=1,
+                            round=2, approver_id=other.id, status=ApprovalLineStatus.PENDING))
+        db.commit()
+    assert client.get("/api/v1/approvals/summaries", params=params).json()["total"] == 0
+    assigned = client.get("/api/v1/approvals/summaries", params={"scope": "assigned"})
+    assert assigned.json()["total"] == 1

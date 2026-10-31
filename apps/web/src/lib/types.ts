@@ -105,6 +105,26 @@ export interface Approval {
   lines: ApprovalLine[];
 }
 
+export interface ApprovalSummary {
+  id: string;
+  type: ApprovalType;
+  title: string;
+  contentPreview: string;
+  author: EmployeeSummary;
+  status: ApprovalStatus;
+  amount: number | null;
+  leaveDays: string | null;
+  lineCount: number;
+  updatedAt: string;
+}
+
+export interface ApprovalSummaryPage {
+  items: ApprovalSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface ApprovalListResponse {
   items: Approval[];
   total: number;

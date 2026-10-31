@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -295,6 +295,11 @@ def list_approval_page(
         raise DomainValidationError("INVALID_SCOPE", "scope must be 'mine' or 'assigned'")
     if status is not None:
         query = query.where(Approval.status == status)
+        if scope == "assigned" and status == ApprovalStatus.PENDING:
+            query = query.where(Approval.lines.any(and_(
+                ApprovalLine.approver_id == actor.id,
+                ApprovalLine.status == ApprovalLineStatus.PENDING,
+            )))
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     rows = db.scalars(
         query.order_by(Approval.updated_at.desc(), Approval.id.desc()).limit(limit).offset(offset)

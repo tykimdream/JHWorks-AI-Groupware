@@ -12,12 +12,10 @@ test.beforeEach(async ({ page }) => {
     createdAt: '2026-10-25T01:00:00Z', updatedAt: '2026-10-25T01:00:00Z',
     submittedAt: null, decidedAt: null,
   });
-  await page.route('**/api/v1/approvals?scope=*', (route) => {
+  await page.route('**/api/v1/approvals/summaries?*', (route) => {
     const scope = new URL(route.request().url()).searchParams.get('scope')!;
-    return route.fulfill({ json: {
-      total: 40,
-      items: Array.from({ length: 40 }, (_, index) => document(`nav-${index}`, scope)),
-    } });
+    const offset = Number(new URL(route.request().url()).searchParams.get('offset') ?? 0);
+    return route.fulfill({ json: { total: 40, limit: 20, offset, items: Array.from({ length: 20 }, (_, index) => ({ ...document(`nav-${index + offset}`, scope), contentPreview: '합성 탐색 검증', lineCount: 0, leaveDays: null })) } });
   });
   await page.route('**/api/v1/approvals/nav-*', (route) => {
     const id = new URL(route.request().url()).pathname.split('/').pop()!;
@@ -45,17 +43,18 @@ test('list scope follows URL, reload and browser back/forward', async ({ page })
 
 test('detail returns to the selected scope and visible focused row after async loading', async ({ page }, testInfo) => {
   await page.goto('/approvals?scope=assigned');
+  await page.getByRole('link', { name: '다음', exact: true }).click();
   await page.locator('#approval-nav-30').click();
-  await expect(page).toHaveURL(/\/approvals\/nav-30\?from=assigned$/);
+  await expect(page).toHaveURL(/\/approvals\/nav-30\?from=assigned&fromPage=2$/);
   await page.reload(); // The return contract survives a detail reload without storage.
   const back = page.getByRole('link', { name: '← 목록으로', exact: true });
-  await expect(back).toHaveAttribute('href', '/approvals?scope=assigned#approval-nav-30');
+  await expect(back).toHaveAttribute('href', '/approvals?scope=assigned&page=2#approval-nav-30');
   await back.click();
   await expect(page.getByRole('tab', { name: '내게 배정된 문서', exact: true })).toHaveAttribute('aria-selected', 'true');
   const row = page.locator('#approval-nav-30');
   await expect(row).toBeFocused();
   await expect(row).toBeInViewport();
-  await expect(page).toHaveURL(/scope=assigned#approval-nav-30$/);
+  await expect(page).toHaveURL(/scope=assigned&page=2#approval-nav-30$/);
   await mkdir('artifacts/workspace-preview', { recursive: true });
   await page.screenshot({ path: `artifacts/workspace-preview/list-return-${testInfo.project.name}.png` });
 });
@@ -69,4 +68,16 @@ test('unknown scope, missing rows and untrusted return destinations fall back sa
   await expect(back).toHaveAttribute('href', '/approvals');
   await back.click();
   await expect(page).toHaveURL('http://localhost:3100/approvals');
+});
+
+
+test('status and page survive a detail round trip', async ({ page }) => {
+  await page.goto('/approvals?scope=assigned&page=2&status=PENDING');
+  await expect(page.getByLabel('상태')).toHaveValue('PENDING');
+  await page.locator('#approval-nav-30').click();
+  await expect(page).toHaveURL(/from=assigned&fromPage=2&fromStatus=PENDING/);
+  const back = page.getByRole('link', { name: '← 목록으로', exact: true });
+  await expect(back).toHaveAttribute('href', '/approvals?scope=assigned&page=2&status=PENDING#approval-nav-30');
+  await back.click();
+  await expect(page.locator('#approval-nav-30')).toBeFocused();
 });

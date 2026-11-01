@@ -23,6 +23,7 @@ def public_demo(monkeypatch: pytest.MonkeyPatch) -> None:
     # Keep the cached object shared with middleware and existing test fixtures.
     settings = get_settings()
     monkeypatch.setattr(settings, "public_demo_enabled", True)
+    monkeypatch.setattr(settings, "public_feedback_enabled", True)
     monkeypatch.setattr(settings, "ai_enabled", False)
 
 
@@ -41,7 +42,9 @@ def _count(factory: sessionmaker[Session], model: Any) -> int:
 
 
 def test_demo_is_opt_in(client: TestClient) -> None:
-    assert client.get("/api/v1/demo/configuration").json()["enabled"] is False
+    config = client.get("/api/v1/demo/configuration").json()
+    assert config["enabled"] is False
+    assert config["feedbackEnabled"] is False
     assert client.post("/api/v1/demo/start").status_code == 404
 
 

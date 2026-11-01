@@ -17,6 +17,7 @@ def feedback(
     동의를 받은 체험 의견을 접수하고 접수번호를 반환합니다. 접수된
     의견을 공개 조회하는 API는 제공하지 않습니다.
     """
-    if not get_settings().public_demo_enabled:
+    settings = get_settings()
+    if not (settings.public_demo_enabled and settings.public_feedback_enabled):
         raise NotFoundError("Demo feedback")
     return submit_feedback(db, actor, payload)

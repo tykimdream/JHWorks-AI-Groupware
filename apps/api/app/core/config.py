@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     session_cookie_name: str = "jhworks_session"
     public_demo_enabled: bool = False
+    public_feedback_enabled: bool = False
     demo_starts_per_day: int = Field(default=20, ge=1, le=100)
     demo_retained_workspaces: int = Field(default=30, ge=1, le=100)
     demo_ttl_minutes: int = Field(default=15, ge=5, le=30)

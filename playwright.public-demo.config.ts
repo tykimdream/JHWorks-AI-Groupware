@@ -10,7 +10,7 @@ export default defineConfig({
     {
       command: 'cd apps/api && uv run uvicorn tests.e2e_server:app --port 8100',
       url: 'http://localhost:8100/api/v1/health', reuseExistingServer: false,
-      env: { JHWORKS_PUBLIC_DEMO_ENABLED: 'true', JHWORKS_AI_ENABLED: 'false' },
+      env: { JHWORKS_PUBLIC_DEMO_ENABLED: 'true', JHWORKS_PUBLIC_FEEDBACK_ENABLED: 'true', JHWORKS_AI_ENABLED: 'false' },
     },
     {
       command: 'pnpm --filter @jhworks/web exec next dev --port 3100',

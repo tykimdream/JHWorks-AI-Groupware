@@ -34,6 +34,8 @@ export default function FeedbackPage() {
       if (caught instanceof ApiError && caught.status === 401) {
         setNeedsVisit(true);
         setError('체험 연결이 없거나 만료됐습니다. 입력한 의견은 유지됩니다. 아래에서 체험을 연결한 뒤 다시 보내주세요.');
+      } else if (caught instanceof ApiError && caught.status === 404) {
+        setError('현재 의견 접수가 중단됐습니다. 입력한 내용은 이 화면에 유지됩니다.');
       } else if (caught instanceof ApiError && caught.status === 422) {
         setError('의견은 공백을 제외해 10자 이상 입력하고, 이메일·인증정보를 제외해주세요.');
       } else {
@@ -63,13 +65,13 @@ export default function FeedbackPage() {
       <nav className="button-row" aria-label="돌아가기">
         <Link href="/approvals">데모로 돌아가기</Link><a href="https://pikan.dev/ko">포트폴리오</a>
       </nav>
-      {configurationError ? <p role="alert" className="error-banner">접수 상태를 불러오지 못했습니다. 새로고침 후 다시 확인해주세요.</p>
+      {receipt ? <section className="form-section" role="status">
+        <h2>의견을 접수했습니다</h2><p>검토 후 필요한 내용을 개선에 반영하겠습니다. 개별 답변은 제공하지 않습니다.</p>
+        <p>접수 번호: <code>{receipt}</code></p>
+      </section> : configurationError ? <p role="alert" className="error-banner">접수 상태를 불러오지 못했습니다. 새로고침 후 다시 확인해주세요.</p>
         : !configuration ? <p role="status">접수 상태를 확인하고 있습니다.</p>
-          : !configuration.enabled ? <p role="status" className="form-section">피드백 접수를 준비 중입니다. 공개 데모가 열리면 이곳에서 의견을 남길 수 있습니다.</p>
-            : receipt ? <section className="form-section" role="status">
-              <h2>의견을 접수했습니다</h2><p>검토 후 필요한 내용을 개선에 반영하겠습니다. 개별 답변은 제공하지 않습니다.</p>
-              <p>접수 번호: <code>{receipt}</code></p>
-            </section> : <form className="form-section feedback-form" onSubmit={submit} aria-busy={busy}>
+          : !configuration.enabled || configuration.feedbackEnabled !== true ? <p role="status" className="form-section">피드백 접수를 준비 중입니다. 현재 의견을 보낼 수 없습니다.</p>
+            : <form className="form-section feedback-form" onSubmit={submit} aria-busy={busy}>
               <div className="form-grid-two">
                 <label><span>의견 종류</span><select value={category} onChange={(e) => setCategory(e.target.value)} disabled={busy}>
                   <option value="usability">사용하기 불편해요</option><option value="bug">오류가 있어요</option><option value="idea">아이디어가 있어요</option>

@@ -171,6 +171,8 @@ def test_other_workspace_cannot_read_change_submit_or_approve(
     path = "/api/v1/approvals/" + item["id"]
     set_actor(client, "emp_eng_001")
     assert client.get("/api/v1/approvals?scope=mine").json()["items"] == []
+    assert client.get("/api/v1/approvals/summaries?scope=mine").json()["total"] == 0
+    assert client.get("/api/v1/approvals/home-summary").json()["mineTotal"] == 0
     assert client.get(path).status_code == 403
     assert client.patch(path, json={**draft_body(), "version": item["version"]}).status_code == 403
     assert client.post(path + "/submit", json={"version": item["version"]}).status_code == 403
@@ -180,9 +182,12 @@ def test_other_workspace_cannot_read_change_submit_or_approve(
     version = submitted.json()["version"]
     set_actor(client, "emp_eng_mgr_001")
     assert client.get("/api/v1/approvals?scope=assigned").json()["items"] == []
+    assert client.get("/api/v1/approvals/summaries?scope=assigned").json()["total"] == 0
+    assert client.get("/api/v1/approvals/home-summary").json()["pendingAssigned"] == 0
     assert client.post(path + "/approve", json={"version": version}).status_code == 403
     set_actor(client, "emp_sales_mgr_001")
     assert client.get("/api/v1/approvals?scope=assigned").json()["total"] == 1
+    assert client.get("/api/v1/approvals/home-summary").json()["pendingAssigned"] == 1
     assert client.post(path + "/approve", json={"version": version}).status_code == 200
 
 

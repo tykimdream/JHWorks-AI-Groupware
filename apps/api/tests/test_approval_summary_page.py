@@ -62,6 +62,7 @@ def test_assigned_pending_only_includes_current_pending_approver(
     login(client, "doyun.choi@jhworks.test")
     params = {"scope": "assigned", "status": "PENDING"}
     assert client.get("/api/v1/approvals/summaries", params=params).json()["total"] == 1
+    assert client.get("/api/v1/approvals/home-summary").json()["pendingAssigned"] == 1
     # The actor participated in an earlier round, but another approver is pending now.
     with session_factory() as db:
         line = db.scalar(select(ApprovalLine).where(ApprovalLine.approval_id == draft["id"]))
@@ -72,5 +73,32 @@ def test_assigned_pending_only_includes_current_pending_approver(
                             round=2, approver_id=other.id, status=ApprovalLineStatus.PENDING))
         db.commit()
     assert client.get("/api/v1/approvals/summaries", params=params).json()["total"] == 0
+    assert client.get("/api/v1/approvals/home-summary").json()["pendingAssigned"] == 0
     assigned = client.get("/api/v1/approvals/summaries", params={"scope": "assigned"})
     assert assigned.json()["total"] == 1
+
+
+def test_home_summary_counts_all_documents_and_returns_bounded_recent(
+    client: TestClient,
+    login: Callable[[TestClient, str], None],
+) -> None:
+    login(client, "seojin.yoon@jhworks.test")
+    for index in range(23):
+        response = client.post("/api/v1/approvals", json={
+            "type": "GENERAL", "title": f"홈 문서 {index}", "content": "합성 자료",
+            "details": {"kind": "GENERAL"},
+        })
+        assert response.status_code == 201
+    result = client.get("/api/v1/approvals/home-summary")
+    assert result.status_code == 200
+    home = result.json()
+    assert home["mineTotal"] == 23
+    assert home["mineDraft"] == 23
+    assert len(home["recent"]) == 4
+    assert home["nextDocument"]["status"] == "DRAFT"
+    assert "lines" not in home["recent"][0]
+    login(client, "doyun.choi@jhworks.test")
+    other = client.get("/api/v1/approvals/home-summary").json()
+    assert other["mineTotal"] == 0
+    assert other["recent"] == []
+    assert other["nextDocument"] is None

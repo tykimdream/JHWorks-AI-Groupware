@@ -105,6 +105,9 @@ def test_postgres_multiple_rounds_preserve_json_without_duplicate_or_leaked_item
     assert summary.json()["total"] == 1
     assert summary.json()["items"][0]["id"] == draft["id"]
     assert summary.json()["items"][0]["lineCount"] == 2
+    home = client.get("/api/v1/approvals/home-summary").json()
+    assert home["pendingAssigned"] == 1
+    assert home["nextDocument"]["id"] == draft["id"]
     item = result["items"][0]
     assert item["details"] == {"kind": "GENERAL"}
     assert item["attachmentMetadata"] == [{"name": "synthetic.txt", "contentType": "text/plain"}]
@@ -118,6 +121,7 @@ def test_postgres_multiple_rounds_preserve_json_without_duplicate_or_leaked_item
     hidden_summary = client.get("/api/v1/approvals/summaries", params={"scope": "assigned"})
     assert hidden_summary.status_code == 200
     assert hidden_summary.json()["total"] == 0
+    assert client.get("/api/v1/approvals/home-summary").json()["pendingAssigned"] == 0
     assert client.get(path).status_code == 403
 
 
@@ -138,3 +142,7 @@ def test_synthetic_service_baseline_reports_visible_rows_and_serialization() -> 
         assert all(sample["sqlStatements"] >= 1 for sample in samples)
         assert all(sample["payloadBytes"] > 0 for sample in samples)
         assert cases[actor]["medianTotalMs"] >= 0
+        pages = cases[actor]["pageSamples"]
+        assert len(pages) == 2
+        assert all(sample["total"] == expected and sample["rows"] == expected for sample in pages)
+        assert all(sample["sqlStatements"] >= 1 and sample["payloadBytes"] > 0 for sample in pages)

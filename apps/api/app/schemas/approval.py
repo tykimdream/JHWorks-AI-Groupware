@@ -163,3 +163,14 @@ class ApprovalSummaryPage(ApiSchema):
     total: int
     limit: int
     offset: int
+
+
+class ApprovalHomeSummary(ApiSchema):
+    pending_assigned: int
+    mine_draft: int
+    mine_pending: int
+    mine_approved: int
+    mine_rejected: int
+    mine_total: int
+    recent: list[ApprovalSummary]
+    next_document: ApprovalSummary | None

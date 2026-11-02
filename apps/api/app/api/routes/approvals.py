@@ -17,6 +17,8 @@ from app.schemas.approval import (
     ApprovalDecision,
     ApprovalListResponse,
     ApprovalRead,
+    ApprovalSummary,
+    ApprovalSummaryPage,
     ApprovalUpdate,
 )
 from app.schemas.expense_checks import ExpenseChecks, ExpenseInsights
@@ -32,7 +34,7 @@ from app.services import approval_review as approval_review_service
 from app.services import expense_revision
 from app.services.expense_checks import check_expense, expense_insights
 from app.services.expense_guide import expense_guide
-from app.services.mappers import approval_read
+from app.services.mappers import approval_read, employee_summary
 
 router = APIRouter(prefix="/approvals", tags=["전자결재"])
 
@@ -46,6 +48,32 @@ def list_approvals(
     """내가 작성한 문서 또는 나에게 결재가 배정된 문서를 조회합니다."""
     items = approval_service.list_approvals(db, current_employee, scope)
     return ApprovalListResponse(items=[approval_read(item) for item in items], total=len(items))
+
+
+@router.get("/summaries", response_model=ApprovalSummaryPage, summary="결재 목록 요약 조회")
+def list_approval_summaries(
+    db: DbSession,
+    current_employee: CurrentEmployee,
+    scope: Literal["mine", "assigned"] = Query(default="mine"),
+    limit: int = Query(default=20, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=10000),
+    status: ApprovalStatus | None = None,
+) -> ApprovalSummaryPage:
+    """열람 범위 내 요약을 최근 수정순으로 반환합니다. 페이지 간 변경은 스냅샷이 아닙니다."""
+    rows, total = approval_service.list_approval_page(
+        db, current_employee, scope, limit, offset, status
+    )
+    items = [
+        ApprovalSummary(
+            id=item.id, type=item.type, title=item.title,
+            content_preview=item.content[:200], author=employee_summary(item.author),
+            status=item.status, amount=item.amount,
+            leave_days=item.details.get("requestedDays") if item.type.value == "LEAVE" else None,
+            line_count=len(item.lines), updated_at=item.updated_at,
+        )
+        for item in rows
+    ]
+    return ApprovalSummaryPage(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=ApprovalRead, status_code=201, summary="결재 초안 저장")

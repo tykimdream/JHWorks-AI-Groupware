@@ -116,6 +116,39 @@ def measure(factory: sessionmaker[Session], actor_id: str, scope: str) -> dict[s
             event.remove(connection, "before_cursor_execute", count_query)
 
 
+def measure_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> dict[str, Any]:
+    from app.api.routes.approvals import _approval_summary
+    from app.models import Employee
+    from app.schemas.approval import ApprovalSummaryPage
+    from app.services.approval import list_approval_page
+
+    with factory() as db:
+        actor = db.get(Employee, actor_id)
+        assert actor is not None
+        statements = 0
+        connection = db.connection()
+
+        def count_query(*args: Any, **kwargs: Any) -> None:
+            nonlocal statements
+            statements += 1
+
+        event.listen(connection, "before_cursor_execute", count_query)
+        try:
+            started = perf_counter()
+            items, total = list_approval_page(db, actor, scope, 20, 0)
+            loaded = perf_counter()
+            response = ApprovalSummaryPage(items=[_approval_summary(item) for item in items],
+                                           total=total, limit=20, offset=0)
+            payload = response.model_dump_json(by_alias=True).encode("utf-8")
+            finished = perf_counter()
+            return {"rows": len(items), "total": total, "sqlStatements": statements,
+                    "payloadBytes": len(payload), "ormMs": (loaded - started) * 1000,
+                    "mapSerializeMs": (finished - loaded) * 1000,
+                    "totalMs": (finished - started) * 1000}
+        finally:
+            event.remove(connection, "before_cursor_execute", count_query)
+
+
 def run(raw: str, counts: list[int], repeats: int) -> dict[str, Any]:
     url = dedicated_url(raw)
     # Validate before importing any application settings or connecting to a DB.
@@ -149,9 +182,12 @@ def run(raw: str, counts: list[int], repeats: int) -> dict[str, Any]:
                                      ("outsider", "assigned")):
                     measure(factory, actors[actor], scope)  # One unreported warm-up per case.
                     samples = [measure(factory, actors[actor], scope) for _ in range(repeats)]
+                    measure_page(factory, actors[actor], scope)
+                    pages = [measure_page(factory, actors[actor], scope) for _ in range(repeats)]
                     results.append({"documents": count, "actor": actor, "scope": scope,
-                                    "samples": samples,
-                                    "medianTotalMs": median(s["totalMs"] for s in samples)})
+                                    "samples": samples, "pageSamples": pages,
+                                    "medianTotalMs": median(s["totalMs"] for s in samples),
+                                    "medianPageTotalMs": median(s["totalMs"] for s in pages)})
             finally:
                 if created:
                     with scoped.begin() as connection:

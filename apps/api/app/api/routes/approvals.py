@@ -9,12 +9,14 @@ from app.api.dependencies import (
     DbSession,
     PolicyEmbeddingProviderDependency,
 )
+from app.models.approval import Approval
 from app.models.enums import ApprovalStatus
 from app.schemas.ai_review import AIReviewRequest, AIReviewResponse
 from app.schemas.approval import (
     ApprovalCommand,
     ApprovalCreate,
     ApprovalDecision,
+    ApprovalHomeSummary,
     ApprovalListResponse,
     ApprovalRead,
     ApprovalSummary,
@@ -63,17 +65,38 @@ def list_approval_summaries(
     rows, total = approval_service.list_approval_page(
         db, current_employee, scope, limit, offset, status
     )
-    items = [
-        ApprovalSummary(
-            id=item.id, type=item.type, title=item.title,
-            content_preview=item.content[:200], author=employee_summary(item.author),
-            status=item.status, amount=item.amount,
-            leave_days=item.details.get("requestedDays") if item.type.value == "LEAVE" else None,
-            line_count=len(item.lines), updated_at=item.updated_at,
-        )
-        for item in rows
-    ]
+    items = [_approval_summary(item) for item in rows]
     return ApprovalSummaryPage(items=items, total=total, limit=limit, offset=offset)
+
+
+def _approval_summary(item: Approval) -> ApprovalSummary:
+    return ApprovalSummary(
+        id=item.id, type=item.type, title=item.title,
+        content_preview=item.content[:200], author=employee_summary(item.author),
+        status=item.status, amount=item.amount,
+        leave_days=item.details.get("requestedDays") if item.type.value == "LEAVE" else None,
+        line_count=len(item.lines), updated_at=item.updated_at,
+    )
+
+
+@router.get("/home-summary", response_model=ApprovalHomeSummary, summary="업무 홈 결재 현황")
+def get_approval_home_summary(
+    db: DbSession, current_employee: CurrentEmployee
+) -> ApprovalHomeSummary:
+    """사용자 범위의 전체 상태 건수, 최근 문서와 다음 작업을 반환합니다."""
+    counts, pending, recent, next_document = approval_service.approval_home_summary(
+        db, current_employee
+    )
+    return ApprovalHomeSummary(
+        pending_assigned=pending,
+        mine_draft=counts.get(ApprovalStatus.DRAFT, 0),
+        mine_pending=counts.get(ApprovalStatus.PENDING, 0),
+        mine_approved=counts.get(ApprovalStatus.APPROVED, 0),
+        mine_rejected=counts.get(ApprovalStatus.REJECTED, 0),
+        mine_total=sum(counts.values()),
+        recent=[_approval_summary(item) for item in recent],
+        next_document=_approval_summary(next_document) if next_document else None,
+    )
 
 
 @router.post("", response_model=ApprovalRead, status_code=201, summary="결재 초안 저장")

@@ -115,7 +115,7 @@ test('a late response from the previous approval scope never replaces the active
 
 test('home request failures expose retry and recover using real data', async ({ page }) => {
   let fail = true;
-  await page.route('**/api/v1/approvals?scope=mine', (route) =>
+  await page.route('**/api/v1/approvals/home-summary', (route) =>
     fail
       ? route.fulfill({
           status: 503,

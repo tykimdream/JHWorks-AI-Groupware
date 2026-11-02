@@ -12,7 +12,7 @@ import { WorkspaceIcon } from '@/components/workspace-icon';
 import { useDemoConfiguration } from '@/hooks/use-demo-configuration';
 import { apiFetch, getUserErrorMessage } from '@/lib/api';
 import { formatDate } from '@/lib/format';
-import type { ApprovalListResponse } from '@/lib/types';
+import type { ApprovalHomeSummary } from '@/lib/types';
 import { approvalTypeLabels } from '@/lib/approval-labels';
 import { ExpenseInsightPanel } from '@/components/expense-checks';
 import { expenseExamples } from '@/lib/expense-examples';
@@ -37,10 +37,7 @@ export function WorkHome() {
   const { configuration, error: configurationError } = useDemoConfiguration();
   const [request, setRequest] = useState('');
   const [handoffError, setHandoffError] = useState(false);
-  const [data, setData] = useState<{
-    mine: ApprovalListResponse;
-    assigned: ApprovalListResponse;
-  } | null>(null);
+  const [data, setData] = useState<ApprovalHomeSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -48,13 +45,10 @@ export function WorkHome() {
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all([
-      apiFetch<ApprovalListResponse>('/approvals?scope=mine', { signal: controller.signal }),
-      apiFetch<ApprovalListResponse>('/approvals?scope=assigned', { signal: controller.signal }),
-    ])
-      .then(([mine, assigned]) => {
+    apiFetch<ApprovalHomeSummary>('/approvals/home-summary', { signal: controller.signal })
+      .then((result) => {
         if (!controller.signal.aborted) {
-          setData({ mine, assigned });
+          setData(result);
           setError(null);
         }
       })
@@ -87,14 +81,12 @@ export function WorkHome() {
       router.push('/approvals/ai-draft');
     }
   };
-  const drafts = data?.mine.items.filter((item) => item.status === 'DRAFT') ?? [];
-  const pending = data?.assigned.items.filter((item) => item.status === 'PENDING' && item.lines.some((line) => line.status === 'PENDING' && line.approver.id === employee?.id)) ?? [];
-  const rejected = data?.mine.items.filter((item) => item.status === 'REJECTED') ?? [];
-  const recent = [...(data?.mine.items ?? [])]
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 4);
-  const waiting = data?.mine.items.filter((item) => item.status === 'PENDING') ?? [];
-  const nextDocument = pending[0] ?? rejected[0] ?? drafts[0] ?? waiting[0];
+  const draftCount = data?.mineDraft ?? 0;
+  const pendingCount = data?.pendingAssigned ?? 0;
+  const rejectedCount = data?.mineRejected ?? 0;
+  const waitingCount = data?.minePending ?? 0;
+  const recent = data?.recent ?? [];
+  const nextDocument = data?.nextDocument;
   const date = new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',
     month: 'long',
@@ -122,14 +114,14 @@ export function WorkHome() {
         )}
       </header>
 
-      {(pending.length > 0 || rejected.length > 0 || drafts.length > 0) && nextDocument ? (
+      {(pendingCount > 0 || rejectedCount > 0 || draftCount > 0) && nextDocument ? (
         <section className="home-start-card" aria-labelledby="home-priority-title">
           <p className="eyebrow">지금 할 일</p>
-          <h2 id="home-priority-title">{pending.length ? `검토할 결재 ${pending.length}건` : rejected.length ? '반려된 문서를 확인해 주세요' : '작성 중인 문서를 이어서 완성하세요'}</h2>
+          <h2 id="home-priority-title">{pendingCount ? `검토할 결재 ${pendingCount}건` : rejectedCount ? '반려된 문서를 확인해 주세요' : '작성 중인 문서를 이어서 완성하세요'}</h2>
           <p>{nextDocument.title}</p>
           <div className="home-start-actions">
-            <Link className={buttonClass()} href={`/approvals/${nextDocument.id}?from=${pending.length ? 'assigned' : 'mine'}`}>
-              {pending.length ? '결재 검토하기' : rejected.length ? '반려 내용 확인하기' : '초안 확인하기'}
+            <Link className={buttonClass()} href={`/approvals/${nextDocument.id}?from=${pendingCount ? 'assigned' : 'mine'}`}>
+              {pendingCount ? '결재 검토하기' : rejectedCount ? '반려 내용 확인하기' : '초안 확인하기'}
             </Link>
             <Link href="/approvals/new?type=EXPENSE">새 경비 작성</Link>
             {configuration?.enabled && <WelcomeGuide />}
@@ -299,21 +291,21 @@ export function WorkHome() {
         {[
           {
             title: '내가 처리할 결재',
-            count: data ? pending.length : null,
+            count: data ? pendingCount : null,
             icon: 'document' as const,
             tone: 'violet',
             note: '내 검토가 필요한 문서',
           },
           {
             title: '결재 진행 중',
-            count: data ? data.mine.items.filter((item) => item.status === 'PENDING').length : null,
+            count: data ? data.minePending : null,
             icon: 'clock' as const,
             tone: 'amber',
             note: '결재자의 응답을 기다려요',
           },
           {
             title: '이어서 작성할 문서',
-            count: data ? drafts.length : null,
+            count: data ? draftCount : null,
             icon: 'document' as const,
             tone: 'blue',
             note: '아직 제출하지 않은 초안',
@@ -321,7 +313,7 @@ export function WorkHome() {
           {
             title: '결재 완료',
             count: data
-              ? data.mine.items.filter((item) => item.status === 'APPROVED').length
+              ? data.mineApproved
               : null,
             icon: 'check' as const,
             tone: 'green',
@@ -353,7 +345,7 @@ export function WorkHome() {
         <section className="home-panel">
           <div className="panel-heading">
             <h2>
-              최근 내 문서 <span className="count-pill">{data?.mine.total ?? '—'}</span>
+              최근 내 문서 <span className="count-pill">{data?.mineTotal ?? '—'}</span>
             </h2>
             <Link href="/approvals">
               전체 보기 <span aria-hidden="true">↗</span>
@@ -413,13 +405,13 @@ export function WorkHome() {
           {data ? (
             <>
               <span className="action-kicker">
-                {pending.length
+                {pendingCount
                   ? '검토를 기다리고 있어요'
-                  : rejected.length
+                  : rejectedCount
                     ? '수정이 필요한 문서가 있어요'
-                    : drafts.length
+                    : draftCount
                       ? '시작한 업무를 마무리해요'
-                      : waiting.length
+                      : waitingCount
                         ? '결재를 기다리는 문서가 있어요'
                         : '업무를 시작할 준비가 됐어요'}
               </span>
@@ -430,13 +422,13 @@ export function WorkHome() {
                     : '첫 경비 정산을 작성해 보세요.')}
               </h3>
               <p>
-                {pending.length
+                {pendingCount
                   ? '내용과 증빙 확인 사항을 검토하고 승인 또는 반려할 수 있습니다.'
-                  : rejected.length
+                  : rejectedCount
                     ? '반려 사유를 확인하고 내용을 보완해 다시 제출하세요.'
-                    : drafts.length
+                    : draftCount
                       ? '저장한 초안을 검토하고 필요한 정보를 채워 제출하세요.'
-                      : waiting.length
+                      : waitingCount
                         ? configuration?.enabled
                           ? '문서를 제출했습니다. 결재자로 역할을 바꾸면 승인 과정을 이어서 체험할 수 있어요.'
                           : '지정 결재자가 문서를 검토하고 있습니다. 문서에서 진행 상태를 확인하세요.'

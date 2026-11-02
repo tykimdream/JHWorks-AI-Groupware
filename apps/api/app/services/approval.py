@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -305,6 +305,46 @@ def list_approval_page(
         query.order_by(Approval.updated_at.desc(), Approval.id.desc()).limit(limit).offset(offset)
     ).unique()
     return list(rows), total
+
+
+def approval_home_summary(
+    db: Session, actor: Employee,
+) -> tuple[dict[ApprovalStatus, int], int, list[Approval], Approval | None]:
+    visible = visible_approval_query(actor)
+    mine = visible.where(Approval.author_id == actor.id)
+    mine_scope = mine.subquery()
+    count_rows = db.execute(
+        select(mine_scope.c.status, func.count()).group_by(mine_scope.c.status)
+    ).all()
+    counts: dict[ApprovalStatus, int] = {row[0]: row[1] for row in count_rows}
+    assigned = visible.where(
+        Approval.status == ApprovalStatus.PENDING,
+        Approval.lines.any(and_(
+            ApprovalLine.approver_id == actor.id,
+            ApprovalLine.status == ApprovalLineStatus.PENDING,
+        )),
+    )
+    pending_count = db.scalar(select(func.count()).select_from(assigned.subquery())) or 0
+    recent = list(db.scalars(
+        mine.order_by(Approval.updated_at.desc(), Approval.id.desc()).limit(4)
+    ).unique())
+    next_document = db.scalars(
+        assigned.order_by(Approval.updated_at.desc(), Approval.id.desc()).limit(1)
+    ).unique().first()
+    if next_document is None:
+        next_document = db.scalars(
+            mine.where(Approval.status.in_([
+                ApprovalStatus.REJECTED, ApprovalStatus.DRAFT, ApprovalStatus.PENDING,
+            ])).order_by(
+                case(
+                    (Approval.status == ApprovalStatus.REJECTED, 0),
+                    (Approval.status == ApprovalStatus.DRAFT, 1),
+                    else_=2,
+                ),
+                Approval.updated_at.desc(), Approval.id.desc(),
+            ).limit(1)
+        ).unique().first()
+    return counts, pending_count, recent, next_document
 
 
 def get_approval(db: Session, actor: Employee, approval_id: str) -> Approval:

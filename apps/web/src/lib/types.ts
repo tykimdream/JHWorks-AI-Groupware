@@ -125,6 +125,17 @@ export interface ApprovalSummaryPage {
   offset: number;
 }
 
+export interface ApprovalHomeSummary {
+  pendingAssigned: number;
+  mineDraft: number;
+  minePending: number;
+  mineApproved: number;
+  mineRejected: number;
+  mineTotal: number;
+  recent: ApprovalSummary[];
+  nextDocument: ApprovalSummary | null;
+}
+
 export interface ApprovalListResponse {
   items: Approval[];
   total: number;

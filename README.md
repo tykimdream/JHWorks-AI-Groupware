@@ -8,7 +8,7 @@
 
 [라이브 데모](https://groupware.pikan.dev) · [Swagger](https://groupware.pikan.dev/api/v1/docs) · [JHW Pattern](https://groupware.pikan.dev/pattern) · [Storybook](https://tykimdream.github.io/JHWorks-AI-Groupware/) · [아키텍처](docs/architecture/README.md) · [포트폴리오](https://pikan.dev/ko/projects/jhworks-ai-groupware)
 
-> **공개 데모:** 가입 없이 경비 작성 → 제출 → 역할 전환 → 승인을 체험할 수 있습니다. 비용 관리 때문에 공개 환경의 AI 호출은 비활성화했습니다. 자연어 초안·정책 RAG·AI 검토는 개발·검증 환경에서 제공하며, 아래에 구현 범위를 정리했습니다.
+> **공개 데모:** 가입 없이 경비 작성 → 제출 → 역할 전환 → 승인을 체험할 수 있습니다. 공개 AI 기능은 설정과 예산에 따라 달라집니다. 2026-11-02 23:44 KST 공개 설정 응답은 경비 초안·휴가 상담을 사용 가능으로 표시했고, AI 검토·업무 조회·정책 임베딩은 비활성으로 표시했습니다. 이는 [설정 조회 기록](docs/engineering/evidence/public-ai-config-2026-11-02.json)이며 실제 모델 호출 성공이나 현재 잔여 예산을 뜻하지 않습니다. [실시간 설정 확인](https://groupware.pikan.dev/api/v1/demo/configuration)은 배포 도메인에서 조회할 수 있습니다.
 
 ## 대표 업무: 출장 경비 정산
 
@@ -64,13 +64,13 @@ Next.js · TypeScript · Tailwind CSS 4 · FastAPI · SQLAlchemy · Alembic · P
 | 휴가 상담·신청 | 희망 기간 해석, 계산된 후보와 근거 설명 | 잔여 연차·일정·휴일 계산, 저장과 제출의 별도 확인, 변경 직전 재검증 |
 
 권한·금액·날짜·상태 전이는 서버가 검증합니다. AI를 통한 저장과 제출에는 각각 사용자 확인이 필요합니다. 휴가 신청은 상담 → 초안 확인 → 제출 확인의 진행 상태를 DB에 보존합니다.
-고정 합성 경비 **36개**를 승인된 로컬 실제 모델 평가에서 모두 통과했습니다. 개발 중 공개된 사례의 한 번 실행이며 일반화 정확도나 실사용 효과를 뜻하지 않습니다. [offline 평가 계약](docs/engineering/expense-evaluation-contracts.md)과 [실제 모델 결과·비용·한계](docs/engineering/expense-model-results-2026-10-25.md)를 구분해 기록했습니다. 공개 AI는 OFF입니다.
+고정 합성 경비 **36개**를 승인된 로컬 실제 모델 평가에서 모두 통과했습니다. 개발 중 공개된 사례의 한 번 실행이며 일반화 정확도나 실사용 효과를 뜻하지 않습니다. [offline 평가 계약](docs/engineering/expense-evaluation-contracts.md)과 [실제 모델 결과·비용·한계](docs/engineering/expense-model-results-2026-10-25.md)를 구분해 기록했습니다. 공개 기능의 최신 상태는 위 설정 응답을 확인하세요.
 
 ## 검증 가능한 경비 AI — 소스 구현
 
 경비 초안은 `입력 → 모델 요청 → 응답 정규화 → 필드 대조 → 규정 검사 → 미리보기` 순서로 실행합니다. 원문과 대응하지 않는 금액·날짜·사용처 등은 제거하고 추가 질문으로 돌려보내며, 확인 토큰을 발급하지 않습니다. 규정 인용은 활성 원문과 대조하고, 준비 후 규정이 바뀌면 첫 저장을 차단합니다.
 
-화면에서 필드 대응·원본 영수증 확인 필요·자동 판정하지 않은 규칙·실행 단계를 구분합니다. 입력 대응은 실제 지출이나 영수증 진위를 인증하지 않습니다. [설계·한계·검증 기록](docs/engineering/verifiable-expense-ai.md), [오프라인 고정 평가](docs/engineering/evidence/expense-verification-offline-2026-10-26.json)를 제공합니다. 기존 실제 모델 36개 결과는 이전 v4 프롬프트 결과이며 새 v5 검증 결과로 재사용하지 않습니다. 공개 환경 반영·AI 활성화는 별도입니다.
+화면에서 필드 대응·원본 영수증 확인 필요·자동 판정하지 않은 규칙·실행 단계를 구분합니다. 입력 대응은 실제 지출이나 영수증 진위를 인증하지 않습니다. [설계·한계·검증 기록](docs/engineering/verifiable-expense-ai.md), [오프라인 고정 평가](docs/engineering/evidence/expense-verification-offline-2026-10-26.json)를 제공합니다. 기존 실제 모델 36개 결과는 이전 v4 프롬프트 결과이며 새 v5 검증 결과로 재사용하지 않습니다. 이 세부 구현의 공개 배포 여부는 별도로 확인해야 합니다.
 
 <details>
 <summary>로컬 검증 화면 보기 — 합성 provider, 실제 API</summary>
@@ -95,7 +95,7 @@ flowchart LR
     Hosting --> Web["Cloud Run / Next.js"]
     Web -->|"동일 출처 /api/v1"| API["FastAPI sidecar"]
     API --> DB["Supabase PostgreSQL + pgvector"]
-    API -.->|"구현됨 / 공개 OFF"| AI["OpenAI adapters"]
+    API -.->|"기능별 설정·예산 적용"| AI["OpenAI adapters"]
 ```
 
 백엔드는 도메인·서비스·외부 AI 어댑터를 나눈 모듈형 모놀리스입니다. 세션과 권한은 서버에서 검증하고, 상태를 임의 PATCH하는 대신 `submit / approve / reject / revise` 명령으로 전이합니다.
@@ -128,7 +128,8 @@ pnpm db:seed
 
 ```bash
 pnpm validate                 # lint · 타입 · API 테스트 · Web production build
-pnpm eval:expense:offline     # 외부 호출 없는 경비 평가 데이터 계약
+pnpm eval:expense:offline     # 외부 호출 없는 기존 경비 평가 데이터 계약
+pnpm eval:expense:challenge:offline # 별도 합성 실패 사례 데이터 계약
 pnpm test:e2e                 # 일반 업무 · 합성 AI · desktop/mobile
 pnpm test:e2e:public-demo     # AI OFF · 공개 방문자 작성/제출/승인
 pnpm build:storybook         # 독립 컴포넌트 정적 문서
@@ -140,15 +141,15 @@ pnpm test:storybook          # 정적 상태·접근성·키보드 검증
 ## 공개 범위와 다음 단계
 
 - 일반·출장·경비·휴가의 작성·제출과 결재자 역할 전환·승인·반려를 제공합니다. 영수증은 문서번호만 참조하며 파일 업로드·OCR은 지원하지 않습니다.
-- 체험은 **15분 / 하루 시작 20회 / 보관 30공간**으로 제한합니다. 자동 정리는 꺼져 있어 보관 상한에 닿으면 새 체험이 중단될 수 있습니다.
+- 체험은 **15분 / 하루 시작 20회 / 보관 30공간**으로 제한합니다. 마지막 확인 기록상 자동 정리는 꺼져 있었으며 보관 상한에 닿으면 새 체험이 중단될 수 있습니다. 현재 운영 상태는 별도 확인이 필요합니다.
 - Cloud Run 월 5천원 spend cap과 프로젝트 전체 월 1만원 알림을 설정했습니다. 집계 지연·다른 서비스 비용 때문에 총 청구액의 절대 상한은 아닙니다.
-- 공개 AI 활성화, 자동 정리 운영, 예약 백업, main 자동 배포는 후속 과제입니다. 실제 기업의 업무 시간 절감은 아직 측정하지 않았습니다.
-- 다음 제품 과제는 비용 제한을 갖춘 경비 AI 공개 연결과 실제 사용자 기반의 사용성 평가입니다.
+- 공개 AI의 실제 호출·품질과 현재 예산은 설정 조회만으로 확인할 수 없습니다. 자동 정리 운영, 예약 백업, main 자동 배포는 별도 운영 증거가 필요합니다. 실제 기업의 업무 시간 절감은 아직 측정하지 않았습니다.
+- 다음 제품 과제는 실제 모델 실패 사례 평가와 실제 사용자 기반의 사용성 평가입니다.
 
 [현재 로드맵](docs/engineering/roadmap.md) · [작업별 실행 계획](docs/engineering/execution-plan-2026-10-25.md) · [설계 결정](docs/adr) · [제품 명세](docs/product)
 
 목록 개선을 위한 [PostgreSQL 합성 baseline](docs/engineering/approval-list-baseline.md)과 [다음 목록 계약 검토](docs/engineering/approval-list-next-contract.md)를 보관합니다. 서비스 측정값과 HTTP·브라우저 측정 범위는 구분합니다.
 
-[LangChain·LangGraph 학습 보고서](docs/learning/langchain-langgraph-2026-10-26.md)에는 생태계·조사 근거·경비 Workflow 적용 제안과 API 키 없이 실행하는 독립 실습을 정리했습니다. 제품 도입·공개 AI 활성화는 별도 검증 단계입니다.
+[LangChain·LangGraph 학습 보고서](docs/learning/langchain-langgraph-2026-10-26.md)에는 생태계·조사 근거·경비 Workflow 적용 제안과 API 키 없이 실행하는 독립 실습을 정리했습니다. 제품 도입과 실제 모델 품질은 별도 검증 단계입니다.
 
 프로토타입은 업무 홈에서 **업무 체험 안내 → 경비 작성·결재 / 근태·휴가 / 회사 규정·내 조직**으로 탐색할 수 있습니다. AI 작성 흐름 예시는 실제 호출 없는 고정 사례이며, 입력을 확인한 뒤 실제 결재 작성 폼으로 이어집니다. [프로토타입 범위와 검증](docs/engineering/prototype-checkpoint-2026-10-26.md), [공개 배포·실제 PC/모바일 승인 기록](docs/engineering/prototype-public-release-2026-10-26.md)을 참고하세요.

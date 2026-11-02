@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-11-02T23:44+09:00",
+  "source": "https://groupware.pikan.dev/api/v1/demo/configuration",
+  "observation": "read-only configuration response; not a provider call or availability guarantee",
+  "response": {
+    "aiCapabilities": {
+      "approvalDraft": true,
+      "approvalReview": false,
+      "leaveAssistant": true,
+      "workAssistant": false,
+      "policyEmbedding": false
+    },
+    "expenseAiRequestLimit": 5,
+    "enabled": true,
+    "durationMinutes": 15,
+    "writeLimit": 20,
+    "requestLimit": 100
+  }
+}

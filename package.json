@@ -26,6 +26,7 @@
     "test:e2e:public-demo": "playwright test --config=playwright.public-demo.config.ts",
     "check:pattern": "pnpm --filter @jhworks/pattern check",
     "eval:expense:offline": "cd apps/api && uv run python -m app.evals.draft_contract",
+    "eval:expense:challenge:offline": "cd apps/api && uv run python -m app.evals.expense_challenge",
     "storybook": "pnpm --filter @jhworks/pattern-storybook dev",
     "build:storybook": "pnpm --filter @jhworks/pattern-storybook build",
     "type-check:storybook": "pnpm --filter @jhworks/pattern-storybook type-check",

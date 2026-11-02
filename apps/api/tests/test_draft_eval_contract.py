@@ -152,3 +152,30 @@ print(json.dumps(catalog_report()))
         check=True,
     )
     assert json.loads(completed.stdout)["providerCalls"] == 0
+
+
+def test_expense_challenge_is_separate_offline_contract_not_model_accuracy() -> None:
+    from app.evals.expense_challenge import CHALLENGE_PATH
+
+    challenge = load_cases(CHALLENGE_PATH)
+    assert len(challenge) == 5
+    assert not ({case.id for case in challenge} & {case.id for case in load_cases()})
+    report = catalog_report(CHALLENGE_PATH)
+    assert report["providerCalls"] == 0
+    assert report["modelEvaluationStatus"] == "not-run"
+    assert report["modelPassRate"] is None
+    assert report["datasetSha256"] != catalog_report()["datasetSha256"]
+
+
+def test_expense_challenge_rejects_invented_and_superseded_values() -> None:
+    from app.evals.expense_challenge import CHALLENGE_PATH
+
+    cases = {case.id: case for case in load_cases(CHALLENGE_PATH)}
+    invented = ApprovalDraftCandidate(
+        intent=DraftIntent.EXPENSE, amount=48000, merchant="추정 사용처"
+    )
+    assert not grade_candidate(cases["challenge-unknown-merchant"], invented).passed
+    old_amount = ApprovalDraftCandidate(intent=DraftIntent.EXPENSE, amount=64000)
+    assert not grade_candidate(cases["challenge-corrected-amount"], old_amount).passed
+    corrected = ApprovalDraftCandidate(intent=DraftIntent.EXPENSE, amount=46000)
+    assert grade_candidate(cases["challenge-corrected-amount"], corrected).passed

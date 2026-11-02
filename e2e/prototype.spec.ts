@@ -63,12 +63,16 @@ test('prototype hands confirmed inputs to an unsaved form, then saves through th
     page.getByText('아직 저장되지 않았습니다.', { exact: false }),
   ).toBeVisible();
   await page.getByRole('button', { name: '입력 수정', exact: true }).click();
+  await expect(page.getByLabel('실제 지출일', { exact: true })).toBeFocused();
   await expect(page.getByLabel('사용처', { exact: true })).toHaveValue(
     '합성 교통 서비스',
   );
   await page
     .getByLabel('사용처', { exact: true })
     .fill('수정한 합성 교통 서비스');
+  await expect(page.getByLabel('사용처', { exact: true })).toHaveValue(
+    '수정한 합성 교통 서비스',
+  );
   await page
     .getByRole('button', { name: '미리보기 확인', exact: true })
     .click();

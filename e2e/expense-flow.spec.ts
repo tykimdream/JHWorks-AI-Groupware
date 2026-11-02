@@ -4,6 +4,10 @@ import { mkdir } from 'node:fs/promises';
 test('CES actual expense → missing facts → policy preview → save → edit → submit → manager approval', async ({
   page,
 }, testInfo) => {
+  const duplicateKeyErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error' && message.text().includes('same key')) duplicateKeyErrors.push(message.text());
+  });
   await page.goto('/login');
   await page.getByRole('button', { name: 'Demo 로그인', exact: true }).click();
   await page.getByRole('textbox', { name: 'AI 업무 요청' }).fill('이번 CES 출장에서 쓴 17만원 경비 정산 결재를 준비해줘.');
@@ -53,6 +57,8 @@ test('CES actual expense → missing facts → policy preview → save → edit 
   await page.getByRole('button', { name: '승인', exact: true }).click();
   await page.getByRole('dialog', { name: '결재 승인 확인' }).getByRole('button', { name: '확인하고 승인' }).click();
   await expect(page.locator('.detail-title-row .status-badge')).toContainText('승인');
+  await expect(page.getByRole('button', { name: '경비 업무 도움말' })).toHaveCount(1);
+  expect(duplicateKeyErrors).toEqual([]);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: `artifacts/workspace-preview/expense-approved-${testInfo.project.name}.png`,

@@ -61,6 +61,10 @@ export default function ApprovalDetailPage() {
   const { employee } = useCurrentEmployee();
   const { configuration } = useDemoConfiguration();
   const [approval, setApproval] = useState<Approval | null>(null);
+  const [expenseCheck, setExpenseCheck] = useState<{ version: number; missingFields: string[] } | null>(null);
+  const onExpenseChecked = useCallback((version: number, missingFields: string[]) => {
+    setExpenseCheck({ version, missingFields });
+  }, []);
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isActing, setIsActing] = useState(false);
@@ -145,6 +149,7 @@ export default function ApprovalDetailPage() {
 
   const trip = approval.details.kind === 'BUSINESS_TRIP' ? approval.details : null;
   const leave = approval.details.kind === 'LEAVE' ? approval.details : null;
+  const needsExpenseRepair = approval.type === 'EXPENSE' && expenseCheck?.version === approval.version && expenseCheck.missingFields.length > 0;
 
   return (
     <AppShell>
@@ -212,6 +217,7 @@ export default function ApprovalDetailPage() {
               version={approval.version}
               status={approval.status}
               canEdit={isAuthor}
+              onChecked={onExpenseChecked}
               listScope={from === 'mine' || from === 'assigned' ? from : undefined}
             />
           )}
@@ -318,9 +324,9 @@ export default function ApprovalDetailPage() {
             ) : (
               <div className="action-panel">
                 <div>
-                  <strong>내용을 확인하고 제출하세요</strong>
+                  <strong>{needsExpenseRepair ? '필수 지출 정보를 보완해 주세요' : '내용을 확인하고 제출하세요'}</strong>
                   <p>
-                    제출하면 지정된 결재자에게 전달됩니다. 초안은 제출 전까지 수정할 수 있습니다.
+                    {needsExpenseRepair ? '위의 보완 항목을 선택해 수정한 뒤 초안을 저장해 주세요.' : '제출하면 지정된 결재자에게 전달됩니다. 초안은 제출 전까지 수정할 수 있습니다.'}
                   </p>
                 </div>
                 <div className="button-row">
@@ -329,7 +335,7 @@ export default function ApprovalDetailPage() {
                   </Link>
                   <button
                     className="primary-button"
-                    disabled={isActing}
+                    disabled={isActing || needsExpenseRepair}
                     onClick={() => requestCommand('submit')}
                     type="button"
                   >

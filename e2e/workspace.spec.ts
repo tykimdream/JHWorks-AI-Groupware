@@ -54,6 +54,7 @@ test('home → request → missing information → policy preview → explicit s
     page.locator('.home-document').filter({ hasText: 'CES 협력사 미팅 출장 신청' }).first(),
   ).toBeVisible();
   await expect(page.locator('.next-action-panel')).toContainText('시작한 업무를 마무리해요');
+  await expect(page.getByRole('heading', { name: '작성 중인 문서를 이어서 완성하세요' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({
     path: `artifacts/workspace-preview/home-${testInfo.project.name}.png`,
@@ -96,17 +97,17 @@ test('a late response from the previous approval scope never replaces the active
   });
   await page.goto('/approvals?scope=assigned');
   await expect(page.getByRole('heading', { name: '현재 결재할 문서', exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: '내가 결재할 문서', exact: true }).click();
+  await page.getByRole('tab', { name: '내게 배정된 문서', exact: true }).click();
   await expect(page.getByRole('heading', { name: '현재 결재할 문서', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: '내가 작성한 문서', exact: true }).click();
   await mineStarted;
-  await page.getByRole('tab', { name: '내가 결재할 문서', exact: true }).click();
+  await page.getByRole('tab', { name: '내게 배정된 문서', exact: true }).click();
   await expect(page.getByRole('heading', { name: '현재 결재할 문서', exact: true })).toBeVisible();
   release();
   await expect(page.getByRole('heading', { name: '이전 탭의 늦은 응답', exact: true })).toHaveCount(
     0,
   );
-  await expect(page.getByRole('tab', { name: '내가 결재할 문서', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: '내게 배정된 문서', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );

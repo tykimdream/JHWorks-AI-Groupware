@@ -122,6 +122,21 @@ export function WorkHome() {
         )}
       </header>
 
+      {(pending.length > 0 || rejected.length > 0 || drafts.length > 0) && nextDocument ? (
+        <section className="home-start-card" aria-labelledby="home-priority-title">
+          <p className="eyebrow">지금 할 일</p>
+          <h2 id="home-priority-title">{pending.length ? `검토할 결재 ${pending.length}건` : rejected.length ? '반려된 문서를 확인해 주세요' : '작성 중인 문서를 이어서 완성하세요'}</h2>
+          <p>{nextDocument.title}</p>
+          <div className="home-start-actions">
+            <Link className={buttonClass()} href={`/approvals/${nextDocument.id}?from=${pending.length ? 'assigned' : 'mine'}`}>
+              {pending.length ? '결재 검토하기' : rejected.length ? '반려 내용 확인하기' : '초안 확인하기'}
+            </Link>
+            <Link href="/approvals/new?type=EXPENSE">새 경비 작성</Link>
+            {configuration?.enabled && <WelcomeGuide />}
+          </div>
+        </section>
+      ) : null}
+
       {!configuration ? (
         <section className="home-start-card" aria-busy={!configurationError}>
           <h2>
@@ -393,7 +408,7 @@ export function WorkHome() {
               <WorkspaceIcon name="sparkles" size={18} />
               다음 할 일
             </h2>
-            <span className="small-pill">내 문서 기준</span>
+            <span className="small-pill">내 업무 기준</span>
           </div>
           {data ? (
             <>
@@ -416,7 +431,7 @@ export function WorkHome() {
               </h3>
               <p>
                 {pending.length
-                  ? '내용과 첨부 자료를 검토하고 승인 또는 반려할 수 있습니다.'
+                  ? '내용과 증빙 확인 사항을 검토하고 승인 또는 반려할 수 있습니다.'
                   : rejected.length
                     ? '반려 사유를 확인하고 내용을 보완해 다시 제출하세요.'
                     : drafts.length

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Field, Input } from '@jhworks/pattern/react';
 import { GuardedLink as Link } from '@/components/navigation-guard';
@@ -43,6 +43,11 @@ export function PrototypeExplorer() {
   const [error, setError] = useState<string | null>(null);
   const previewHeading = useRef<HTMLHeadingElement>(null);
   const dateInput = useRef<HTMLInputElement>(null);
+  // Focus during the same render commit so a delayed callback cannot steal typing focus.
+  useLayoutEffect(() => {
+    if (step === 'questions') dateInput.current?.focus();
+    if (step === 'preview') previewHeading.current?.focus();
+  }, [step]);
   const latestDate = new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Asia/Seoul',
   }).format(new Date());
@@ -57,7 +62,6 @@ export function PrototypeExplorer() {
     }
     setError(null);
     setStep('preview');
-    requestAnimationFrame(() => previewHeading.current?.focus());
   }
   function continueDraft() {
     if (!employee) return;
@@ -162,7 +166,6 @@ export function PrototypeExplorer() {
                 <Button
                   onClick={() => {
                     setStep('questions');
-                    requestAnimationFrame(() => dateInput.current?.focus());
                   }}
                 >
                   빠진 정보 확인
@@ -246,7 +249,6 @@ export function PrototypeExplorer() {
                     onClick={() => {
                       setStep('questions');
                       setError(null);
-                      requestAnimationFrame(() => dateInput.current?.focus());
                     }}
                   >
                     입력 수정

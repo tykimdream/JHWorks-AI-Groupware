@@ -54,9 +54,14 @@ export default function ApprovalDetailPage() {
   const searchParams = useSearchParams();
   const leaveRunId = searchParams.get('leaveRunId');
   const from = searchParams.get('from');
+  const fromPage = searchParams.get('fromPage');
+  const fromStatus = searchParams.get('fromStatus');
+  const pagePart = fromPage && /^\d+$/.test(fromPage) && Number(fromPage) > 1 && Number(fromPage) <= 501 ? `&page=${Number(fromPage)}` : '';
+  const statusPart = ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED'].includes(fromStatus ?? '') ? `&status=${fromStatus}` : '';
+  const editContext = `${from === 'mine' || from === 'assigned' ? `?from=${from}` : ''}${from === 'mine' || from === 'assigned' ? pagePart.replace('&page=', '&fromPage=') + statusPart.replace('&status=', '&fromStatus=') : ''}`;
   // Only known list scopes can influence navigation; never accept a return URL.
   const listHref = from === 'mine' || from === 'assigned'
-    ? `/approvals?scope=${from}#${encodeURIComponent(`approval-${id}`)}`
+    ? `/approvals?scope=${from}${pagePart}${statusPart}#${encodeURIComponent(`approval-${id}`)}`
     : '/approvals';
   const { employee } = useCurrentEmployee();
   const { configuration } = useDemoConfiguration();
@@ -218,6 +223,7 @@ export default function ApprovalDetailPage() {
               status={approval.status}
               canEdit={isAuthor}
               onChecked={onExpenseChecked}
+              editContext={editContext}
               listScope={from === 'mine' || from === 'assigned' ? from : undefined}
             />
           )}
@@ -330,7 +336,7 @@ export default function ApprovalDetailPage() {
                   </p>
                 </div>
                 <div className="button-row">
-                  <Link className="secondary-button" href={`/approvals/${approval.id}/edit${from === 'mine' || from === 'assigned' ? `?from=${from}` : ''}`}>
+                  <Link className="secondary-button" href={`/approvals/${approval.id}/edit${editContext}`}>
                     수정
                   </Link>
                   <button

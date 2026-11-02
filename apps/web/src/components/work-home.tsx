@@ -88,7 +88,7 @@ export function WorkHome() {
     }
   };
   const drafts = data?.mine.items.filter((item) => item.status === 'DRAFT') ?? [];
-  const pending = data?.assigned.items.filter((item) => item.status === 'PENDING') ?? [];
+  const pending = data?.assigned.items.filter((item) => item.status === 'PENDING' && item.lines.some((line) => line.status === 'PENDING' && line.approver.id === employee?.id)) ?? [];
   const rejected = data?.mine.items.filter((item) => item.status === 'REJECTED') ?? [];
   const recent = [...(data?.mine.items ?? [])]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -329,7 +329,7 @@ export function WorkHome() {
           },
         ].map((stat) => (
           <Link
-            href={stat.title === '내가 처리할 결재' ? '/approvals?scope=assigned' : '/approvals'}
+            href={stat.title === '내가 처리할 결재' ? '/approvals?scope=assigned&status=PENDING' : '/approvals'}
             className="home-stat"
             key={stat.title}
           >

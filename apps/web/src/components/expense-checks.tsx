@@ -83,6 +83,7 @@ export function ExpenseChecksPanel({
   canEdit = false,
   listScope,
   onChecked,
+  editContext,
 }: {
   approvalId: string;
   version: number;
@@ -90,6 +91,7 @@ export function ExpenseChecksPanel({
   canEdit?: boolean;
   listScope?: 'mine' | 'assigned';
   onChecked?: (version: number, missingFields: string[]) => void;
+  editContext?: string;
 }) {
   const [checks, setChecks] = useState<ExpenseChecks | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +139,7 @@ export function ExpenseChecksPanel({
         <p role="status">누락 정보와 중복 가능성을 확인하고 있습니다.</p>
       ) : (
         <>
-          <Findings checks={checks} repairBase={canEdit && status === 'DRAFT' ? `/approvals/${approvalId}/edit?from=${listScope ?? 'mine'}` : undefined} />
+          <Findings checks={checks} repairBase={canEdit && status === 'DRAFT' ? `/approvals/${approvalId}/edit${editContext || `?from=${listScope ?? 'mine'}`}` : undefined} />
           {!checks.missingFields.length && !checks.duplicateMatches.length && (
             <p>
               필수 지출 정보가 입력됐고, 조회 가능한 문서에서 같은 지출일·사용처·금액의 경비를 찾지

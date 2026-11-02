@@ -51,6 +51,7 @@ test('home proactively offers missing facts and duplicate evidence that opens an
   });
   await insight.locator('.expense-insight-title').click();
   await expect(page).toHaveURL(new RegExp(`/approvals/${currentId}$`));
+  await page.goto(`/approvals/${currentId}?from=mine&fromPage=2&fromStatus=DRAFT`);
   const checks = page.getByRole('region', { name: '경비 사전 확인' });
   await expect(checks).toContainText('업무 목적');
   await expect(page.getByRole('button', { name: '제출', exact: true })).toBeDisabled();
@@ -76,7 +77,7 @@ test('home proactively offers missing facts and duplicate evidence that opens an
   await purpose.fill('CES 출장 이동');
   expect(patches).toBe(0);
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/approvals/${currentId}\\?from=mine$`));
+  await expect(page).toHaveURL(new RegExp(`/approvals/${currentId}\\?from=mine&fromPage=2&fromStatus=DRAFT$`));
   await expect(checks).not.toContainText('업무 목적 보완하기');
   await expect(page.getByRole('button', { name: '제출', exact: true })).toBeEnabled();
   expect(patches).toBe(1);
@@ -152,9 +153,9 @@ test('required title remains visible above sticky form actions', async ({ page }
   await page.getByRole('button', { name: '초안 저장', exact: true }).click();
   const title = page.getByRole('textbox', { name: '제목', exact: true });
   await expect(title).toBeFocused();
-  const field = await title.boundingBox();
-  const actions = await page.locator('.sticky-actions').boundingBox();
-  expect(field).not.toBeNull();
-  expect(actions).not.toBeNull();
-  expect(field!.y + field!.height).toBeLessThanOrEqual(actions!.y);
+  await expect.poll(async () => {
+    const field = await title.boundingBox();
+    const actions = await page.locator('.sticky-actions').boundingBox();
+    return field && actions ? field.y + field.height - actions.y : Infinity;
+  }).toBeLessThanOrEqual(0);
 });

@@ -28,8 +28,8 @@ test('approver evidence → rejection → grounded correction diff → same draf
   const brief = page.getByRole('region', { name: '결재자 경비 검토 요약' });
   await expect(brief.getByText('추가 확인 필요', { exact: true })).toBeVisible();
   await expect(brief).toContainText('원본 첨부·진위는 확인되지 않았습니다.');
-  await brief.getByText('근거: Receipts · 1.0', { exact: true }).click();
-  await expect(brief).toContainText('Expenses of KRW 100,000 or more require a receipt.');
+  await brief.getByText('근거: 영수증 · 1.0', { exact: true }).click();
+  await expect(brief).toContainText('100,000원 이상의 경비에는 영수증이 필요합니다.');
   await mkdir('artifacts/workspace-preview', { recursive: true });
   await page.screenshot({ path: `artifacts/workspace-preview/decision-brief-${info.project.name}.png`, fullPage: true });
   const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();

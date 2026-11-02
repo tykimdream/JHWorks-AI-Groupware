@@ -288,73 +288,73 @@ def seed_database(db: Session) -> None:
         (
             "policy_travel",
             PolicyType.TRAVEL,
-            "Domestic Business Travel Policy",
+            "국내 출장 규정",
             [
                 (
                     "TRAVEL-1",
-                    "Accommodation",
-                    "Domestic accommodation is reimbursed up to KRW 120,000 per night.",
+                    "숙박비",
+                    "국내 숙박비는 1박당 120,000원까지 정산합니다.",
                 ),
                 (
                     "TRAVEL-2",
-                    "Transportation",
-                    "Transportation is reimbursed at actual documented cost.",
+                    "교통비",
+                    "교통비는 증빙된 실제 지출액을 정산합니다.",
                 ),
                 (
                     "TRAVEL-3",
-                    "Prior approval",
-                    "Trips with an estimated total cost of KRW 300,000 or more "
-                    "require prior approval.",
+                    "사전 승인",
+                    "예상 총액이 300,000원 이상인 출장은 "
+                    "사전 승인이 필요합니다.",
                 ),
                 (
                     "TRAVEL-4",
-                    "Client visits",
-                    "A client visit request must state the client name and specific visit purpose.",
+                    "고객 방문",
+                    "고객 방문 신청에는 고객사 이름과 구체적인 방문 목적을 기재해야 합니다.",
                 ),
             ],
         ),
         (
             "policy_expense",
             PolicyType.EXPENSE,
-            "Business Expense Policy",
+            "업무 경비 규정",
             [
                 (
                     "EXPENSE-1",
-                    "Client meals",
-                    "A client meeting meal is limited to KRW 50,000 per attendee.",
+                    "고객 식사비",
+                    "고객 미팅 식사비는 참석자 1인당 50,000원까지입니다.",
                 ),
                 (
                     "EXPENSE-2",
-                    "Receipts",
-                    "Expenses of KRW 100,000 or more require a receipt.",
+                    "영수증",
+                    "100,000원 이상의 경비에는 영수증이 필요합니다.",
                 ),
                 (
                     "EXPENSE-3",
-                    "Prior approval",
-                    "Expenses of KRW 300,000 or more require prior approval.",
+                    "사전 승인",
+                    "300,000원 이상의 경비에는 사전 승인이 필요합니다.",
                 ),
             ],
         ),
         (
             "policy_leave",
             PolicyType.LEAVE,
-            "Annual Leave Policy",
+            "연차 휴가 규정",
             [
                 (
                     "LEAVE-1",
-                    "Balance",
-                    "Annual leave may be requested only within the employee's remaining balance.",
+                    "잔여 연차",
+                    "연차는 직원의 잔여 일수 범위에서 신청할 수 있습니다.",
                 ),
                 (
                     "LEAVE-2",
-                    "Advance notice",
-                    "Three or more consecutive leave days require five business days "
-                    "of advance notice.",
+                    "사전 통보",
+                    "연속 3일 이상의 휴가는 영업일 기준 5일 전에 "
+                    "미리 알려야 합니다.",
                 ),
                 (
                     "LEAVE-3",
-                    "Half day",
-                    "A half-day request deducts 0.5 day from the leave balance.",
+                    "반차",
+                    "반차를 신청하면 잔여 연차에서 0.5일을 차감합니다.",
                 ),
             ],
         ),

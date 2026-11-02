@@ -69,7 +69,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   return (
     <div className="app-frame">
       <aside className="sidebar tw:sticky tw:top-0 tw:flex tw:h-dvh tw:min-h-0 tw:flex-col tw:overflow-hidden tw:border-0 tw:border-r tw:border-solid tw:border-jhw-border tw:bg-jhw-surface tw:px-4 tw:pt-7 tw:pb-4 tw:text-jhw-text tw:max-[900px]:static tw:max-[900px]:h-auto tw:max-[900px]:gap-4 tw:max-[900px]:border-r-0 tw:max-[900px]:border-b tw:max-[900px]:p-4">
-        <div>
+        <div className="sidebar-brand">
           <BrandLogo />
           <p className="workspace-label">우리의 일, 더 가볍게.</p>
         </div>
@@ -134,7 +134,7 @@ export const AppShell = ({ children }: AppShellProps) => {
                 />
                 방문자 전용 체험 공간
               </p>
-              <DemoRoleSwitcher key={employee.id} currentRole={employee.role} fullWidth />
+              <div className="sidebar-role-switch"><DemoRoleSwitcher key={employee.id} currentRole={employee.role} fullWidth /></div>
             </>
           )}
           <div className="profile-card tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:max-[900px]:col-start-1 tw:max-[900px]:row-start-1">

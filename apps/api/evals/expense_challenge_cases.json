@@ -1,0 +1,57 @@
+[
+  {
+    "id": "challenge-unknown-merchant",
+    "description": "지출액은 알지만 사용처는 확인되지 않음",
+    "category": "missing_facts",
+    "request": "행사 방문에 이미 지출한 48,000원을 정산해줘. 사용처는 확인하지 못했어.",
+    "answers": [],
+    "current_date": "2026-10-30",
+    "expected_intent": "EXPENSE",
+    "expected_values": {"amount": 48000},
+    "expected_null_fields": ["merchant", "expense_date", "receipt_reference"]
+  },
+  {
+    "id": "challenge-date-not-visit-date",
+    "description": "방문 날짜를 실제 지출일로 지어내지 않음",
+    "category": "trust_boundary",
+    "request": "2026년 10월 21일 고객사 방문에 관련된 비용 24,000원을 이미 썼어. 지출일은 기억나지 않아. 경비 정산해줘.",
+    "answers": [],
+    "current_date": "2026-10-30",
+    "expected_intent": "EXPENSE",
+    "expected_values": {"amount": 24000},
+    "expected_null_fields": ["expense_date", "merchant"]
+  },
+  {
+    "id": "challenge-corrected-amount",
+    "description": "후속 답변의 명시적 금액 정정",
+    "category": "follow_up",
+    "request": "이미 쓴 경비 64,000원을 정산해줘.",
+    "answers": ["정정: 금액은 46,000원입니다."],
+    "current_date": "2026-10-30",
+    "expected_intent": "EXPENSE",
+    "expected_values": {"amount": 46000},
+    "expected_null_fields": ["merchant", "receipt_reference"]
+  },
+  {
+    "id": "challenge-reference-not-merchant",
+    "description": "증빙 참조를 사용처나 실제 영수증 확인으로 취급하지 않음",
+    "category": "trust_boundary",
+    "request": "이미 지출한 경비 85,000원을 정산해줘. 증빙 참조는 DOC-42야. 사용처는 아직 몰라.",
+    "answers": [],
+    "current_date": "2026-10-30",
+    "expected_intent": "EXPENSE",
+    "expected_values": {"amount": 85000, "receipt_reference": "DOC-42"},
+    "expected_null_fields": ["merchant", "expense_date"]
+  },
+  {
+    "id": "challenge-explicit-expense",
+    "description": "실제 지출일과 사용처를 그대로 반영",
+    "category": "date",
+    "request": "2026년 10월 20일 별빛문구에서 이미 사용한 31,000원을 경비 정산해줘.",
+    "answers": [],
+    "current_date": "2026-10-30",
+    "expected_intent": "EXPENSE",
+    "expected_values": {"amount": 31000, "expense_date": "2026-10-20", "merchant": "별빛문구"},
+    "expected_null_fields": ["receipt_reference"]
+  }
+]

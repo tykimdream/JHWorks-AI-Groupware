@@ -1,5 +1,7 @@
 # 현재 상태와 작업 기록 — 2026-10-26
 
+> 아래는 작성 당시의 이력입니다. 2026-11-02 23:44 KST 공개 `/api/v1/demo/configuration` 응답은 `approvalDraft=true`, `leaveAssistant=true`, 나머지 AI capability는 false로 표시했습니다. 이는 설정 상태만 나타내며 유료 모델 호출 성공·품질·예산 잔여를 검증한 결과가 아닙니다. 이 기록만으로 당시 배포 source나 변경 시점을 특정할 수 없습니다.
+
 
 ## 앞으로의 실행 기준 — 2026-10-25
 

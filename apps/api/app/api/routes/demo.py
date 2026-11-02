@@ -52,6 +52,7 @@ def configuration(
     settings = get_settings()
     return DemoConfiguration(
         enabled=settings.public_demo_enabled,
+        feedback_enabled=settings.public_demo_enabled and settings.public_feedback_enabled,
         duration_minutes=settings.demo_ttl_minutes,
         ai_capabilities=ai_capabilities,
         expense_ai_request_limit=(

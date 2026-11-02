@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
-const configuration = { enabled: true, durationMinutes: 15, writeLimit: 20, requestLimit: 100 };
+const configuration = { enabled: true, feedbackEnabled: true, durationMinutes: 15, writeLimit: 20, requestLimit: 100 };
 
 test('public demo entry hides shared password accounts', async ({ page }, testInfo) => {
   await page.route('**/api/v1/demo/configuration', (route) => route.fulfill({ json: configuration }));
@@ -58,4 +58,27 @@ test('feedback does not accept submissions while public demo is disabled', async
   await page.goto('/feedback');
   await expect(page.getByRole('status')).toContainText('피드백 접수를 준비 중');
   await expect(page.getByRole('button', { name: '의견 보내기' })).toHaveCount(0);
+});
+
+test('feedback remains closed when readiness is missing from an older API', async ({ page }) => {
+  await page.route('**/api/v1/demo/configuration', (route) => route.fulfill({
+    json: { enabled: true, durationMinutes: 15, writeLimit: 20, requestLimit: 100 },
+  }));
+  await page.goto('/feedback');
+  await expect(page.getByRole('status')).toContainText('현재 의견을 보낼 수 없습니다');
+  await expect(page.getByRole('button', { name: '의견 보내기' })).toHaveCount(0);
+});
+
+test('feedback keeps the text if collection is disabled after the form loads', async ({ page }) => {
+  await page.route('**/api/v1/demo/configuration', (route) => route.fulfill({ json: configuration }));
+  await page.route('**/api/v1/demo/feedback', (route) => route.fulfill({
+    status: 404, json: { error: { code: 'NOT_FOUND', message: 'unavailable' } },
+  }));
+  await page.goto('/feedback');
+  const message = page.getByLabel('의견', { exact: true });
+  await message.fill('합성 의견입니다. 버튼이 잘 보이지 않았습니다.');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: '의견 보내기' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: '입력한 내용은 이 화면에 유지' })).toBeVisible();
+  await expect(message).toHaveValue('합성 의견입니다. 버튼이 잘 보이지 않았습니다.');
 });

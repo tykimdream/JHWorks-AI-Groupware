@@ -133,3 +133,17 @@ def test_operator_summary_hides_text_and_retention_purge_is_explicit(
     assert report["stored"] == 0 and report["removed"] == 1
     with session_factory() as db:
         assert db.scalar(select(func.count()).select_from(DemoWorkspace)) == 1
+
+
+def test_feedback_requires_explicit_retention_readiness(
+    client: TestClient, public_demo: None, monkeypatch: pytest.MonkeyPatch,
+    session_factory: sessionmaker[Session],
+) -> None:
+    from app.core.config import get_settings
+
+    _start(client)
+    monkeypatch.setattr(get_settings(), "public_feedback_enabled", False)
+    assert client.get("/api/v1/demo/configuration").json()["feedbackEnabled"] is False
+    assert client.post("/api/v1/demo/feedback", json=payload()).status_code == 404
+    with session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(DemoFeedback)) == 0

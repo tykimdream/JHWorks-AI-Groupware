@@ -57,6 +57,7 @@ def test_firebase_cookie_uses_startup_configuration() -> None:
         "JHWORKS_FRONTEND_ORIGIN": "https://groupware.pikan.dev",
         "JHWORKS_JWT_SECRET": "synthetic-gateway-test-key-never-deploy",
         "JHWORKS_AI_ENABLED": "false",
+        "JHWORKS_PUBLIC_FEEDBACK_ENABLED": "true",
         "JHWORKS_OPENAI_API_KEY": "",
     }
     result = subprocess.run(

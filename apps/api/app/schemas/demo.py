@@ -18,6 +18,7 @@ class DemoConfiguration(ApiSchema):
     ai_capabilities: AICapabilities = Field(default_factory=AICapabilities)
     expense_ai_request_limit: int | None = None
     enabled: bool
+    feedback_enabled: bool = False
     duration_minutes: int
     write_limit: int = 20
     request_limit: int = 100

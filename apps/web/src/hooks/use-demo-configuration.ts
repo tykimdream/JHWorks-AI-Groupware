@@ -15,6 +15,7 @@ interface DemoConfiguration {
   aiCapabilities: Record<AICapability, boolean>;
   expenseAiRequestLimit?: number | null;
   enabled: boolean;
+  feedbackEnabled?: boolean;
   durationMinutes: number;
   writeLimit: number;
   requestLimit: number;

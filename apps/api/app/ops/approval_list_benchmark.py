@@ -116,7 +116,9 @@ def measure(factory: sessionmaker[Session], actor_id: str, scope: str) -> dict[s
             event.remove(connection, "before_cursor_execute", count_query)
 
 
-def measure_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> dict[str, Any]:
+def measure_page(
+    factory: sessionmaker[Session], actor_id: str, scope: str, offset: int = 0,
+) -> dict[str, Any]:
     from app.api.routes.approvals import _approval_summary
     from app.models import Employee
     from app.schemas.approval import ApprovalSummaryPage
@@ -135,10 +137,10 @@ def measure_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> d
         event.listen(connection, "before_cursor_execute", count_query)
         try:
             started = perf_counter()
-            items, total = list_approval_page(db, actor, scope, 20, 0)
+            items, total = list_approval_page(db, actor, scope, 20, offset)
             loaded = perf_counter()
             response = ApprovalSummaryPage(items=[_approval_summary(item) for item in items],
-                                           total=total, limit=20, offset=0)
+                                           total=total, limit=20, offset=offset)
             payload = response.model_dump_json(by_alias=True).encode("utf-8")
             finished = perf_counter()
             return {"rows": len(items), "total": total, "sqlStatements": statements,
@@ -160,7 +162,9 @@ def summarize_plan(node: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def explain_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> list[dict[str, Any]]:
+def explain_page(
+    factory: sessionmaker[Session], actor_id: str, scope: str, offset: int = 0,
+) -> list[dict[str, Any]]:
     """Explain the actual count, page and relationship SELECTs on the isolated fixture."""
     from app.models import Employee
     from app.services.approval import list_approval_page
@@ -179,7 +183,7 @@ def explain_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> l
 
         event.listen(connection, "before_cursor_execute", capture)
         try:
-            list_approval_page(db, actor, scope, 20, 0)
+            list_approval_page(db, actor, scope, 20, offset)
         finally:
             event.remove(connection, "before_cursor_execute", capture)
         plans = []
@@ -228,11 +232,20 @@ def run(raw: str, counts: list[int], repeats: int) -> dict[str, Any]:
                     samples = [measure(factory, actors[actor], scope) for _ in range(repeats)]
                     measure_page(factory, actors[actor], scope)
                     pages = [measure_page(factory, actors[actor], scope) for _ in range(repeats)]
-                    results.append({"documents": count, "actor": actor, "scope": scope,
-                                    "samples": samples, "pageSamples": pages,
-                                    "pagePlans": explain_page(factory, actors[actor], scope),
-                                    "medianTotalMs": median(s["totalMs"] for s in samples),
-                                    "medianPageTotalMs": median(s["totalMs"] for s in pages)})
+                    case = {"documents": count, "actor": actor, "scope": scope,
+                            "samples": samples, "pageSamples": pages,
+                            "pagePlans": explain_page(factory, actors[actor], scope),
+                            "medianTotalMs": median(s["totalMs"] for s in samples),
+                            "medianPageTotalMs": median(s["totalMs"] for s in pages)}
+                    if count >= 1000:
+                        measure_page(factory, actors[actor], scope, offset=400)
+                        deep = [measure_page(factory, actors[actor], scope, offset=400)
+                                for _ in range(repeats)]
+                        case.update(deepOffset=400, deepPageSamples=deep,
+                                    deepPagePlans=explain_page(
+                                        factory, actors[actor], scope, offset=400
+                                    ), medianDeepPageTotalMs=median(s["totalMs"] for s in deep))
+                    results.append(case)
             finally:
                 if created:
                     with scoped.begin() as connection:

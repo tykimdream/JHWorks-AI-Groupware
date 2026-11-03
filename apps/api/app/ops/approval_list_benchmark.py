@@ -149,6 +149,50 @@ def measure_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> d
             event.remove(connection, "before_cursor_execute", count_query)
 
 
+def summarize_plan(node: dict[str, Any]) -> dict[str, Any]:
+    """Keep execution statistics, never SQL predicates, parameter values or schema names."""
+    allowed = ("Node Type", "Join Type", "Index Name", "Actual Rows", "Actual Loops",
+               "Plan Rows", "Actual Total Time", "Shared Hit Blocks", "Shared Read Blocks",
+               "Sort Method", "Sort Space Used", "Sort Space Type")
+    result = {key: node[key] for key in allowed if key in node}
+    if "Plans" in node:
+        result["Plans"] = [summarize_plan(child) for child in node["Plans"]]
+    return result
+
+
+def explain_page(factory: sessionmaker[Session], actor_id: str, scope: str) -> list[dict[str, Any]]:
+    """Explain the actual count, page and relationship SELECTs on the isolated fixture."""
+    from app.models import Employee
+    from app.services.approval import list_approval_page
+
+    with factory() as db:
+        actor = db.get(Employee, actor_id)
+        assert actor is not None
+        connection = db.connection()
+        queries: list[tuple[str, Any]] = []
+
+        def capture(conn: Any, cursor: Any, statement: str, parameters: Any,
+                    context: Any, executemany: bool) -> None:
+            if executemany or not statement.lstrip().upper().startswith("SELECT"):
+                raise ValueError("only individual SELECT statements can be explained")
+            queries.append((statement, parameters))
+
+        event.listen(connection, "before_cursor_execute", capture)
+        try:
+            list_approval_page(db, actor, scope, 20, 0)
+        finally:
+            event.remove(connection, "before_cursor_execute", capture)
+        plans = []
+        for statement, parameters in queries:
+            document = connection.exec_driver_sql(
+                "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + statement, parameters
+            ).scalar_one()[0]
+            plans.append({"planningMs": document["Planning Time"],
+                          "executionMs": document["Execution Time"],
+                          "plan": summarize_plan(document["Plan"])})
+        return plans
+
+
 def run(raw: str, counts: list[int], repeats: int) -> dict[str, Any]:
     url = dedicated_url(raw)
     # Validate before importing any application settings or connecting to a DB.
@@ -186,6 +230,7 @@ def run(raw: str, counts: list[int], repeats: int) -> dict[str, Any]:
                     pages = [measure_page(factory, actors[actor], scope) for _ in range(repeats)]
                     results.append({"documents": count, "actor": actor, "scope": scope,
                                     "samples": samples, "pageSamples": pages,
+                                    "pagePlans": explain_page(factory, actors[actor], scope),
                                     "medianTotalMs": median(s["totalMs"] for s in samples),
                                     "medianPageTotalMs": median(s["totalMs"] for s in pages)})
             finally:

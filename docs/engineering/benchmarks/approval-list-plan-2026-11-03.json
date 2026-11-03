@@ -1,0 +1,1583 @@
+{
+  "fixtureVersion": "approval-list-v1",
+  "sourceSha": "local",
+  "pythonVersion": "3.12.13",
+  "postgresVersion": "17.11 (Debian 17.11-1.pgdg12+2)",
+  "repeats": 3,
+  "warmupPerCase": 1,
+  "concurrency": 1,
+  "boundary": "ORM + mapper + JSON; excludes actor lookup, HTTP/auth, network, UI",
+  "cache": "fresh ORM session per sample; shared PostgreSQL buffers, not cold cache",
+  "cases": [
+    {
+      "documents": 100,
+      "actor": "author",
+      "scope": "mine",
+      "samples": [
+        {
+          "rows": 75,
+          "sqlStatements": 2,
+          "payloadBytes": 165172,
+          "ormMs": 3.597083006752655,
+          "mapSerializeMs": 1.2580420006997883,
+          "totalMs": 4.855125007452443
+        },
+        {
+          "rows": 75,
+          "sqlStatements": 2,
+          "payloadBytes": 165172,
+          "ormMs": 3.551792004145682,
+          "mapSerializeMs": 1.3557919883169234,
+          "totalMs": 4.907583992462605
+        },
+        {
+          "rows": 75,
+          "sqlStatements": 2,
+          "payloadBytes": 165172,
+          "ormMs": 3.6172500113025308,
+          "mapSerializeMs": 1.256042014574632,
+          "totalMs": 4.873292025877163
+        }
+      ],
+      "pageSamples": [
+        {
+          "rows": 20,
+          "total": 75,
+          "sqlStatements": 3,
+          "payloadBytes": 11404,
+          "ormMs": 3.4455830173101276,
+          "mapSerializeMs": 0.11854199692606926,
+          "totalMs": 3.564125014236197
+        },
+        {
+          "rows": 20,
+          "total": 75,
+          "sqlStatements": 3,
+          "payloadBytes": 11404,
+          "ormMs": 2.460334013449028,
+          "mapSerializeMs": 0.11579098645597696,
+          "totalMs": 2.576124999905005
+        },
+        {
+          "rows": 20,
+          "total": 75,
+          "sqlStatements": 3,
+          "payloadBytes": 11404,
+          "ormMs": 2.419708005618304,
+          "mapSerializeMs": 0.10295800166204572,
+          "totalMs": 2.5226660072803497
+        }
+      ],
+      "pagePlans": [
+        {
+          "planningMs": 0.034,
+          "executionMs": 0.019,
+          "plan": {
+            "Node Type": "Aggregate",
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.014,
+            "Shared Hit Blocks": 18,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Bitmap Heap Scan",
+                "Actual Rows": 75,
+                "Actual Loops": 1,
+                "Plan Rows": 66,
+                "Actual Total Time": 0.011,
+                "Shared Hit Blocks": 18,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Bitmap Index Scan",
+                    "Index Name": "ix_approvals_author_id",
+                    "Actual Rows": 75,
+                    "Actual Loops": 1,
+                    "Plan Rows": 75,
+                    "Actual Total Time": 0.003,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.047,
+          "executionMs": 0.089,
+          "plan": {
+            "Node Type": "Limit",
+            "Actual Rows": 20,
+            "Actual Loops": 1,
+            "Plan Rows": 20,
+            "Actual Total Time": 0.068,
+            "Shared Hit Blocks": 19,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Actual Rows": 20,
+                "Actual Loops": 1,
+                "Plan Rows": 66,
+                "Actual Total Time": 0.067,
+                "Shared Hit Blocks": 19,
+                "Shared Read Blocks": 0,
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 107,
+                "Sort Space Type": "Memory",
+                "Plans": [
+                  {
+                    "Node Type": "Nested Loop",
+                    "Join Type": "Left",
+                    "Actual Rows": 75,
+                    "Actual Loops": 1,
+                    "Plan Rows": 66,
+                    "Actual Total Time": 0.032,
+                    "Shared Hit Blocks": 19,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Bitmap Heap Scan",
+                        "Actual Rows": 75,
+                        "Actual Loops": 1,
+                        "Plan Rows": 66,
+                        "Actual Total Time": 0.014,
+                        "Shared Hit Blocks": 18,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Bitmap Index Scan",
+                            "Index Name": "ix_approvals_author_id",
+                            "Actual Rows": 75,
+                            "Actual Loops": 1,
+                            "Plan Rows": 75,
+                            "Actual Total Time": 0.006,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0
+                          }
+                        ]
+                      },
+                      {
+                        "Node Type": "Materialize",
+                        "Actual Rows": 1,
+                        "Actual Loops": 75,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.0,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Seq Scan",
+                            "Actual Rows": 1,
+                            "Actual Loops": 1,
+                            "Plan Rows": 1,
+                            "Actual Total Time": 0.001,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.056,
+          "executionMs": 0.031,
+          "plan": {
+            "Node Type": "Sort",
+            "Actual Rows": 40,
+            "Actual Loops": 1,
+            "Plan Rows": 40,
+            "Actual Total Time": 0.026,
+            "Shared Hit Blocks": 4,
+            "Shared Read Blocks": 0,
+            "Sort Method": "quicksort",
+            "Sort Space Used": 33,
+            "Sort Space Type": "Memory",
+            "Plans": [
+              {
+                "Node Type": "Hash Join",
+                "Join Type": "Left",
+                "Actual Rows": 40,
+                "Actual Loops": 1,
+                "Plan Rows": 40,
+                "Actual Total Time": 0.019,
+                "Shared Hit Blocks": 4,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Actual Rows": 40,
+                    "Actual Loops": 1,
+                    "Plan Rows": 40,
+                    "Actual Total Time": 0.011,
+                    "Shared Hit Blocks": 3,
+                    "Shared Read Blocks": 0
+                  },
+                  {
+                    "Node Type": "Hash",
+                    "Actual Rows": 4,
+                    "Actual Loops": 1,
+                    "Plan Rows": 4,
+                    "Actual Total Time": 0.001,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 4,
+                        "Actual Loops": 1,
+                        "Plan Rows": 4,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "medianTotalMs": 4.873292025877163,
+      "medianPageTotalMs": 2.576124999905005
+    },
+    {
+      "documents": 100,
+      "actor": "approver",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 100,
+          "sqlStatements": 2,
+          "payloadBytes": 220148,
+          "ormMs": 4.299666004953906,
+          "mapSerializeMs": 1.828999986173585,
+          "totalMs": 6.128665991127491
+        },
+        {
+          "rows": 100,
+          "sqlStatements": 2,
+          "payloadBytes": 220148,
+          "ormMs": 4.142167017562315,
+          "mapSerializeMs": 1.6298749833367765,
+          "totalMs": 5.772042000899091
+        },
+        {
+          "rows": 100,
+          "sqlStatements": 2,
+          "payloadBytes": 220148,
+          "ormMs": 4.52437499188818,
+          "mapSerializeMs": 1.6905840020626783,
+          "totalMs": 6.214958993950859
+        }
+      ],
+      "pageSamples": [
+        {
+          "rows": 20,
+          "total": 100,
+          "sqlStatements": 3,
+          "payloadBytes": 11390,
+          "ormMs": 3.6886669986415654,
+          "mapSerializeMs": 0.10474998271092772,
+          "totalMs": 3.793416981352493
+        },
+        {
+          "rows": 20,
+          "total": 100,
+          "sqlStatements": 3,
+          "payloadBytes": 11390,
+          "ormMs": 3.055665991269052,
+          "mapSerializeMs": 0.10441700578667223,
+          "totalMs": 3.1600829970557243
+        },
+        {
+          "rows": 20,
+          "total": 100,
+          "sqlStatements": 3,
+          "payloadBytes": 11390,
+          "ormMs": 2.8761659923475236,
+          "mapSerializeMs": 0.10112498421221972,
+          "totalMs": 2.9772909765597433
+        }
+      ],
+      "pagePlans": [
+        {
+          "planningMs": 0.102,
+          "executionMs": 0.087,
+          "plan": {
+            "Node Type": "Aggregate",
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.082,
+            "Shared Hit Blocks": 23,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Hash Join",
+                "Join Type": "Semi",
+                "Actual Rows": 100,
+                "Actual Loops": 1,
+                "Plan Rows": 50,
+                "Actual Total Time": 0.078,
+                "Shared Hit Blocks": 23,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Actual Rows": 100,
+                    "Actual Loops": 1,
+                    "Plan Rows": 50,
+                    "Actual Total Time": 0.046,
+                    "Shared Hit Blocks": 20,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 200,
+                        "Actual Loops": 1,
+                        "Plan Rows": 200,
+                        "Actual Total Time": 0.015,
+                        "Shared Hit Blocks": 3,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Hash",
+                    "Actual Rows": 200,
+                    "Actual Loops": 1,
+                    "Plan Rows": 200,
+                    "Actual Total Time": 0.023,
+                    "Shared Hit Blocks": 3,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 200,
+                        "Actual Loops": 1,
+                        "Plan Rows": 200,
+                        "Actual Total Time": 0.013,
+                        "Shared Hit Blocks": 3,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.193,
+          "executionMs": 0.17,
+          "plan": {
+            "Node Type": "Limit",
+            "Actual Rows": 20,
+            "Actual Loops": 1,
+            "Plan Rows": 20,
+            "Actual Total Time": 0.161,
+            "Shared Hit Blocks": 24,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Actual Rows": 20,
+                "Actual Loops": 1,
+                "Plan Rows": 50,
+                "Actual Total Time": 0.16,
+                "Shared Hit Blocks": 24,
+                "Shared Read Blocks": 0,
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 107,
+                "Sort Space Type": "Memory",
+                "Plans": [
+                  {
+                    "Node Type": "Hash Join",
+                    "Join Type": "Semi",
+                    "Actual Rows": 100,
+                    "Actual Loops": 1,
+                    "Plan Rows": 50,
+                    "Actual Total Time": 0.106,
+                    "Shared Hit Blocks": 24,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Nested Loop",
+                        "Join Type": "Left",
+                        "Actual Rows": 100,
+                        "Actual Loops": 1,
+                        "Plan Rows": 50,
+                        "Actual Total Time": 0.07,
+                        "Shared Hit Blocks": 21,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Seq Scan",
+                            "Actual Rows": 100,
+                            "Actual Loops": 1,
+                            "Plan Rows": 50,
+                            "Actual Total Time": 0.046,
+                            "Shared Hit Blocks": 20,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Actual Rows": 200,
+                                "Actual Loops": 1,
+                                "Plan Rows": 200,
+                                "Actual Total Time": 0.015,
+                                "Shared Hit Blocks": 3,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          },
+                          {
+                            "Node Type": "Materialize",
+                            "Actual Rows": 2,
+                            "Actual Loops": 100,
+                            "Plan Rows": 4,
+                            "Actual Total Time": 0.0,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Actual Rows": 3,
+                                "Actual Loops": 1,
+                                "Plan Rows": 4,
+                                "Actual Total Time": 0.0,
+                                "Shared Hit Blocks": 1,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Node Type": "Hash",
+                        "Actual Rows": 200,
+                        "Actual Loops": 1,
+                        "Plan Rows": 200,
+                        "Actual Total Time": 0.025,
+                        "Shared Hit Blocks": 3,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Seq Scan",
+                            "Actual Rows": 200,
+                            "Actual Loops": 1,
+                            "Plan Rows": 200,
+                            "Actual Total Time": 0.013,
+                            "Shared Hit Blocks": 3,
+                            "Shared Read Blocks": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.057,
+          "executionMs": 0.031,
+          "plan": {
+            "Node Type": "Sort",
+            "Actual Rows": 40,
+            "Actual Loops": 1,
+            "Plan Rows": 40,
+            "Actual Total Time": 0.027,
+            "Shared Hit Blocks": 4,
+            "Shared Read Blocks": 0,
+            "Sort Method": "quicksort",
+            "Sort Space Used": 33,
+            "Sort Space Type": "Memory",
+            "Plans": [
+              {
+                "Node Type": "Hash Join",
+                "Join Type": "Left",
+                "Actual Rows": 40,
+                "Actual Loops": 1,
+                "Plan Rows": 40,
+                "Actual Total Time": 0.02,
+                "Shared Hit Blocks": 4,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Actual Rows": 40,
+                    "Actual Loops": 1,
+                    "Plan Rows": 40,
+                    "Actual Total Time": 0.011,
+                    "Shared Hit Blocks": 3,
+                    "Shared Read Blocks": 0
+                  },
+                  {
+                    "Node Type": "Hash",
+                    "Actual Rows": 4,
+                    "Actual Loops": 1,
+                    "Plan Rows": 4,
+                    "Actual Total Time": 0.001,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 4,
+                        "Actual Loops": 1,
+                        "Plan Rows": 4,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "medianTotalMs": 6.128665991127491,
+      "medianPageTotalMs": 3.1600829970557243
+    },
+    {
+      "documents": 100,
+      "actor": "outsider",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 0.7706250180490315,
+          "mapSerializeMs": 0.004750007065013051,
+          "totalMs": 0.7753750251140445
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 0.8675830031279474,
+          "mapSerializeMs": 0.004125002305954695,
+          "totalMs": 0.8717080054339021
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 0.8439169905614108,
+          "mapSerializeMs": 0.003916997229680419,
+          "totalMs": 0.8478339877910912
+        }
+      ],
+      "pageSamples": [
+        {
+          "rows": 0,
+          "total": 0,
+          "sqlStatements": 2,
+          "payloadBytes": 44,
+          "ormMs": 1.450416020816192,
+          "mapSerializeMs": 0.008000002708286047,
+          "totalMs": 1.458416023524478
+        },
+        {
+          "rows": 0,
+          "total": 0,
+          "sqlStatements": 2,
+          "payloadBytes": 44,
+          "ormMs": 1.854292000643909,
+          "mapSerializeMs": 0.015083001926541328,
+          "totalMs": 1.8693750025704503
+        },
+        {
+          "rows": 0,
+          "total": 0,
+          "sqlStatements": 2,
+          "payloadBytes": 44,
+          "ormMs": 1.749666000250727,
+          "mapSerializeMs": 0.011416996130719781,
+          "totalMs": 1.7610829963814467
+        }
+      ],
+      "pagePlans": [
+        {
+          "planningMs": 0.119,
+          "executionMs": 0.011,
+          "plan": {
+            "Node Type": "Aggregate",
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.002,
+            "Shared Hit Blocks": 1,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Nested Loop",
+                "Join Type": "Inner",
+                "Actual Rows": 0,
+                "Actual Loops": 1,
+                "Plan Rows": 1,
+                "Actual Total Time": 0.002,
+                "Shared Hit Blocks": 1,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Aggregate",
+                    "Actual Rows": 0,
+                    "Actual Loops": 1,
+                    "Plan Rows": 1,
+                    "Actual Total Time": 0.002,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Index Scan",
+                        "Index Name": "ix_approval_lines_approver_id",
+                        "Actual Rows": 0,
+                        "Actual Loops": 1,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Index Scan",
+                    "Index Name": "approvals_pkey",
+                    "Actual Rows": 0,
+                    "Actual Loops": 0,
+                    "Plan Rows": 1,
+                    "Actual Total Time": 0.0,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Index Scan",
+                        "Index Name": "ix_approval_lines_approver_id",
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.193,
+          "executionMs": 0.012,
+          "plan": {
+            "Node Type": "Limit",
+            "Actual Rows": 0,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.003,
+            "Shared Hit Blocks": 1,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Actual Rows": 0,
+                "Actual Loops": 1,
+                "Plan Rows": 1,
+                "Actual Total Time": 0.002,
+                "Shared Hit Blocks": 1,
+                "Shared Read Blocks": 0,
+                "Sort Method": "quicksort",
+                "Sort Space Used": 25,
+                "Sort Space Type": "Memory",
+                "Plans": [
+                  {
+                    "Node Type": "Nested Loop",
+                    "Join Type": "Left",
+                    "Actual Rows": 0,
+                    "Actual Loops": 1,
+                    "Plan Rows": 1,
+                    "Actual Total Time": 0.002,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Nested Loop",
+                        "Join Type": "Inner",
+                        "Actual Rows": 0,
+                        "Actual Loops": 1,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Aggregate",
+                            "Actual Rows": 0,
+                            "Actual Loops": 1,
+                            "Plan Rows": 1,
+                            "Actual Total Time": 0.001,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Index Scan",
+                                "Index Name": "ix_approval_lines_approver_id",
+                                "Actual Rows": 0,
+                                "Actual Loops": 1,
+                                "Plan Rows": 1,
+                                "Actual Total Time": 0.001,
+                                "Shared Hit Blocks": 1,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          },
+                          {
+                            "Node Type": "Index Scan",
+                            "Index Name": "approvals_pkey",
+                            "Actual Rows": 0,
+                            "Actual Loops": 0,
+                            "Plan Rows": 1,
+                            "Actual Total Time": 0.0,
+                            "Shared Hit Blocks": 0,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Index Scan",
+                                "Index Name": "ix_approval_lines_approver_id",
+                                "Actual Rows": 0,
+                                "Actual Loops": 0,
+                                "Plan Rows": 1,
+                                "Actual Total Time": 0.0,
+                                "Shared Hit Blocks": 0,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Node Type": "Index Scan",
+                        "Index Name": "employees_pkey",
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "medianTotalMs": 0.8478339877910912,
+      "medianPageTotalMs": 1.7610829963814467
+    },
+    {
+      "documents": 1000,
+      "actor": "author",
+      "scope": "mine",
+      "samples": [
+        {
+          "rows": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 1651523,
+          "ormMs": 24.744416994508356,
+          "mapSerializeMs": 14.027041004737839,
+          "totalMs": 38.771457999246195
+        },
+        {
+          "rows": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 1651523,
+          "ormMs": 24.523583007976413,
+          "mapSerializeMs": 43.24595900834538,
+          "totalMs": 67.7695420163218
+        },
+        {
+          "rows": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 1651523,
+          "ormMs": 24.092750012641773,
+          "mapSerializeMs": 13.65445798728615,
+          "totalMs": 37.74720799992792
+        }
+      ],
+      "pageSamples": [
+        {
+          "rows": 20,
+          "total": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 11405,
+          "ormMs": 2.9815000016242266,
+          "mapSerializeMs": 0.10704199667088687,
+          "totalMs": 3.0885419982951134
+        },
+        {
+          "rows": 20,
+          "total": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 11405,
+          "ormMs": 2.924208005424589,
+          "mapSerializeMs": 0.10191698675043881,
+          "totalMs": 3.0261249921750277
+        },
+        {
+          "rows": 20,
+          "total": 750,
+          "sqlStatements": 3,
+          "payloadBytes": 11405,
+          "ormMs": 2.9316250002011657,
+          "mapSerializeMs": 0.10308300261385739,
+          "totalMs": 3.034708002815023
+        }
+      ],
+      "pagePlans": [
+        {
+          "planningMs": 0.03,
+          "executionMs": 0.085,
+          "plan": {
+            "Node Type": "Aggregate",
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.08,
+            "Shared Hit Blocks": 168,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Bitmap Heap Scan",
+                "Actual Rows": 750,
+                "Actual Loops": 1,
+                "Plan Rows": 656,
+                "Actual Total Time": 0.062,
+                "Shared Hit Blocks": 168,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Bitmap Index Scan",
+                    "Index Name": "ix_approvals_author_id",
+                    "Actual Rows": 750,
+                    "Actual Loops": 1,
+                    "Plan Rows": 750,
+                    "Actual Total Time": 0.008,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.044,
+          "executionMs": 0.49,
+          "plan": {
+            "Node Type": "Limit",
+            "Actual Rows": 20,
+            "Actual Loops": 1,
+            "Plan Rows": 20,
+            "Actual Total Time": 0.482,
+            "Shared Hit Blocks": 169,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Actual Rows": 20,
+                "Actual Loops": 1,
+                "Plan Rows": 656,
+                "Actual Total Time": 0.481,
+                "Shared Hit Blocks": 169,
+                "Shared Read Blocks": 0,
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 107,
+                "Sort Space Type": "Memory",
+                "Plans": [
+                  {
+                    "Node Type": "Nested Loop",
+                    "Join Type": "Left",
+                    "Actual Rows": 750,
+                    "Actual Loops": 1,
+                    "Plan Rows": 656,
+                    "Actual Total Time": 0.213,
+                    "Shared Hit Blocks": 169,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Bitmap Heap Scan",
+                        "Actual Rows": 750,
+                        "Actual Loops": 1,
+                        "Plan Rows": 656,
+                        "Actual Total Time": 0.064,
+                        "Shared Hit Blocks": 168,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Bitmap Index Scan",
+                            "Index Name": "ix_approvals_author_id",
+                            "Actual Rows": 750,
+                            "Actual Loops": 1,
+                            "Plan Rows": 750,
+                            "Actual Total Time": 0.008,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0
+                          }
+                        ]
+                      },
+                      {
+                        "Node Type": "Materialize",
+                        "Actual Rows": 1,
+                        "Actual Loops": 750,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.0,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Seq Scan",
+                            "Actual Rows": 1,
+                            "Actual Loops": 1,
+                            "Plan Rows": 1,
+                            "Actual Total Time": 0.001,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.062,
+          "executionMs": 0.046,
+          "plan": {
+            "Node Type": "Sort",
+            "Actual Rows": 40,
+            "Actual Loops": 1,
+            "Plan Rows": 40,
+            "Actual Total Time": 0.041,
+            "Shared Hit Blocks": 7,
+            "Shared Read Blocks": 0,
+            "Sort Method": "quicksort",
+            "Sort Space Used": 33,
+            "Sort Space Type": "Memory",
+            "Plans": [
+              {
+                "Node Type": "Hash Join",
+                "Join Type": "Left",
+                "Actual Rows": 40,
+                "Actual Loops": 1,
+                "Plan Rows": 40,
+                "Actual Total Time": 0.033,
+                "Shared Hit Blocks": 7,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Index Scan",
+                    "Index Name": "ix_approval_lines_approval_id",
+                    "Actual Rows": 40,
+                    "Actual Loops": 1,
+                    "Plan Rows": 40,
+                    "Actual Total Time": 0.025,
+                    "Shared Hit Blocks": 6,
+                    "Shared Read Blocks": 0
+                  },
+                  {
+                    "Node Type": "Hash",
+                    "Actual Rows": 4,
+                    "Actual Loops": 1,
+                    "Plan Rows": 4,
+                    "Actual Total Time": 0.002,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 4,
+                        "Actual Loops": 1,
+                        "Plan Rows": 4,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "medianTotalMs": 38.771457999246195,
+      "medianPageTotalMs": 3.034708002815023
+    },
+    {
+      "documents": 1000,
+      "actor": "approver",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 2201274,
+          "ormMs": 65.97200001124293,
+          "mapSerializeMs": 18.638749985257164,
+          "totalMs": 84.61074999650009
+        },
+        {
+          "rows": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 2201274,
+          "ormMs": 32.45429100934416,
+          "mapSerializeMs": 52.34287498751655,
+          "totalMs": 84.79716599686071
+        },
+        {
+          "rows": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 2201274,
+          "ormMs": 31.89600000041537,
+          "mapSerializeMs": 52.96279100002721,
+          "totalMs": 84.85879100044258
+        }
+      ],
+      "pageSamples": [
+        {
+          "rows": 20,
+          "total": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 11391,
+          "ormMs": 4.505999997491017,
+          "mapSerializeMs": 0.1087500131689012,
+          "totalMs": 4.614750010659918
+        },
+        {
+          "rows": 20,
+          "total": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 11391,
+          "ormMs": 4.521292023127899,
+          "mapSerializeMs": 0.11204098700545728,
+          "totalMs": 4.633333010133356
+        },
+        {
+          "rows": 20,
+          "total": 1000,
+          "sqlStatements": 3,
+          "payloadBytes": 11391,
+          "ormMs": 4.467459017178044,
+          "mapSerializeMs": 0.10683300206437707,
+          "totalMs": 4.574292019242421
+        }
+      ],
+      "pagePlans": [
+        {
+          "planningMs": 0.122,
+          "executionMs": 0.766,
+          "plan": {
+            "Node Type": "Aggregate",
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.759,
+            "Shared Hit Blocks": 225,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Hash Join",
+                "Join Type": "Semi",
+                "Actual Rows": 1000,
+                "Actual Loops": 1,
+                "Plan Rows": 500,
+                "Actual Total Time": 0.732,
+                "Shared Hit Blocks": 225,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Actual Rows": 1000,
+                    "Actual Loops": 1,
+                    "Plan Rows": 500,
+                    "Actual Total Time": 0.427,
+                    "Shared Hit Blocks": 196,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 2000,
+                        "Actual Loops": 1,
+                        "Plan Rows": 2000,
+                        "Actual Total Time": 0.149,
+                        "Shared Hit Blocks": 29,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Hash",
+                    "Actual Rows": 2000,
+                    "Actual Loops": 1,
+                    "Plan Rows": 2000,
+                    "Actual Total Time": 0.218,
+                    "Shared Hit Blocks": 29,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 2000,
+                        "Actual Loops": 1,
+                        "Plan Rows": 2000,
+                        "Actual Total Time": 0.122,
+                        "Shared Hit Blocks": 29,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.217,
+          "executionMs": 1.38,
+          "plan": {
+            "Node Type": "Limit",
+            "Actual Rows": 20,
+            "Actual Loops": 1,
+            "Plan Rows": 20,
+            "Actual Total Time": 1.371,
+            "Shared Hit Blocks": 226,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Actual Rows": 20,
+                "Actual Loops": 1,
+                "Plan Rows": 500,
+                "Actual Total Time": 1.37,
+                "Shared Hit Blocks": 226,
+                "Shared Read Blocks": 0,
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 107,
+                "Sort Space Type": "Memory",
+                "Plans": [
+                  {
+                    "Node Type": "Hash Join",
+                    "Join Type": "Semi",
+                    "Actual Rows": 1000,
+                    "Actual Loops": 1,
+                    "Plan Rows": 500,
+                    "Actual Total Time": 0.975,
+                    "Shared Hit Blocks": 226,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Nested Loop",
+                        "Join Type": "Left",
+                        "Actual Rows": 1000,
+                        "Actual Loops": 1,
+                        "Plan Rows": 500,
+                        "Actual Total Time": 0.65,
+                        "Shared Hit Blocks": 197,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Seq Scan",
+                            "Actual Rows": 1000,
+                            "Actual Loops": 1,
+                            "Plan Rows": 500,
+                            "Actual Total Time": 0.422,
+                            "Shared Hit Blocks": 196,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Actual Rows": 2000,
+                                "Actual Loops": 1,
+                                "Plan Rows": 2000,
+                                "Actual Total Time": 0.138,
+                                "Shared Hit Blocks": 29,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          },
+                          {
+                            "Node Type": "Materialize",
+                            "Actual Rows": 2,
+                            "Actual Loops": 1000,
+                            "Plan Rows": 4,
+                            "Actual Total Time": 0.0,
+                            "Shared Hit Blocks": 1,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Actual Rows": 3,
+                                "Actual Loops": 1,
+                                "Plan Rows": 4,
+                                "Actual Total Time": 0.001,
+                                "Shared Hit Blocks": 1,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Node Type": "Hash",
+                        "Actual Rows": 2000,
+                        "Actual Loops": 1,
+                        "Plan Rows": 2000,
+                        "Actual Total Time": 0.218,
+                        "Shared Hit Blocks": 29,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Seq Scan",
+                            "Actual Rows": 2000,
+                            "Actual Loops": 1,
+                            "Plan Rows": 2000,
+                            "Actual Total Time": 0.122,
+                            "Shared Hit Blocks": 29,
+                            "Shared Read Blocks": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.06,
+          "executionMs": 0.042,
+          "plan": {
+            "Node Type": "Sort",
+            "Actual Rows": 40,
+            "Actual Loops": 1,
+            "Plan Rows": 40,
+            "Actual Total Time": 0.036,
+            "Shared Hit Blocks": 4,
+            "Shared Read Blocks": 0,
+            "Sort Method": "quicksort",
+            "Sort Space Used": 33,
+            "Sort Space Type": "Memory",
+            "Plans": [
+              {
+                "Node Type": "Hash Join",
+                "Join Type": "Left",
+                "Actual Rows": 40,
+                "Actual Loops": 1,
+                "Plan Rows": 40,
+                "Actual Total Time": 0.029,
+                "Shared Hit Blocks": 4,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Index Scan",
+                    "Index Name": "ix_approval_lines_approval_id",
+                    "Actual Rows": 40,
+                    "Actual Loops": 1,
+                    "Plan Rows": 40,
+                    "Actual Total Time": 0.021,
+                    "Shared Hit Blocks": 3,
+                    "Shared Read Blocks": 0
+                  },
+                  {
+                    "Node Type": "Hash",
+                    "Actual Rows": 4,
+                    "Actual Loops": 1,
+                    "Plan Rows": 4,
+                    "Actual Total Time": 0.001,
+                    "Shared Hit Blocks": 1,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Seq Scan",
+                        "Actual Rows": 4,
+                        "Actual Loops": 1,
+                        "Plan Rows": 4,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 1,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "medianTotalMs": 84.79716599686071,
+      "medianPageTotalMs": 4.614750010659918
+    },
+    {
+      "documents": 1000,
+      "actor": "outsider",
+      "scope": "assigned",
+      "samples": [
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 0.8593749953433871,
+          "mapSerializeMs": 0.0039590231608599424,
+          "totalMs": 0.8633340185042471
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 0.8490000036545098,
+          "mapSerializeMs": 0.0029999937396496534,
+          "totalMs": 0.8519999973941594
+        },
+        {
+          "rows": 0,
+          "sqlStatements": 1,
+          "payloadBytes": 22,
+          "ormMs": 0.8468749874737114,
+          "mapSerializeMs": 0.004458008334040642,
+          "totalMs": 0.851332995807752
+        }
+      ],
+      "pageSamples": [
+        {
+          "rows": 0,
+          "total": 0,
+          "sqlStatements": 2,
+          "payloadBytes": 44,
+          "ormMs": 1.5009169874247164,
+          "mapSerializeMs": 0.003667024429887533,
+          "totalMs": 1.5045840118546039
+        },
+        {
+          "rows": 0,
+          "total": 0,
+          "sqlStatements": 2,
+          "payloadBytes": 44,
+          "ormMs": 1.4039590023458004,
+          "mapSerializeMs": 0.004375004209578037,
+          "totalMs": 1.4083340065553784
+        },
+        {
+          "rows": 0,
+          "total": 0,
+          "sqlStatements": 2,
+          "payloadBytes": 44,
+          "ormMs": 1.4679580053780228,
+          "mapSerializeMs": 0.003416993422433734,
+          "totalMs": 1.4713749988004565
+        }
+      ],
+      "pagePlans": [
+        {
+          "planningMs": 0.107,
+          "executionMs": 0.008,
+          "plan": {
+            "Node Type": "Aggregate",
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.002,
+            "Shared Hit Blocks": 2,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Nested Loop",
+                "Join Type": "Inner",
+                "Actual Rows": 0,
+                "Actual Loops": 1,
+                "Plan Rows": 1,
+                "Actual Total Time": 0.002,
+                "Shared Hit Blocks": 2,
+                "Shared Read Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Aggregate",
+                    "Actual Rows": 0,
+                    "Actual Loops": 1,
+                    "Plan Rows": 1,
+                    "Actual Total Time": 0.001,
+                    "Shared Hit Blocks": 2,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Index Scan",
+                        "Index Name": "ix_approval_lines_approver_id",
+                        "Actual Rows": 0,
+                        "Actual Loops": 1,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.001,
+                        "Shared Hit Blocks": 2,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Index Scan",
+                    "Index Name": "approvals_pkey",
+                    "Actual Rows": 0,
+                    "Actual Loops": 0,
+                    "Plan Rows": 1,
+                    "Actual Total Time": 0.0,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Index Scan",
+                        "Index Name": "ix_approval_lines_approver_id",
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "planningMs": 0.204,
+          "executionMs": 0.012,
+          "plan": {
+            "Node Type": "Limit",
+            "Actual Rows": 0,
+            "Actual Loops": 1,
+            "Plan Rows": 1,
+            "Actual Total Time": 0.003,
+            "Shared Hit Blocks": 2,
+            "Shared Read Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Actual Rows": 0,
+                "Actual Loops": 1,
+                "Plan Rows": 1,
+                "Actual Total Time": 0.002,
+                "Shared Hit Blocks": 2,
+                "Shared Read Blocks": 0,
+                "Sort Method": "quicksort",
+                "Sort Space Used": 25,
+                "Sort Space Type": "Memory",
+                "Plans": [
+                  {
+                    "Node Type": "Nested Loop",
+                    "Join Type": "Left",
+                    "Actual Rows": 0,
+                    "Actual Loops": 1,
+                    "Plan Rows": 1,
+                    "Actual Total Time": 0.002,
+                    "Shared Hit Blocks": 2,
+                    "Shared Read Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Nested Loop",
+                        "Join Type": "Inner",
+                        "Actual Rows": 0,
+                        "Actual Loops": 1,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.002,
+                        "Shared Hit Blocks": 2,
+                        "Shared Read Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Aggregate",
+                            "Actual Rows": 0,
+                            "Actual Loops": 1,
+                            "Plan Rows": 1,
+                            "Actual Total Time": 0.001,
+                            "Shared Hit Blocks": 2,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Index Scan",
+                                "Index Name": "ix_approval_lines_approver_id",
+                                "Actual Rows": 0,
+                                "Actual Loops": 1,
+                                "Plan Rows": 1,
+                                "Actual Total Time": 0.001,
+                                "Shared Hit Blocks": 2,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          },
+                          {
+                            "Node Type": "Index Scan",
+                            "Index Name": "approvals_pkey",
+                            "Actual Rows": 0,
+                            "Actual Loops": 0,
+                            "Plan Rows": 1,
+                            "Actual Total Time": 0.0,
+                            "Shared Hit Blocks": 0,
+                            "Shared Read Blocks": 0,
+                            "Plans": [
+                              {
+                                "Node Type": "Index Scan",
+                                "Index Name": "ix_approval_lines_approver_id",
+                                "Actual Rows": 0,
+                                "Actual Loops": 0,
+                                "Plan Rows": 1,
+                                "Actual Total Time": 0.0,
+                                "Shared Hit Blocks": 0,
+                                "Shared Read Blocks": 0
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Node Type": "Index Scan",
+                        "Index Name": "employees_pkey",
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Plan Rows": 1,
+                        "Actual Total Time": 0.0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "medianTotalMs": 0.8519999973941594,
+      "medianPageTotalMs": 1.4713749988004565
+    }
+  ]
+}

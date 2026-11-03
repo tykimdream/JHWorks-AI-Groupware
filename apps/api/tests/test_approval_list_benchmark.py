@@ -35,3 +35,12 @@ def test_bounded_defaults_and_dedicated_target() -> None:
     assert benchmark.dedicated_url(
         "postgresql+psycopg://jhworks_test:synthetic@127.0.0.1:5432/jhworks_test"
     ).host == "127.0.0.1"
+
+
+def test_plan_summary_discards_sql_and_values_recursively() -> None:
+    plan = {"Node Type": "Sort", "Filter": "secret", "Relation Name": "private",
+            "Plans": [{"Node Type": "Seq Scan", "Index Cond": "secret",
+                       "Actual Rows": 4}]}
+    assert benchmark.summarize_plan(plan) == {
+        "Node Type": "Sort", "Plans": [{"Node Type": "Seq Scan", "Actual Rows": 4}]
+    }

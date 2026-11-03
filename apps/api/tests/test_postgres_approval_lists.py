@@ -131,10 +131,10 @@ def test_synthetic_service_baseline_reports_visible_rows_and_serialization() -> 
     raw = os.environ.get("JHWORKS_TEST_POSTGRES_URL")
     if not raw:
         pytest.skip("dedicated local PostgreSQL test URL not configured")
-    report = run(raw, [4], 2)
+    report = run(raw, [4, 1000], 2)
     assert report["fixtureVersion"] == "approval-list-v1"
     assert "synthetic-ci-only" not in str(report)
-    cases = {case["actor"]: case for case in report["cases"]}
+    cases = {case["actor"]: case for case in report["cases"] if case["documents"] == 4}
     for actor, expected in (("author", 3), ("approver", 4), ("outsider", 0)):
         samples = cases[actor]["samples"]
         assert len(samples) == 2
@@ -150,3 +150,11 @@ def test_synthetic_service_baseline_reports_visible_rows_and_serialization() -> 
         assert len(plans) == pages[0]["sqlStatements"]
         assert all(plan["executionMs"] >= 0 and plan["plan"]["Node Type"] for plan in plans)
         assert "bench-" not in str(plans)
+    deep_cases = {case["actor"]: case for case in report["cases"]
+                  if case["documents"] == 1000}
+    for actor, total in (("author", 750), ("approver", 1000), ("outsider", 0)):
+        case = deep_cases[actor]
+        assert case["deepOffset"] == 400
+        assert all(sample["total"] == total and sample["rows"] == (20 if total else 0)
+                   for sample in case["deepPageSamples"])
+        assert len(case["deepPagePlans"]) == case["deepPageSamples"][0]["sqlStatements"]

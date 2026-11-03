@@ -146,3 +146,7 @@ def test_synthetic_service_baseline_reports_visible_rows_and_serialization() -> 
         assert len(pages) == 2
         assert all(sample["total"] == expected and sample["rows"] == expected for sample in pages)
         assert all(sample["sqlStatements"] >= 1 and sample["payloadBytes"] > 0 for sample in pages)
+        plans = cases[actor]["pagePlans"]
+        assert len(plans) == pages[0]["sqlStatements"]
+        assert all(plan["executionMs"] >= 0 and plan["plan"]["Node Type"] for plan in plans)
+        assert "bench-" not in str(plans)

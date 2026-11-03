@@ -81,3 +81,17 @@ API 사용은 합산하지 않는다. 원장을 삭제/교체하거나 새 check
 프로세스 중단 시 마지막 결과는 running이거나 부분 기록일 수 있다. 원장에 남은 예약을 지우거나
 자동 환불하지 않는다. 재실행은 같은 원장의 슬롯/예산을 따르며, 필요하면 기존 보수적 복구 절차를
 해당 **로컬 원장**에 맞춰 별도 대조해야 한다. 현재 앱 DB용 복구 CLI를 이 파일에 자동 연결하지 않는다.
+
+## 추가 합성 challenge 5건
+
+`--challenge` 기본 실행은 별도 5건의 ID와 데이터 해시만 표시한다. 기존 36건과 점수는 합산하지 않으며 이 데이터의 통과는 배포 승격 기준이 아니다. 실제 실행은 기존 원장이 들어 있는 절대 `--accounting-directory`를 요구하고 기존 `expense-model-ledger.sqlite3`가 없거나 필요한 테이블이 없으면 거부한다. 같은 디렉터리의 기존 잠금·월/일 한도를 공유하며 새 원장을 만들지 않는다. 결과는 기존 결과를 덮지 않는 `expense-challenge-evaluation.json`에 기록한다. challenge도 재시도 0, 첫 실패 중단, source·데이터 해시 대조와 요청별 예약을 유지한다.
+
+```sh
+uv run --frozen python -m app.ops.expense_model_evaluation --challenge
+# 승인된 실행 시 기존 원장 디렉터리와 위 계획의 source/hash를 지정한다.
+uv run --frozen python -m app.ops.expense_model_evaluation --challenge --execute \
+  --accounting-directory /absolute/path/to/existing/artifacts/evals \
+  --expected-source SOURCE --expected-dataset-sha256 DATASET
+```
+
+원장은 해당 파일에서 수행된 평가만 제한하며 API 계정 전체 한도가 아니다. 별도 checkout에서 새 원장을 만들거나 원장을 복제해 한도를 우회하지 않는다. 결과의 미평가 사례는 실패나 성공으로 간주하지 않는다.

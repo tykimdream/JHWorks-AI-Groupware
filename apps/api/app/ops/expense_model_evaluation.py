@@ -23,6 +23,7 @@ from app.evals.draft_contract import (
     grade_candidate,
     load_cases,
 )
+from app.evals.expense_challenge import CHALLENGE_PATH
 
 ROOT = Path(__file__).resolve().parents[4]
 DIRECTORY = ROOT / "artifacts/evals"
@@ -52,8 +53,11 @@ def git(*arguments: str) -> str:
     ).strip()
 
 
-def cases_and_plan() -> tuple[list[ApprovalDraftEvalCase], dict[str, Any]]:
-    cases = sorted(load_cases(), key=lambda case: not case.required)
+def cases_and_plan(challenge: bool = False) -> tuple[list[ApprovalDraftEvalCase], dict[str, Any]]:
+    dataset = CHALLENGE_PATH if challenge else DATASET_PATH
+    cases = sorted(load_cases(dataset), key=lambda case: not case.required)
+    if challenge and len(cases) != 5:
+        raise ValueError("Challenge dataset must contain exactly five cases")
     if len(cases) > MAX_CASES or any(
         len(answer) > 2000 for case in cases for answer in case.answers
     ):
@@ -63,7 +67,8 @@ def cases_and_plan() -> tuple[list[ApprovalDraftEvalCase], dict[str, Any]]:
         "evaluationKind": "model-plan",
         "status": "planned",
         "sourceCommit": git("rev-parse", "HEAD"),
-        "datasetSha256": hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest(),
+        "datasetSha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
+        "datasetKind": "challenge" if challenge else "standard",
         "promptVersion": PROMPT_VERSION,
         "priceVersion": PRICE_VERSION,
         "model": MODEL,
@@ -167,7 +172,8 @@ def evaluate_cases(
         gradedCount=len(outcomes),
         fullDatasetCompleted=len(outcomes) == len(cases),
         modelPassRate=passed / len(outcomes) if outcomes else None,
-        promotionEligible=len(outcomes) == len(cases) and passed == len(cases),
+        promotionEligible=(report.get("datasetKind") != "challenge"
+                           and len(outcomes) == len(cases) and passed == len(cases)),
     )
     save(report)
     return report
@@ -178,12 +184,25 @@ def run(
     execute: bool = False,
     expected_source: str | None = None,
     expected_dataset: str | None = None,
+    challenge: bool = False,
+    accounting_directory: Path | None = None,
 ) -> dict[str, Any]:
-    cases, report = cases_and_plan()
+    cases, report = cases_and_plan(True) if challenge else cases_and_plan()
     if not execute:
         return report
     if not checked_source(report, expected_source, expected_dataset):
         return {**report, "status": "source-or-dataset-not-approved"}
+    # Challenge runs must reuse the existing ledger and its lock, never create a fresh budget.
+    directory = accounting_directory if challenge else DIRECTORY
+    if challenge and (
+        directory is None or not directory.is_absolute() or directory.is_symlink()
+        or not directory.is_dir()
+        or not (directory / LEDGER.name).is_file() or (directory / LEDGER.name).is_symlink()
+    ):
+        return {**report, "status": "existing-accounting-required"}
+    assert directory is not None
+    ledger = directory / LEDGER.name if challenge else LEDGER
+    result_path = directory / "expense-challenge-evaluation.json" if challenge else REPORT
     from app.core.config import get_settings
 
     key = get_settings().openai_api_key
@@ -203,26 +222,26 @@ def run(
     from app.models.ai_budget import AIBudgetCounter
     from app.services.login_budget import database_seconds
 
-    DIRECTORY.mkdir(parents=True, exist_ok=True)
-    if any(path.is_symlink() for path in (LEDGER, REPORT, DIRECTORY / "expense-model.lock")):
+    directory.mkdir(parents=True, exist_ok=True)
+    if any(path.is_symlink() for path in (ledger, result_path, directory / "expense-model.lock")):
         return {**report, "status": "unsafe-artifact-path"}
-    lock_fd = os.open(DIRECTORY / "expense-model.lock", os.O_CREAT | os.O_RDWR, 0o600)
+    lock_fd = os.open(directory / "expense-model.lock", os.O_CREAT | os.O_RDWR, 0o600)
     try:
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return {**report, "status": "evaluation-already-running"}
-        ledger_fd = os.open(LEDGER, os.O_CREAT | os.O_RDWR, 0o600)
+        ledger_fd = os.open(ledger, os.O_RDWR if challenge else os.O_CREAT | os.O_RDWR, 0o600)
         os.close(ledger_fd)
-        os.chmod(LEDGER, 0o600)
-        engine = create_engine("sqlite:///" + str(LEDGER))
+        os.chmod(ledger, 0o600)
+        engine = create_engine("sqlite:///" + str(ledger))
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
         def save(value: dict[str, Any]) -> None:
             from tempfile import NamedTemporaryFile
 
             with NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=DIRECTORY, suffix=".json", delete=False
+                mode="w", encoding="utf-8", dir=directory, suffix=".json", delete=False
             ) as stream:
                 temporary = Path(stream.name)
                 try:
@@ -234,7 +253,7 @@ def run(
                     temporary.unlink(missing_ok=True)
                     raise
             try:
-                os.replace(temporary, REPORT)
+                os.replace(temporary, result_path)
             finally:
                 temporary.unlink(missing_ok=True)
 
@@ -258,13 +277,21 @@ def run(
             return CountedProvider()
 
         try:
-            Base.metadata.create_all(
-                engine,
-                tables=[
-                    Base.metadata.tables["ai_budget_counters"],
-                    Base.metadata.tables["ai_budget_reservations"],
-                ],
-            )
+            if challenge:
+                from sqlalchemy import inspect
+
+                if not {"ai_budget_counters", "ai_budget_reservations"}.issubset(
+                    inspect(engine).get_table_names()
+                ):
+                    return {**report, "status": "existing-accounting-required"}
+            if not challenge:
+                Base.metadata.create_all(
+                    engine,
+                    tables=[
+                        Base.metadata.tables["ai_budget_counters"],
+                        Base.metadata.tables["ai_budget_reservations"],
+                    ],
+                )
             provider = BudgetedExpenseDraftProvider(
                 workspace_id="fixed-synthetic-evaluation",
                 factory=factory,
@@ -279,7 +306,7 @@ def run(
                 check_authorization=lambda db: None,
             )
             # Store accounting at this fixed checkout path across repeat runs; never use app DB.
-            report.update(localAccounting=True, ledgerPath=str(LEDGER))
+            report.update(localAccounting=True, ledgerPath=str(ledger))
             result_report = evaluate_cases(cases, provider, report, save)
             with factory() as db:
                 from datetime import UTC, datetime
@@ -311,11 +338,15 @@ def main() -> int:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--expected-source")
     parser.add_argument("--expected-dataset-sha256")
+    parser.add_argument("--challenge", action="store_true")
+    parser.add_argument("--accounting-directory", type=Path)
     args = parser.parse_args()
     report = run(
         execute=args.execute,
         expected_source=args.expected_source,
         expected_dataset=args.expected_dataset_sha256,
+        challenge=args.challenge,
+        accounting_directory=args.accounting_directory,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["status"] in {"planned", "passed"} else 1

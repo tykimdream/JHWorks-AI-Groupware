@@ -150,6 +150,59 @@ def test_provider_diagnostics_are_not_saved_or_printed() -> None:
     assert "private synthetic diagnostic" not in json.dumps(failed)
 
 
+def test_challenge_plan_requires_existing_ledger_and_never_promotes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases, report = evaluation.cases_and_plan(True)
+    assert len(cases) == report["maxProviderAttempts"] == 5
+    assert report["datasetKind"] == "challenge" and report["providerAttempts"] == 0
+    monkeypatch.setattr(evaluation, "checked_source", lambda *args: True)
+    blocked = evaluation.run(execute=True, challenge=True, accounting_directory=tmp_path)
+    assert blocked["status"] == "existing-accounting-required"
+    assert not list(tmp_path.iterdir())
+    case = cases[0]
+    provider = SyntheticProvider(replace(
+        result(), candidate=ApprovalDraftCandidate.model_validate(
+            {"intent": case.expected_intent, **case.expected_values}
+        )
+    ))
+    evaluated = evaluation.evaluate_cases([case], provider, report, lambda value: None)
+    assert evaluated["status"] == "passed" and evaluated["fullDatasetCompleted"] is True
+    assert evaluated["promotionEligible"] is False
+
+
+def test_challenge_reuses_existing_ledger_and_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.ai import openai_approval_draft
+    from app.core import config
+    from app.core.database import Base
+
+    ledger = tmp_path / evaluation.LEDGER.name
+    engine = create_engine("sqlite:///" + str(ledger))
+    Base.metadata.create_all(engine, tables=[Base.metadata.tables["ai_budget_counters"],
+                                            Base.metadata.tables["ai_budget_reservations"]])
+    engine.dispose()
+    cases, _ = evaluation.cases_and_plan(True)
+    provider = SyntheticProvider(replace(
+        result(), candidate=ApprovalDraftCandidate.model_validate(
+            {"intent": cases[0].expected_intent, **cases[0].expected_values}
+        )
+    ))
+    monkeypatch.setattr(evaluation, "checked_source", lambda *args: True)
+    monkeypatch.setattr(config, "get_settings", lambda: Settings(
+        _env_file=None, openai_api_key="synthetic-not-a-key"
+    ))
+    monkeypatch.setattr(openai_approval_draft, "OpenAIApprovalDraftProvider",
+                        lambda *args, **kwargs: provider)
+    report = evaluation.run(execute=True, challenge=True, accounting_directory=tmp_path)
+    assert provider.calls >= 1 and report["localMonthlyChargedMicroUsd"] > 0
+    assert report["promotionEligible"] is False
+    assert (tmp_path / "expense-model.lock").exists()
+    assert (tmp_path / "expense-challenge-evaluation.json").exists()
+    assert not (tmp_path / "expense-model-evaluation.json").exists()
+
+
 def test_per_run_cost_guard_survives_calendar_rollover_independently_of_month_ledger() -> None:
     cases, plan = selected_plan()
     case = cases[0]
